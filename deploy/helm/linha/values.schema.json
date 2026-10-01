@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "security": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "oidc"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "oidc": {
+          "type": "object",
+          "required": [
+            "enabled"
+          ],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "issuer": {
+              "type": "string"
+            },
+            "audience": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "rbac": {
+      "type": "object",
+      "required": [
+        "namespaceOnly"
+      ],
+      "properties": {
+        "namespaceOnly": {
+          "type": "boolean"
+        }
+      }
+    },
+    "database": {
+      "type": "object",
+      "required": [
+        "postgres"
+      ],
+      "properties": {
+        "postgres": {
+          "type": "object",
+          "required": [
+            "host",
+            "port",
+            "database",
+            "secretRef",
+            "usernameKey",
+            "passwordKey",
+            "sslMode"
+          ],
+          "properties": {
+            "host": {
+              "type": "string",
+              "minLength": 1
+            },
+            "database": {
+              "type": "string",
+              "minLength": 1
+            },
+            "secretRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "usernameKey": {
+              "type": "string",
+              "minLength": 1
+            },
+            "passwordKey": {
+              "type": "string",
+              "minLength": 1
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "sslMode": {
+              "enum": [
+                "disable",
+                "allow",
+                "prefer",
+                "require",
+                "verify-ca",
+                "verify-full"
+              ]
+            },
+            "sslRootCert": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "workerPodTemplates": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "driverPodTemplate": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "metadata": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "labels": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "annotations": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "spec": {
+              "type": "object"
+            }
+          }
+        },
+        "executorPodTemplate": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "metadata": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "labels": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "annotations": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "spec": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "registrySecrets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowedNames"
+      ],
+      "properties": {
+        "allowedNames": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 253,
+            "pattern": "^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$"
+          }
+        }
+      }
+    },
+    "results": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cleanup": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          }
+        },
+        "maxStagingBytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

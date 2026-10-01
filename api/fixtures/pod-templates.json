@@ -1,0 +1,238 @@
+[
+  {
+    "name": "named entries retain defaults and replace sources",
+    "base": {
+      "metadata": {
+        "labels": {
+          "team": "a",
+          "keep": "yes"
+        }
+      },
+      "spec": {
+        "imagePullSecrets": [
+          {
+            "name": "default"
+          }
+        ],
+        "volumes": [
+          {
+            "name": "config",
+            "configMap": {
+              "name": "old"
+            }
+          }
+        ],
+        "containers": [
+          {
+            "name": "main",
+            "env": [
+              {
+                "name": "MODE",
+                "value": "old"
+              },
+              {
+                "name": "KEEP",
+                "value": "yes"
+              }
+            ],
+            "volumeMounts": [
+              {
+                "name": "config",
+                "mountPath": "/etc/app"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "override": {
+      "metadata": {
+        "labels": {
+          "team": "b"
+        }
+      },
+      "spec": {
+        "imagePullSecrets": [
+          {
+            "name": "private"
+          }
+        ],
+        "volumes": [
+          {
+            "name": "config",
+            "secret": {
+              "secretName": "new"
+            }
+          }
+        ],
+        "containers": [
+          {
+            "name": "main",
+            "env": [
+              {
+                "name": "MODE",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "settings",
+                    "key": "mode"
+                  }
+                }
+              }
+            ],
+            "volumeMounts": [
+              {
+                "name": "config",
+                "mountPath": "/etc/app",
+                "readOnly": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "expected": {
+      "metadata": {
+        "labels": {
+          "team": "b",
+          "keep": "yes"
+        }
+      },
+      "spec": {
+        "imagePullSecrets": [
+          {
+            "name": "default"
+          },
+          {
+            "name": "private"
+          }
+        ],
+        "volumes": [
+          {
+            "name": "config",
+            "secret": {
+              "secretName": "new"
+            }
+          }
+        ],
+        "containers": [
+          {
+            "name": "main",
+            "env": [
+              {
+                "name": "MODE",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "settings",
+                    "key": "mode"
+                  }
+                }
+              },
+              {
+                "name": "KEEP",
+                "value": "yes"
+              }
+            ],
+            "volumeMounts": [
+              {
+                "name": "config",
+                "mountPath": "/etc/app",
+                "readOnly": true
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "unnamed list replacement",
+    "base": {
+      "spec": {
+        "tolerations": [
+          {
+            "key": "a",
+            "operator": "Exists"
+          }
+        ]
+      }
+    },
+    "override": {
+      "spec": {
+        "tolerations": [
+          {
+            "key": "b",
+            "operator": "Exists"
+          }
+        ]
+      }
+    },
+    "expected": {
+      "spec": {
+        "tolerations": [
+          {
+            "key": "b",
+            "operator": "Exists"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "empty named lists preserve defaults",
+    "base": {
+      "spec": {
+        "volumes": [
+          {
+            "name": "scratch",
+            "emptyDir": {}
+          }
+        ]
+      }
+    },
+    "override": {
+      "spec": {
+        "volumes": []
+      }
+    },
+    "expected": {
+      "spec": {
+        "volumes": [
+          {
+            "name": "scratch",
+            "emptyDir": {}
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "arbitrary metadata and selector keys",
+    "base": {},
+    "override": {
+      "metadata": {
+        "labels": {
+          "env": "prod",
+          "containers": "main"
+        }
+      },
+      "spec": {
+        "nodeSelector": {
+          "volumes": "ssd"
+        }
+      }
+    },
+    "expected": {
+      "metadata": {
+        "labels": {
+          "env": "prod",
+          "containers": "main"
+        }
+      },
+      "spec": {
+        "nodeSelector": {
+          "volumes": "ssd"
+        }
+      }
+    }
+  }
+]

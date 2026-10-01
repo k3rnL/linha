@@ -1,0 +1,53 @@
+name: checks
+on:
+  - push
+  - pull_request
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: linha
+          POSTGRES_PASSWORD: linha-ci-only
+          POSTGRES_DB: linha
+        ports:
+          - '5432:5432'
+        options: >-
+          --health-cmd="pg_isready -U linha -d linha"
+          --health-interval=5s --health-timeout=5s --health-retries=10
+    env:
+      LINHA_TEST_DATABASE: postgres://linha:linha-ci-only@localhost:5432/linha?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: azure/setup-helm@v4
+      - run: pip install PyYAML==6.0.3 && python3 scripts/test-helm.py
+      - name: Check formatting
+        run: |
+          pip install -r requirements-format.txt
+          python scripts/format-data.py --check
+          black --check scripts
+          sqlfluff lint --rules layout server/internal/postgres/*.sql
+          mvn -B spotless:check
+      - run: make check
+      - run: go test -race ./server/...
+      - run: mvn -B package
+      - run: make build && python3 scripts/e2e.py
+      - run: pip install openapi-spec-validator==0.7.2 && python -m openapi_spec_validator api/openapi.json
+      - run: npx --yes @fission-ai/openspec@1.7.0 validate --all --strict

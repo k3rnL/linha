@@ -1,0 +1,67 @@
+replicaCount: 2
+image:
+  repository: linha/server
+  tag: 0.1.0
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+database:
+  postgres:
+    host: postgres
+    port: 5432
+    database: linha
+    sslMode: verify-full
+    # Optional path to a CA mounted with extraVolumes/extraVolumeMounts.
+    sslRootCert: ""
+    secretRef: linha-postgres
+    usernameKey: username
+    passwordKey: password
+security:
+  # false disables public and worker authentication. All clients share one owner.
+  enabled: true
+  oidc:
+    # false makes only the public API anonymous; worker authentication stays on.
+    enabled: true
+    issuer: ""
+    audience: ""
+rbac:
+  # true: only namespaced Roles; verify workers with Kubernetes signing keys.
+  # false: additionally grant cluster-scoped TokenReview for worker verification.
+  # In both cases all drivers/executors are confined to the release namespace.
+  namespaceOnly: true
+allowedImages: []
+local:
+  enabled: false
+  root: /var/lib/linha/results
+  existingClaim: ""
+s3:
+  enabled: false
+  secretRef: linha-s3
+  destinationsKey: destinations
+# Legacy administrator mounts, included in new context template snapshots.
+workerVolumes: []
+workerMounts: []
+# Defaults merged with client templates and snapshotted for each new context.
+workerPodTemplates:
+  driverPodTemplate: {}
+  executorPodTemplate: {}
+# Names allowed in per-context imagePullSecrets. Top-level imagePullSecrets are
+# also permitted. Only these Secrets get a namespaced get grant for digest lookup.
+registrySecrets:
+  allowedNames: []
+results:
+  # Opt in to deleting expired and abandoned allocated outputs. Job IDs stay.
+  cleanup:
+    enabled: false
+  maxStagingBytes: 5368709120
+extraEnv: []
+extraVolumes: []
+extraVolumeMounts: []
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 512Mi
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []

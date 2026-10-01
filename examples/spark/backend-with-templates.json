@@ -1,0 +1,92 @@
+{
+  "name": "sample-app-v2",
+  "spec": {
+    "image": "registry.example/sample-app/worker:1",
+    "engine": {
+      "type": "spark",
+      "version": "3.5.6",
+      "settings": {
+        "kubernetes": {
+          "driverPodTemplate": {
+            "spec": {
+              "imagePullSecrets": [
+                {
+                  "name": "sample-app-registry"
+                }
+              ],
+              "volumes": [
+                {
+                  "name": "app-config",
+                  "configMap": {
+                    "name": "sample-app-config-v1"
+                  }
+                }
+              ],
+              "containers": [
+                {
+                  "name": "main",
+                  "env": [
+                    {
+                      "name": "APP_ROLE",
+                      "value": "driver"
+                    }
+                  ],
+                  "volumeMounts": [
+                    {
+                      "name": "app-config",
+                      "mountPath": "/etc/sample-app",
+                      "readOnly": true
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "executorPodTemplate": {
+            "spec": {
+              "imagePullSecrets": [
+                {
+                  "name": "sample-app-registry"
+                }
+              ],
+              "volumes": [
+                {
+                  "name": "app-config",
+                  "configMap": {
+                    "name": "sample-app-config-v1"
+                  }
+                }
+              ],
+              "containers": [
+                {
+                  "name": "main",
+                  "env": [
+                    {
+                      "name": "APP_ROLE",
+                      "value": "executor"
+                    }
+                  ],
+                  "volumeMounts": [
+                    {
+                      "name": "app-config",
+                      "mountPath": "/etc/sample-app",
+                      "readOnly": true
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "application": {
+          "mainClass": "linha.example.SparkMain",
+          "mainApplicationFile": "local:///opt/linha/linha-examples.jar"
+        }
+      }
+    },
+    "results": {
+      "type": "local",
+      "root": "/var/lib/linha/results"
+    }
+  }
+}
