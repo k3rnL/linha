@@ -1,0 +1,47 @@
+[
+  {
+    "template": "exports/{submittedAt:yyyy/MM/dd}/{requestId}/{attemptId}/{file}",
+    "submittedAt": "2026-09-28T23:59:58.123Z",
+    "contextId": "ctx-1",
+    "requestId": "job-123",
+    "attemptId": "attempt-1",
+    "file": "result.json",
+    "expected": "exports/2026/09/28/job-123/attempt-1/result.json"
+  },
+  {
+    "template": "{submittedAt}/{requestId}/{attemptId}/{file}",
+    "submittedAt": "2026-09-29T01:59:58.123+02:00",
+    "contextId": "ctx-1",
+    "requestId": "job-123",
+    "attemptId": "attempt-2",
+    "file": "events/year=2026/part-00001.parquet",
+    "expected": "20260928T235958123Z/job-123/attempt-2/events/year=2026/part-00001.parquet"
+  },
+  {
+    "template": "exports/{submittedAt:yyyy/MM/dd}/{requestId}/{attemptId}/{file}",
+    "submittedAt": "2026-10-01T00:00:00+14:00",
+    "contextId": "context",
+    "requestId": "job",
+    "attemptId": "attempt",
+    "file": "events/group=1/part-0.parquet",
+    "expected": "exports/2026/09/30/job/attempt/events/group=1/part-0.parquet"
+  },
+  {
+    "template": "exports/{submittedAt:yyyy/MM/dd}/{requestId}/{attemptId}/{file}",
+    "submittedAt": "2026-09-30T23:59:59-12:00",
+    "contextId": "context",
+    "requestId": "job",
+    "attemptId": "attempt",
+    "file": "events/group=1/part-0.parquet",
+    "expected": "exports/2026/10/01/job/attempt/events/group=1/part-0.parquet"
+  },
+  {
+    "template": "exports/{submittedAt:yyyy/MM/dd}/{requestId}/{attemptId}/{file}",
+    "submittedAt": "2028-02-29T23:59:59.999Z",
+    "contextId": "context",
+    "requestId": "job",
+    "attemptId": "attempt",
+    "file": "events/group=1/part-0.parquet",
+    "expected": "exports/2028/02/29/job/attempt/events/group=1/part-0.parquet"
+  }
+]

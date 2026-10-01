@@ -1,0 +1,138 @@
+{{- $registrySecrets := .Values.registrySecrets.allowedNames -}}
+{{- range .Values.imagePullSecrets -}}
+{{- $registrySecrets = append $registrySecrets .name -}}
+{{- end -}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "linha.name" . }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "linha.name" . }}-worker
+imagePullSecrets: {{ toJson .Values.imagePullSecrets }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "linha.name" . }}
+rules:
+  - apiGroups: [sparkoperator.k8s.io]
+    resources:
+      - sparkapplications
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+  - apiGroups: [""]
+    resources:
+      - pods
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+  - apiGroups: [""]
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - create
+  {{- if $registrySecrets }}
+  - apiGroups: [""]
+    resources:
+      - secrets
+    resourceNames: {{ toJson ($registrySecrets | uniq) }}
+    verbs:
+      - get
+  {{- end }}
+  {{- if and .Values.security.enabled .Values.rbac.namespaceOnly }}
+  - apiGroups: [""]
+    resources:
+      - serviceaccounts
+    verbs:
+      - get
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "linha.name" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "linha.name" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "linha.name" . }}
+{{- if and .Values.security.enabled (not .Values.rbac.namespaceOnly) }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Release.Namespace }}-{{ include "linha.name" . }}-tokenreview
+rules:
+  - apiGroups: [authentication.k8s.io]
+    resources:
+      - tokenreviews
+    verbs:
+      - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Release.Namespace }}-{{ include "linha.name" . }}-tokenreview
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "linha.name" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ printf "%s-%s-tokenreview" .Release.Namespace (include "linha.name" .) }}
+{{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "linha.name" . }}-worker
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - services
+      - configmaps
+      - persistentvolumeclaims
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - patch
+  # Spark cleans executor Pods and ConfigMaps with label-selector DELETEs.
+  - apiGroups: [""]
+    resources:
+      - pods
+      - configmaps
+    verbs:
+      - deletecollection
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "linha.name" . }}-worker
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "linha.name" . }}-worker
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "linha.name" . }}-worker

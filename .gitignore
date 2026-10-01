@@ -1,0 +1,22 @@
+# Build outputs and downloaded runtime dependencies
+/bin/
+/dist/
+**/target/
+/examples/spark/jars/
+*.test
+coverage.out
+
+# IDE and local environment
+.idea/
+*.iml
+.env
+.env.*
+!.env.example
+/deploy/myvalues.yaml
+
+# Local validation output and Python caches
+*.log
+/docs/validation/*.json
+__pycache__/
+*.py[cod]
+.venv/

@@ -1,0 +1,3017 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Linha",
+    "version": "0.1.0",
+    "description": "Versioned JSON base protocol. SDKs wrap these operations. Result templates and policies are snapshotted; job IDs survive process restarts. Authentication follows deployment configuration: security.enabled=false disables client and worker authentication; security.oidc.enabled=false disables only client authentication. Anonymous clients share owner anonymous. Secured deployments require the bearer schemes below."
+  },
+  "paths": {
+    "/v1/contexts:ensure": {
+      "post": {
+        "operationId": "ensureContext",
+        "summary": "Persist an immutable owned backend specification; readiness is separate",
+        "security": [
+          {
+            "clientBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Context"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnsureRequest"
+              },
+              "example": {
+                "name": "metoc-v2",
+                "spec": {
+                  "image": "registry.example/metoc/worker:1",
+                  "engine": {
+                    "type": "spark",
+                    "version": "3.5.6",
+                    "settings": {
+                      "kubernetes": {
+                        "driverPodTemplate": {
+                          "spec": {
+                            "imagePullSecrets": [
+                              {
+                                "name": "metoc-registry"
+                              }
+                            ],
+                            "volumes": [
+                              {
+                                "name": "app-config",
+                                "configMap": {
+                                  "name": "metoc-config-v1"
+                                }
+                              }
+                            ],
+                            "containers": [
+                              {
+                                "name": "main",
+                                "env": [
+                                  {
+                                    "name": "APP_ROLE",
+                                    "value": "driver"
+                                  }
+                                ],
+                                "volumeMounts": [
+                                  {
+                                    "name": "app-config",
+                                    "mountPath": "/etc/metoc",
+                                    "readOnly": true
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "executorPodTemplate": {
+                          "spec": {
+                            "imagePullSecrets": [
+                              {
+                                "name": "metoc-registry"
+                              }
+                            ],
+                            "volumes": [
+                              {
+                                "name": "app-config",
+                                "configMap": {
+                                  "name": "metoc-config-v1"
+                                }
+                              }
+                            ],
+                            "containers": [
+                              {
+                                "name": "main",
+                                "env": [
+                                  {
+                                    "name": "APP_ROLE",
+                                    "value": "executor"
+                                  }
+                                ],
+                                "volumeMounts": [
+                                  {
+                                    "name": "app-config",
+                                    "mountPath": "/etc/metoc",
+                                    "readOnly": true
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "results": {
+                    "type": "local",
+                    "root": "/var/lib/linha/results"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/contexts/{context}": {
+      "get": {
+        "operationId": "getContext",
+        "summary": "getContext",
+        "security": [
+          {
+            "clientBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Context"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "context",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/contexts/{context}/jobs": {
+      "post": {
+        "operationId": "submitJob",
+        "summary": "Return an ID after durable acceptance, before engine execution",
+        "security": [
+          {
+            "clientBearer": []
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "context",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Linha-Client-Lease",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Live lease returned by ensure or attach. Idempotent replay is scoped by owner/logical name/key across versions."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/jobs": {
+      "get": {
+        "operationId": "listJobs",
+        "summary": "listJobs",
+        "security": [
+          {
+            "clientBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "contextId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{job}": {
+      "get": {
+        "operationId": "getJob",
+        "summary": "getJob",
+        "security": [
+          {
+            "clientBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{job}:cancel": {
+      "post": {
+        "operationId": "cancelJob",
+        "summary": "cancelJob",
+        "security": [
+          {
+            "clientBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{job}/result": {
+      "get": {
+        "operationId": "getResult",
+        "summary": "Fetch a retained result descriptor; pending results return RESULT_NOT_READY",
+        "security": [
+          {
+            "clientBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{job}/files/{output}": {
+      "get": {
+        "operationId": "downloadResultFile",
+        "summary": "downloadResultFile",
+        "security": [
+          {
+            "clientBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized streamed file bytes",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "output",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/workers/register": {
+      "post": {
+        "operationId": "registerWorker",
+        "summary": "registerWorker",
+        "security": [
+          {
+            "workerBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Worker"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Linha-Context-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Incarnation",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          }
+        ]
+      }
+    },
+    "/v1/workers/heartbeat": {
+      "post": {
+        "operationId": "workerHeartbeat",
+        "summary": "workerHeartbeat",
+        "security": [
+          {
+            "workerBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Linha-Context-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Incarnation",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          }
+        ]
+      }
+    },
+    "/v1/workers/claim": {
+      "post": {
+        "operationId": "claimJob",
+        "summary": "claimJob",
+        "security": [
+          {
+            "workerBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Assignment"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No compatible work or worker is full/draining"
+          }
+        },
+        "parameters": [
+          {
+            "name": "waitSeconds",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 20,
+              "default": 0
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Context-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Incarnation",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{job}/renew": {
+      "post": {
+        "operationId": "renewAttempt",
+        "summary": "renewAttempt",
+        "security": [
+          {
+            "workerBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Context-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Incarnation",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenewRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/jobs/{job}/fail": {
+      "post": {
+        "operationId": "failAttempt",
+        "summary": "failAttempt",
+        "security": [
+          {
+            "workerBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Context-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Incarnation",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FailureRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/jobs/{job}/outputs": {
+      "post": {
+        "operationId": "allocateOutput",
+        "summary": "allocateOutput",
+        "security": [
+          {
+            "workerBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Allocation"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Context-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Incarnation",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutputRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/jobs/{job}/outputs/{output}": {
+      "put": {
+        "operationId": "uploadOutput",
+        "summary": "uploadOutput",
+        "security": [
+          {
+            "workerBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultFile"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "output",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Linha-Attempt",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Linha-Fence",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Context-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Incarnation",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/jobs/{job}/complete": {
+      "post": {
+        "operationId": "completeAttempt",
+        "summary": "completeAttempt",
+        "security": [
+          {
+            "workerBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Context-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Incarnation",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Completion"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/contexts/{context}/dev-workers": {
+      "post": {
+        "operationId": "createLocalWorkerIdentity",
+        "summary": "Security disabled only: allocate local worker routing identity (empty token)",
+        "security": [],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "context",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{job}/attempts": {
+      "get": {
+        "operationId": "listAttempts",
+        "summary": "Get persisted execution history for an owned job",
+        "security": [
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ordered execution attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "integer"
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "workerId": {
+                            "type": "string"
+                          },
+                          "startedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "finishedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "failure": {
+                            "$ref": "#/components/schemas/Failure"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/contexts/{context}/clients": {
+      "post": {
+        "operationId": "attachClient",
+        "summary": "Acquire a lease on this immutable version, reactivating it if stopped",
+        "security": [
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "context",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Context"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachClient"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/contexts/{context}/clients/{lease}/renew": {
+      "post": {
+        "operationId": "renewClient",
+        "summary": "Renew a live client lease; expired leases cannot be revived",
+        "security": [
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "context",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lease",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientLease"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/contexts/{context}/clients/{lease}": {
+      "delete": {
+        "operationId": "releaseClient",
+        "summary": "Release a client lease; accepted jobs finish before shutdown",
+        "security": [
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "context",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lease",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "Released (idempotent)"
+          }
+        }
+      }
+    },
+    "/v1/jobs/{job}/outputs/{output}/access": {
+      "post": {
+        "operationId": "authorizeDatasetWrite",
+        "summary": "Issue write access only to the current attempt staging prefix. Requires configured S3 STS delegation or shared local storage.",
+        "security": [
+          {
+            "workerBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetAccess"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "output",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Context-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Incarnation",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttemptUpdate"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/jobs/{job}/outputs/{output}/parts": {
+      "post": {
+        "operationId": "registerDatasetParts",
+        "summary": "Verify and snapshot up to 200 parts, then persist idempotent metadata. Frozen datasets reject changes.",
+        "security": [
+          {
+            "workerBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "registered": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "registered"
+                  ]
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "output",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Context-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Incarnation",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatasetPartRegistration"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/jobs/{job}/outputs/{output}/seal": {
+      "post": {
+        "operationId": "sealDataset",
+        "summary": "Freeze part registrations and persist an immutable provider manifest. Job success requires a separate fenced completion.",
+        "security": [
+          {
+            "workerBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetManifest"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "output",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Context-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          },
+          {
+            "in": "header",
+            "name": "X-Linha-Worker-Incarnation",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required routing identity only when security.enabled=false; ignored for authenticated worker identity."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatasetSeal"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/jobs/{job}/parts": {
+      "get": {
+        "operationId": "listDatasetParts",
+        "summary": "listDatasetParts",
+        "security": [
+          {
+            "clientBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed dataset part page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetPartPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 100
+            }
+          }
+        ]
+      }
+    },
+    "/v1/jobs/{job}/part": {
+      "get": {
+        "operationId": "downloadDatasetPart",
+        "summary": "downloadDatasetPart",
+        "security": [
+          {
+            "clientBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized streamed file bytes",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Path from the published part index. Authorization and expiry checked on every request."
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "PathTemplate": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "type": "integer",
+            "enum": [
+              1
+            ],
+            "default": 1
+          },
+          "template": {
+            "type": "string",
+            "default": "{contextId}/{requestId}/{attemptId}/{file}"
+          }
+        }
+      },
+      "ResultPolicy": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "enum": [
+              "local",
+              "s3"
+            ]
+          },
+          "root": {
+            "type": "string"
+          },
+          "destination": {
+            "type": "string"
+          },
+          "path": {
+            "$ref": "#/components/schemas/PathTemplate"
+          },
+          "maxBytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1099511627776,
+            "default": 67108864
+          },
+          "retentionSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 31536000,
+            "default": 604800
+          },
+          "destinationFingerprint": {
+            "type": "string",
+            "readOnly": true,
+            "description": "Server-computed physical destination identity; credentials are excluded."
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "EngineSpec": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "settings": {
+            "type": "object",
+            "description": "Engine-specific configuration. Spark 3.5.6 uses the SparkSettings schema, including kubernetes.driverPodTemplate and executorPodTemplate. Other adapters define their own settings."
+          }
+        },
+        "required": [
+          "type",
+          "version"
+        ]
+      },
+      "BackendSpec": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "image": {
+            "type": "string"
+          },
+          "engine": {
+            "$ref": "#/components/schemas/EngineSpec"
+          },
+          "results": {
+            "$ref": "#/components/schemas/ResultPolicy"
+          }
+        },
+        "required": [
+          "image",
+          "engine",
+          "results"
+        ]
+      },
+      "EnsureRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "spec": {
+            "$ref": "#/components/schemas/BackendSpec"
+          },
+          "clientId": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Unique process identity; generated if omitted. Renew the returned lease."
+          }
+        },
+        "required": [
+          "name",
+          "spec"
+        ],
+        "description": "Ensures an immutable version under a stable owner/name, hashing normalized effective configuration and the resolved worker image. Changed settings create another version. Acquires or renews a client lease."
+      },
+      "Context": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/BackendSpec"
+          },
+          "state": {
+            "type": "string"
+          },
+          "condition": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "string",
+            "description": "SHA-256 of effective configuration"
+          },
+          "clientLease": {
+            "$ref": "#/components/schemas/ClientLease"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "spec",
+          "state",
+          "createdAt",
+          "version"
+        ],
+        "description": "Immutable backend version. GET does not renew a client lease. DRAINING finishes accepted work; STOPPED retains job history and results. Ensure and attach return clientLease."
+      },
+      "RetryPolicy": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "maxAttempts": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10,
+            "default": 1
+          },
+          "backoffSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3600,
+            "default": 1
+          }
+        }
+      },
+      "SubmitRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "handler": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "payload": {},
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "retry": {
+            "$ref": "#/components/schemas/RetryPolicy"
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "handler",
+          "version",
+          "payload",
+          "idempotencyKey"
+        ]
+      },
+      "Progress": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "fraction": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "fraction",
+          "message"
+        ]
+      },
+      "Failure": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 8192,
+            "description": "Maximum 8192 UTF-8 bytes."
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "exceptionType": {
+            "type": "string",
+            "maxLength": 1024,
+            "description": "Observed exception class/type; maximum 1024 UTF-8 bytes."
+          },
+          "stackTrace": {
+            "type": "string",
+            "maxLength": 65536,
+            "description": "Plain text traceback including causes and suppressed exceptions, when available. Maximum 65536 UTF-8 bytes."
+          },
+          "stackTraceTruncated": {
+            "type": "boolean",
+            "description": "True if the worker shortened the trace. Optional on legacy failures."
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "initialization",
+              "engine",
+              "handler",
+              "result",
+              "completion"
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryable"
+        ],
+        "description": "Durable job or attempt failure. Diagnostic fields are optional for legacy workers or process loss; reporting remains fenced by the current attempt. Observed JVM OutOfMemoryError causes use OUT_OF_MEMORY."
+      },
+      "ResultDescriptor": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "json",
+              "file",
+              "dataset"
+            ]
+          },
+          "schema": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "kind",
+          "schema",
+          "version"
+        ]
+      },
+      "ResultFile": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "allocationId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "contentType": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "allocationId",
+          "name",
+          "size",
+          "sha256",
+          "contentType"
+        ]
+      },
+      "Result": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "descriptor": {
+            "$ref": "#/components/schemas/ResultDescriptor"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResultFile"
+            }
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expired": {
+            "type": "boolean"
+          },
+          "dataset": {
+            "$ref": "#/components/schemas/DatasetManifest"
+          }
+        },
+        "required": [
+          "descriptor",
+          "files",
+          "expiresAt",
+          "expired"
+        ]
+      },
+      "Job": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contextId": {
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/SubmitRequest"
+          },
+          "state": {
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "RETRYING",
+              "CANCELLING",
+              "CANCELLED",
+              "FAILED",
+              "SUCCEEDED"
+            ]
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attemptCount": {
+            "type": "integer"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/Progress"
+          },
+          "failure": {
+            "$ref": "#/components/schemas/Failure"
+          },
+          "result": {
+            "$ref": "#/components/schemas/Result"
+          }
+        },
+        "required": [
+          "id",
+          "contextId",
+          "request",
+          "state",
+          "submittedAt",
+          "updatedAt",
+          "attemptCount"
+        ]
+      },
+      "JobPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Job"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Capability": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "handler": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "result": {
+            "$ref": "#/components/schemas/ResultDescriptor"
+          }
+        },
+        "required": [
+          "handler",
+          "version",
+          "result"
+        ]
+      },
+      "Worker": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contextId": {
+            "type": "string"
+          },
+          "incarnation": {
+            "type": "string"
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 128
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Capability"
+            }
+          },
+          "draining": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "contextId",
+          "incarnation",
+          "capacity",
+          "capabilities"
+        ]
+      },
+      "Assignment": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "job": {
+            "$ref": "#/components/schemas/Job"
+          },
+          "attemptId": {
+            "type": "string"
+          },
+          "fence": {
+            "type": "integer"
+          },
+          "leaseExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "leaseDurationMillis": {
+            "type": "integer"
+          },
+          "results": {
+            "$ref": "#/components/schemas/ResultPolicy"
+          },
+          "resultDescriptor": {
+            "$ref": "#/components/schemas/ResultDescriptor"
+          }
+        },
+        "required": [
+          "job",
+          "attemptId",
+          "fence",
+          "leaseExpiresAt",
+          "leaseDurationMillis",
+          "results",
+          "resultDescriptor"
+        ]
+      },
+      "AttemptUpdate": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "workerId": {
+            "type": "string"
+          },
+          "incarnation": {
+            "type": "string"
+          },
+          "attemptId": {
+            "type": "string"
+          },
+          "fence": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "workerId",
+          "incarnation",
+          "attemptId",
+          "fence"
+        ]
+      },
+      "RenewRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "workerId": {
+            "type": "string"
+          },
+          "incarnation": {
+            "type": "string"
+          },
+          "attemptId": {
+            "type": "string"
+          },
+          "fence": {
+            "type": "integer"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/Progress"
+          }
+        },
+        "required": [
+          "workerId",
+          "incarnation",
+          "attemptId",
+          "fence"
+        ]
+      },
+      "FailureRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "workerId": {
+            "type": "string"
+          },
+          "incarnation": {
+            "type": "string"
+          },
+          "attemptId": {
+            "type": "string"
+          },
+          "fence": {
+            "type": "integer"
+          },
+          "failure": {
+            "$ref": "#/components/schemas/Failure"
+          }
+        },
+        "required": [
+          "workerId",
+          "incarnation",
+          "attemptId",
+          "fence",
+          "failure"
+        ]
+      },
+      "OutputRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "workerId": {
+            "type": "string"
+          },
+          "incarnation": {
+            "type": "string"
+          },
+          "attemptId": {
+            "type": "string"
+          },
+          "fence": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "json",
+              "file",
+              "dataset"
+            ]
+          },
+          "contentType": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "workerId",
+          "incarnation",
+          "attemptId",
+          "fence",
+          "name",
+          "kind",
+          "contentType"
+        ]
+      },
+      "Allocation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "jobId": {
+            "type": "string"
+          },
+          "attemptId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          },
+          "uploadUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "jobId",
+          "attemptId",
+          "name",
+          "kind",
+          "contentType",
+          "key"
+        ]
+      },
+      "Completion": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "workerId": {
+            "type": "string"
+          },
+          "incarnation": {
+            "type": "string"
+          },
+          "attemptId": {
+            "type": "string"
+          },
+          "fence": {
+            "type": "integer"
+          },
+          "descriptor": {
+            "$ref": "#/components/schemas/ResultDescriptor"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResultFile"
+            }
+          },
+          "dataset": {
+            "$ref": "#/components/schemas/DatasetManifest"
+          }
+        },
+        "required": [
+          "workerId",
+          "incarnation",
+          "attemptId",
+          "fence",
+          "descriptor",
+          "files"
+        ]
+      },
+      "PodTemplate": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Native Kubernetes metadata/spec fragment, max 64 KiB. Runtime container name: main. Linha/Spark managed lifecycle fields are rejected. Maps merge recursively; containers/initContainers merge by name; env/volumes/imagePullSecrets replace by name; volumeMounts replace by mountPath; other arrays replace. Null/delete directives are unsupported. See docs/pod-templates.md.",
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "labels": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "annotations": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "spec": {
+            "type": "object",
+            "description": "Kubernetes v1 PodSpec fields subject to managed-field validation."
+          }
+        }
+      },
+      "SparkPodTemplates": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "driverPodTemplate": {
+            "$ref": "#/components/schemas/PodTemplate"
+          },
+          "executorPodTemplate": {
+            "$ref": "#/components/schemas/PodTemplate"
+          }
+        }
+      },
+      "SparkSettings": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Spark 3.5.6 through Kubeflow Spark Operator v2.4.0. Memory is JVM heap; memoryOverhead is additional container memory. Deprecated memoryMi is an alternative heap alias.",
+        "properties": {
+          "drivers": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "memory": {
+                "type": "string",
+                "pattern": "^[0-9]+[mMgG]$",
+                "default": "1024m"
+              },
+              "memoryOverhead": {
+                "type": "string",
+                "pattern": "^[0-9]+[mMgG]$",
+                "description": "Default max(384 MiB, floor(heap MiB / 10))."
+              },
+              "memoryMi": {
+                "type": "integer",
+                "minimum": 512,
+                "maximum": 131072,
+                "deprecated": true
+              },
+              "cores": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 32,
+                "default": 1
+              },
+              "coreRequest": {
+                "type": "string",
+                "description": "CPU request; defaults to cores."
+              },
+              "coreLimit": {
+                "type": "string",
+                "description": "CPU limit; defaults to cores; must be >= request."
+              },
+              "javaOptions": {
+                "type": "string",
+                "description": "Extra JVM options; heap overrides are rejected."
+              },
+              "minDrivers": {
+                "type": "integer",
+                "minimum": 0,
+                "default": 1,
+                "maximum": 16
+              },
+              "maxDrivers": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 1,
+                "maximum": 16
+              },
+              "maxConcurrentRequestsPerDriver": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 1,
+                "maximum": 32
+              },
+              "queueThreshold": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 1
+              },
+              "waitSeconds": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 5
+              },
+              "cooldownSeconds": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 10
+              },
+              "idleSeconds": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 60
+              }
+            }
+          },
+          "executors": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "memory": {
+                "type": "string",
+                "pattern": "^[0-9]+[mMgG]$",
+                "default": "1024m"
+              },
+              "memoryOverhead": {
+                "type": "string",
+                "pattern": "^[0-9]+[mMgG]$",
+                "description": "Default max(384 MiB, floor(heap MiB / 10))."
+              },
+              "memoryMi": {
+                "type": "integer",
+                "minimum": 512,
+                "maximum": 131072,
+                "deprecated": true
+              },
+              "cores": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 32,
+                "default": 1
+              },
+              "coreRequest": {
+                "type": "string",
+                "description": "CPU request; defaults to cores."
+              },
+              "coreLimit": {
+                "type": "string",
+                "description": "CPU limit; defaults to cores; must be >= request."
+              },
+              "javaOptions": {
+                "type": "string",
+                "description": "Extra JVM options; heap overrides are rejected."
+              },
+              "minExecutors": {
+                "type": "integer",
+                "minimum": 0,
+                "default": 0,
+                "maximum": 128
+              },
+              "initialExecutors": {
+                "type": "integer",
+                "minimum": 0,
+                "default": 1,
+                "maximum": 128
+              },
+              "maxExecutors": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 4,
+                "maximum": 128
+              },
+              "instances": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 1,
+                "maximum": 128
+              },
+              "dynamicAllocation": {
+                "type": "boolean",
+                "default": false
+              },
+              "executorIdleTimeout": {
+                "type": "string",
+                "pattern": "^([1-9][0-9]*[smhd])?$",
+                "default": "60s",
+                "description": "Idle executors without retained data. Applies only with dynamicAllocation=true. Use integer s/m/h/d durations, at most 2147483647 seconds; empty means omitted. Finite cache/shuffle retention may require recomputation. Equivalent durations normalize to seconds."
+              },
+              "cachedExecutorIdleTimeout": {
+                "type": "string",
+                "pattern": "^([1-9][0-9]*[smhd]|infinity)?$",
+                "default": "infinity",
+                "description": "Idle executors holding cached blocks. Applies only with dynamicAllocation=true. Use integer s/m/h/d durations, at most 2147483647 seconds; empty means omitted. Finite cache/shuffle retention may require recomputation. Equivalent durations normalize to seconds."
+              },
+              "shuffleTrackingTimeout": {
+                "type": "string",
+                "pattern": "^([1-9][0-9]*[smhd]|infinity)?$",
+                "default": "infinity",
+                "description": "Executors retained by shuffle tracking. Applies only with dynamicAllocation=true. Use integer s/m/h/d durations, at most 2147483647 seconds; empty means omitted. Finite cache/shuffle retention may require recomputation. Equivalent durations normalize to seconds."
+              }
+            }
+          },
+          "kubernetes": {
+            "$ref": "#/components/schemas/SparkPodTemplates"
+          },
+          "application": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "mainClass": {
+                "type": "string"
+              },
+              "mainApplicationFile": {
+                "type": "string",
+                "pattern": "^local:///.+\\.jar$"
+              },
+              "arguments": {
+                "type": "array",
+                "maxItems": 128,
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "mainClass",
+              "mainApplicationFile"
+            ]
+          },
+          "ui": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Driver UI; disabled by default. Access by port-forwarding the driver. Does not create a public Ingress.",
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "default": false
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1024,
+                "maximum": 65535,
+                "default": 4040
+              }
+            }
+          }
+        },
+        "required": [
+          "application"
+        ]
+      },
+      "ClientLease": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "durationSeconds": {
+            "type": "integer",
+            "enum": [
+              90
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "clientId",
+          "expiresAt",
+          "durationSeconds"
+        ]
+      },
+      "AttachClient": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "maxLength": 128
+          }
+        }
+      },
+      "DatasetPart": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Validated relative part path; never an arbitrary storage key."
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "path",
+          "size",
+          "sha256"
+        ]
+      },
+      "DatasetManifest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "allocationId": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "parquet"
+            ]
+          },
+          "partCount": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "totalBytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/ResultFile"
+          }
+        },
+        "required": [
+          "allocationId",
+          "format",
+          "partCount",
+          "totalBytes",
+          "manifest"
+        ]
+      },
+      "DatasetPartPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DatasetPart"
+            },
+            "maxItems": 200
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "DatasetAccess": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "allocationId": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          },
+          "hadoopOptions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Ephemeral per-write settings including prefix-scoped STS credentials. Do not log or persist."
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "probePath": {
+            "type": "string"
+          },
+          "probeValue": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "allocationId",
+          "uri",
+          "hadoopOptions"
+        ]
+      },
+      "DatasetPartRegistration": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "workerId": {
+            "type": "string"
+          },
+          "incarnation": {
+            "type": "string"
+          },
+          "attemptId": {
+            "type": "string"
+          },
+          "fence": {
+            "type": "integer"
+          },
+          "parts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DatasetPart"
+            },
+            "minItems": 1,
+            "maxItems": 200
+          }
+        },
+        "required": [
+          "workerId",
+          "incarnation",
+          "attemptId",
+          "fence",
+          "parts"
+        ]
+      },
+      "DatasetSeal": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "workerId": {
+            "type": "string"
+          },
+          "incarnation": {
+            "type": "string"
+          },
+          "attemptId": {
+            "type": "string"
+          },
+          "fence": {
+            "type": "integer"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "parquet"
+            ]
+          }
+        },
+        "required": [
+          "workerId",
+          "incarnation",
+          "attemptId",
+          "fence",
+          "format"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "clientBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Validated OIDC token; explicitly configured development token only in development mode"
+      },
+      "workerBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Credential scoped to worker context and incarnation"
+      }
+    }
+  }
+}

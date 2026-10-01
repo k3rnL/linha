@@ -1,0 +1,3 @@
+black==24.10.0
+ruamel.yaml==0.18.10
+sqlfluff==3.3.1

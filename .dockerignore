@@ -1,0 +1,10 @@
+.git
+.idea
+.env
+.env.*
+deploy/myvalues.yaml
+**/__pycache__
+**/*.pyc
+**/*.log
+docs/validation/*.json
+.venv

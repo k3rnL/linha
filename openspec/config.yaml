@@ -1,0 +1,39 @@
+schema: spec-driven
+
+context: |
+  Linha is a new engine-agnostic durable job platform, separate from bigdata-metoc.
+  The user requested a Go job server and Scala/JVM client and worker SDKs.
+  There are three logical modules: client SDK, job server, and worker SDK.
+  Initial deployment target is Kubernetes with a Helm chart; Spark is the first engine.
+  A LinhaContext identifies a managed backend requested with a user-provided worker image.
+  Backend ensure must be idempotent across concurrent API replicas and restarts.
+  The base protocol is versioned JSON; raw clients and worker dispatchers need no Scala classes.
+  Scala/JVM typed entrypoints wrap that protocol, serialize parameters and execute through
+  LinhaJobContext with progress, cancellation, result helpers, and engine capabilities.
+  Executable entrypoint code is installed in the worker image.
+  Requests and ownership, status, execution attempts, and results must survive process restarts.
+  Results use local filesystem or S3 storage selected during backend ensure; PostgreSQL
+  stores request state, progress, allocations, and result metadata, not result payloads.
+  SDKs manage typed JSON values, files/streams, and distributed Spark datasets.
+  S3 paths use versioned templates with requestId, attemptId, submittedAt in UTC, and file
+  placeholders; resolved allocations are persisted and attempt locations cannot overlap.
+  Local durability/HA requires caller-managed persistent shared mounts for all readers/writers.
+  Spark supports bounded concurrent requests per driver, managed driver min/max counts,
+  and optional executor dynamic allocation. Lost drivers must be reconciled automatically.
+  The repository contains a pre-release implementation; tasks and docs/validation.md track verified behavior and outstanding release work.
+
+rules:
+  proposal:
+    - Preserve the three-module product boundary and distinguish engine-agnostic behavior from Spark-specific
+      behavior.
+  design:
+    - Define acknowledgement, ownership, retry, lease fencing, result publication, and restart recovery
+      semantics explicitly.
+    - Label deployment/toolchain choices and unresolved product choices rather than claiming existing
+      implementations.
+  specs:
+    - Include adversarial scenarios for concurrent ensure, stale workers, restart recovery, and cross-owner
+      access.
+  tasks:
+    - Order implementation in usable increments and include restart and HA failure-injection validation.
+    - Mark a task complete only when its stated result is already present and verified.

@@ -1,0 +1,180 @@
+{{- include "linha.validate" . -}}
+{{- $pullNames := list -}}
+{{- range .Values.imagePullSecrets -}}
+{{- $pullNames = append $pullNames .name -}}
+{{- end -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "linha.name" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "linha.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "linha.name" . }}
+      annotations: {{ toJson .Values.podAnnotations }}
+    spec:
+      serviceAccountName: {{ include "linha.name" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      terminationGracePeriodSeconds: 30
+      imagePullSecrets: {{ toJson .Values.imagePullSecrets }}
+      nodeSelector: {{ toJson .Values.nodeSelector }}
+      tolerations: {{ toJson .Values.tolerations }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: {{ include "linha.name" . }}
+      containers:
+        - name: server
+          image: {{ printf "%s:%s" .Values.image.repository .Values.image.tag | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: http
+            periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /livez
+              port: http
+            failureThreshold: 60
+            periodSeconds: 5
+          resources: {{ toJson .Values.resources }}
+          env:
+            - name: LINHA_SECURITY_ENABLED
+              value: {{ .Values.security.enabled | quote }}
+            - name: LINHA_OIDC_ENABLED
+              value: {{ .Values.security.oidc.enabled | quote }}
+            - name: LINHA_WORKER_AUTH
+              value: {{ ternary "projected-token" "token-review" .Values.rbac.namespaceOnly | quote }}
+            - name: LINHA_LISTEN
+              value: 0.0.0.0:8080
+            - name: LINHA_NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+            - name: LINHA_SERVER_URL
+              value: {{ printf "http://%s.%s.svc:8080" (include "linha.name" .) .Release.Namespace | quote }}
+            - name: LINHA_WORKER_SERVICE_ACCOUNT
+              value: {{ printf "%s-worker" (include "linha.name" .) | quote }}
+            - name: LINHA_ALLOWED_IMAGES
+              value: {{ join "," .Values.allowedImages | quote }}
+            - name: LINHA_OIDC_ISSUER
+              value: {{ .Values.security.oidc.issuer | quote }}
+            - name: LINHA_OIDC_AUDIENCE
+              value: {{ .Values.security.oidc.audience | quote }}
+            - name: LINHA_DATABASE_HOST
+              value: {{ .Values.database.postgres.host | quote }}
+            - name: LINHA_DATABASE_PORT
+              value: {{ .Values.database.postgres.port | quote }}
+            - name: LINHA_DATABASE_NAME
+              value: {{ .Values.database.postgres.database | quote }}
+            - name: LINHA_DATABASE_SSL_MODE
+              value: {{ .Values.database.postgres.sslMode | quote }}
+            - name: LINHA_DATABASE_SSL_ROOT_CERT
+              value: {{ .Values.database.postgres.sslRootCert | quote }}
+            - name: LINHA_DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.postgres.secretRef | quote }}
+                  key: {{ .Values.database.postgres.usernameKey | quote }}
+            - name: LINHA_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.postgres.secretRef | quote }}
+                  key: {{ .Values.database.postgres.passwordKey | quote }}
+            {{- if .Values.s3.enabled }}
+            - name: LINHA_S3_DESTINATIONS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "s3.secretRef is required when S3 is enabled" .Values.s3.secretRef | quote }}
+                  key: {{ required "s3.destinationsKey is required when S3 is enabled" .Values.s3.destinationsKey | quote }}
+            {{- end }}
+            {{- if .Values.local.enabled }}
+            - name: LINHA_LOCAL_ROOT
+              value: {{ .Values.local.root | quote }}
+            {{- end }}
+            - name: LINHA_CLEANUP_ENABLED
+              value: {{ .Values.results.cleanup.enabled | quote }}
+            - name: LINHA_MAX_STAGING_BYTES
+              value: {{ .Values.results.maxStagingBytes | int64 | quote }}
+            - name: LINHA_WORKER_VOLUMES
+              value: {{ toJson .Values.workerVolumes | quote }}
+            - name: LINHA_WORKER_MOUNTS
+              value: {{ toJson .Values.workerMounts | quote }}
+            - name: LINHA_WORKER_POD_TEMPLATES
+              value: {{ toJson .Values.workerPodTemplates | quote }}
+            - name: LINHA_WORKER_IMAGE_PULL_SECRETS
+              value: {{ toJson $pullNames | quote }}
+            - name: LINHA_REGISTRY_SECRETS
+              value: {{ toJson .Values.registrySecrets.allowedNames | quote }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            - name: staging
+              mountPath: /tmp
+            {{- if .Values.local.enabled }}
+            - name: results
+              mountPath: {{ .Values.local.root | quote }}
+            {{- end }}
+      volumes:
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        - name: staging
+          emptyDir:
+            sizeLimit: 6Gi
+        {{- if .Values.local.enabled }}
+        - name: results
+          persistentVolumeClaim:
+            claimName: {{ required "local.existingClaim is required for durable shared local results" .Values.local.existingClaim | quote }}
+        {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "linha.name" . }}
+spec:
+  selector:
+    app: {{ include "linha.name" . }}
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "linha.name" . }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: {{ include "linha.name" . }}

@@ -1,0 +1,94 @@
+[
+  {
+    "spec": {
+      "image": "image@sha256:first",
+      "engine": {
+        "type": "fake",
+        "version": "1",
+        "settings": {
+          "b": {
+            "y": 2,
+            "x": "é<&>"
+          },
+          "a": true
+        }
+      },
+      "results": {
+        "type": "local",
+        "path": {
+          "version": 1,
+          "template": "{contextId}/{requestId}/{attemptId}/{file}"
+        },
+        "maxBytes": 67108864,
+        "retentionSeconds": 604800,
+        "root": "/results"
+      }
+    },
+    "canonicalSpec": "{\"engine\":{\"settings\":{\"a\":true,\"b\":{\"x\":\"é\\u003c\\u0026\\u003e\",\"y\":2}},\"type\":\"fake\",\"version\":\"1\"},\"image\":\"image@sha256:first\",\"results\":{\"maxBytes\":67108864,\"path\":{\"template\":\"{contextId}/{requestId}/{attemptId}/{file}\",\"version\":1},\"retentionSeconds\":604800,\"root\":\"/results\",\"type\":\"local\"}}",
+    "configVersion": "b2b02bad3ca603db4a0f5d8eb9516969349c7f3e90acf89b81ff3e96d92f8365",
+    "request": {
+      "handler": "fixture.count",
+      "version": 1,
+      "payload": {
+        "size": 42,
+        "label": "é<&>"
+      },
+      "idempotencyKey": "business-123",
+      "retry": {
+        "maxAttempts": 1,
+        "backoffSeconds": 1
+      }
+    },
+    "resultDescriptor": {
+      "kind": "json",
+      "schema": "fixture.count.result",
+      "version": 1
+    }
+  },
+  {
+    "spec": {
+      "image": "image@sha256:second",
+      "engine": {
+        "type": "fake",
+        "version": "1",
+        "settings": {
+          "b": {
+            "y": 2,
+            "x": "é<&>"
+          },
+          "a": true
+        }
+      },
+      "results": {
+        "type": "s3",
+        "path": {
+          "version": 1,
+          "template": "exports/{submittedAt:yyyy/MM/dd}/{requestId}/{attemptId}/{file}"
+        },
+        "maxBytes": 67108864,
+        "retentionSeconds": 604800,
+        "destination": "analytics"
+      }
+    },
+    "canonicalSpec": "{\"engine\":{\"settings\":{\"a\":true,\"b\":{\"x\":\"é\\u003c\\u0026\\u003e\",\"y\":2}},\"type\":\"fake\",\"version\":\"1\"},\"image\":\"image@sha256:second\",\"results\":{\"destination\":\"analytics\",\"maxBytes\":67108864,\"path\":{\"template\":\"exports/{submittedAt:yyyy/MM/dd}/{requestId}/{attemptId}/{file}\",\"version\":1},\"retentionSeconds\":604800,\"type\":\"s3\"}}",
+    "configVersion": "22a80d1c27c759c7a096d3409f2ac3b6b04f5cd500e13f0ca02087ac25caba1c",
+    "request": {
+      "handler": "fixture.count",
+      "version": 1,
+      "payload": {
+        "size": 42,
+        "label": "é<&>"
+      },
+      "idempotencyKey": "business-123",
+      "retry": {
+        "maxAttempts": 1,
+        "backoffSeconds": 1
+      }
+    },
+    "resultDescriptor": {
+      "kind": "json",
+      "schema": "fixture.count.result",
+      "version": 1
+    }
+  }
+]

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+exec /opt/spark/bin/spark-submit \
+  --driver-memory "${LINHA_DRIVER_MEMORY:-1024m}" \
+  --class linha.example.SparkMain \
+  /opt/linha/linha-examples.jar
