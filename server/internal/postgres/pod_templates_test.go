@@ -87,7 +87,7 @@ func TestV3TemplateMigrationPreservesLegacyContext(t *testing.T) {
 	ctx := context.Background()
 	legacy := backend(t, s)
 	// This schema is isolated and disposable; recreate the preceding migration shape.
-	if _, err := s.Pool.Exec(ctx, "ALTER TABLE linha_contexts DROP COLUMN requested_spec; ALTER TABLE linha_contexts DROP COLUMN version; ALTER TABLE linha_contexts ADD UNIQUE(owner,name); DROP TABLE linha_client_leases; ALTER TABLE linha_instances DROP COLUMN resource_kind; ALTER TABLE linha_instances DROP COLUMN resource_uid; ALTER TABLE linha_jobs DROP COLUMN context_name; ALTER TABLE linha_jobs ADD UNIQUE(owner,context_id,idempotency_key); DELETE FROM linha_schema WHERE version>=4"); err != nil {
+	if _, err := s.Pool.Exec(ctx, "ALTER TABLE linha_contexts DROP COLUMN requested_spec; ALTER TABLE linha_contexts DROP COLUMN version; ALTER TABLE linha_contexts ADD UNIQUE(owner,name); DROP TABLE linha_client_leases; ALTER TABLE linha_instances DROP COLUMN resource_kind; ALTER TABLE linha_instances DROP COLUMN resource_uid; ALTER TABLE linha_jobs DROP COLUMN context_name; ALTER TABLE linha_jobs ADD UNIQUE(owner,context_id,idempotency_key); DROP INDEX linha_jobs_active_overview; DROP INDEX linha_jobs_terminal_overview; DROP INDEX linha_attempts_finished_overview; DELETE FROM linha_schema WHERE version>=4"); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.migrate(ctx); err != nil {

@@ -1764,6 +1764,1654 @@
           }
         ]
       }
+    },
+    "/v1/admin/session": {
+      "get": {
+        "operationId": "getAdminV1AdminSession",
+        "summary": "Read administrator identity and CSRF token",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSession"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/logout": {
+      "post": {
+        "operationId": "postAdminV1AdminLogout",
+        "summary": "End the browser session (viewer or operator)",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Linha-CSRF",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required with same-origin browser-session mutations; bearer requests use verified token authorization."
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/contexts": {
+      "get": {
+        "operationId": "getAdminV1AdminContexts",
+        "summary": "Read immutable versions without creating demand",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "engine",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contextId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metricContext",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "includeStopped",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalContextPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/contexts/{context}": {
+      "get": {
+        "operationId": "getAdminV1AdminContextsContext",
+        "summary": "Read one context observation",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "context",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalContext"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/contexts/{context}/clients": {
+      "get": {
+        "operationId": "getAdminV1AdminContextsClientsContext",
+        "summary": "Read clients without renewing any lease",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "context",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "engine",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contextId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metricContext",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "includeStopped",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalClientPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/contexts/{context}/instances": {
+      "get": {
+        "operationId": "getAdminV1AdminContextsInstancesContext",
+        "summary": "Read instances without renewing any lease",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "context",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "engine",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "STARTING",
+                "READY",
+                "DRAINING",
+                "DEAD"
+              ]
+            },
+            "description": "Omit for all instances; active excludes DEAD; exact lifecycle states select history/current subsets."
+          },
+          {
+            "name": "contextId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metricContext",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "includeStopped",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalInstancePage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/contexts/{context}/workers": {
+      "get": {
+        "operationId": "getAdminV1AdminContextsWorkersContext",
+        "summary": "Read workers without renewing any lease",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "context",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "engine",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contextId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metricContext",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "includeStopped",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalWorkerPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/servers": {
+      "get": {
+        "operationId": "getAdminV1AdminServers",
+        "summary": "Read recent server heartbeats",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "engine",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contextId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metricContext",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "includeStopped",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalServerPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/jobs": {
+      "get": {
+        "operationId": "getAdminV1AdminJobs",
+        "summary": "Read requests across owners with bounded filters",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "engine",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contextId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metricContext",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "includeStopped",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminJobPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/jobs/{job}": {
+      "get": {
+        "operationId": "getAdminV1AdminJobsJob",
+        "summary": "Read immutable request input, status and provenance",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminJob"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/jobs/{job}/audit": {
+      "get": {
+        "operationId": "getAdminV1AdminJobsAuditJob",
+        "summary": "Read accepted administrative audit",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "engine",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contextId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metricContext",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "includeStopped",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAuditPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/contexts/{context}/jobs": {
+      "post": {
+        "operationId": "postAdminV1AdminContextsJobsContext",
+        "summary": "Accept an administrative create or replay transaction",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "context",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Linha-CSRF",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required with same-origin browser-session mutations; bearer requests use verified token authorization."
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Committed acceptance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminSubmitRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/jobs/{job}/cancel": {
+      "post": {
+        "operationId": "postAdminV1AdminJobsCancelJob",
+        "summary": "Cancel one job with existing attempt fencing",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Linha-CSRF",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required with same-origin browser-session mutations; bearer requests use verified token authorization."
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Job"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/jobs/{job}/result": {
+      "get": {
+        "operationId": "getAdminV1AdminJobsResultJob",
+        "summary": "Read committed published locations; no credentials or staging",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/jobs/{job}/preview": {
+      "get": {
+        "operationId": "getAdminV1AdminJobsPreviewJob",
+        "summary": "Read an escaped bounded published JSON preview",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "maxBytes",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1048576,
+              "default": 65536
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPreview"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/jobs/{job}/attempts": {
+      "get": {
+        "operationId": "getAdminJobAttempts",
+        "summary": "Get persisted execution history for an owned job",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ordered execution attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "integer"
+                          },
+                          "state": {
+                            "type": "string"
+                          },
+                          "workerId": {
+                            "type": "string"
+                          },
+                          "startedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "finishedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "failure": {
+                            "$ref": "#/components/schemas/Failure"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/jobs/{job}/parts": {
+      "get": {
+        "operationId": "getAdminJobParts",
+        "summary": "listDatasetParts",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed dataset part page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetPartPage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 100
+            }
+          }
+        ]
+      }
+    },
+    "/v1/admin/jobs/{job}/part": {
+      "get": {
+        "operationId": "getAdminJobPart",
+        "summary": "downloadDatasetPart",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized streamed file bytes",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Path from the published part index. Authorization and expiry checked on every request."
+          }
+        ]
+      }
+    },
+    "/v1/admin/jobs/{job}/files/{output}": {
+      "get": {
+        "operationId": "getAdminJobFilesoutput",
+        "summary": "downloadResultFile",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized streamed file bytes",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "output",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/ui/oidc/login": {
+      "get": {
+        "summary": "OIDC code/PKCE browser login; callback requires single-use state cookie and nonce",
+        "security": [],
+        "responses": {
+          "303": {
+            "description": "Browser redirect"
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ui/oidc/callback": {
+      "get": {
+        "summary": "OIDC code/PKCE browser login; callback requires single-use state cookie and nonce",
+        "security": [],
+        "responses": {
+          "303": {
+            "description": "Browser redirect"
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ui/config": {
+      "get": {
+        "operationId": "adminRuntimeConfig",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Runtime flags, without credentials; only available when UI is enabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "securityEnabled",
+                    "loginURL",
+                    "grafanaURL"
+                  ],
+                  "properties": {
+                    "securityEnabled": {
+                      "type": "boolean"
+                    },
+                    "loginURL": {
+                      "type": "string"
+                    },
+                    "grafanaURL": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/overview": {
+      "get": {
+        "operationId": "getAdminOverview",
+        "summary": "Read complete operational totals and bounded recent detail",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOverview"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1907,6 +3555,11 @@
             "type": "string",
             "maxLength": 128,
             "description": "Unique process identity; generated if omitted. Renew the returned lease."
+          },
+          "hostname": {
+            "type": "string",
+            "maxLength": 253,
+            "description": "Optional client-reported hostname (at most 253 UTF-8 bytes, no whitespace/control characters). Display metadata only; never identity or authorization."
           }
         },
         "required": [
@@ -2804,6 +4457,11 @@
             "enum": [
               90
             ]
+          },
+          "hostname": {
+            "type": "string",
+            "maxLength": 253,
+            "description": "Optional client-reported hostname (at most 253 UTF-8 bytes, no whitespace/control characters). Display metadata only; never identity or authorization."
           }
         },
         "required": [
@@ -2820,6 +4478,11 @@
           "clientId": {
             "type": "string",
             "maxLength": 128
+          },
+          "hostname": {
+            "type": "string",
+            "maxLength": 253,
+            "description": "Optional client-reported hostname (at most 253 UTF-8 bytes, no whitespace/control characters). Display metadata only; never identity or authorization."
           }
         }
       },
@@ -2999,6 +4662,892 @@
           "fence",
           "format"
         ]
+      },
+      "AdminSession": {
+        "type": "object",
+        "properties": {
+          "actor": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "viewer",
+              "operator"
+            ]
+          },
+          "csrf": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "actor",
+          "role"
+        ]
+      },
+      "OperationalContext": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/BackendSpec"
+          },
+          "state": {
+            "type": "string"
+          },
+          "condition": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "string",
+            "description": "SHA-256 of effective configuration"
+          },
+          "clientLease": {
+            "$ref": "#/components/schemas/ClientLease"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "metricContext": {
+            "type": "string"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "liveClients": {
+            "type": "integer"
+          },
+          "queuedJobs": {
+            "type": "integer"
+          },
+          "runningJobs": {
+            "type": "integer"
+          },
+          "readyWorkers": {
+            "type": "integer"
+          },
+          "desiredInstances": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "spec",
+          "state",
+          "createdAt",
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "OperationalClient": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastRenewedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "active",
+              "expired",
+              "released"
+            ]
+          },
+          "hostname": {
+            "type": "string",
+            "maxLength": 253,
+            "description": "Optional client-reported hostname (at most 253 UTF-8 bytes, no whitespace/control characters). Display metadata only; never identity or authorization."
+          }
+        },
+        "required": [
+          "id",
+          "clientId",
+          "state"
+        ]
+      },
+      "EngineObservation": {
+        "type": "object",
+        "properties": {
+          "application": {
+            "type": "string"
+          },
+          "applicationState": {
+            "type": "string"
+          },
+          "driverPod": {
+            "type": "string"
+          },
+          "driverPhase": {
+            "type": "string"
+          },
+          "uiAddress": {
+            "type": "string"
+          },
+          "uiService": {
+            "type": "string"
+          },
+          "condition": {
+            "type": "string"
+          },
+          "uiPort": {
+            "type": "integer"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "executorStates": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "resources": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              },
+              "required": [
+                "name",
+                "url"
+              ]
+            }
+          }
+        }
+      },
+      "OperationalInstance": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contextId": {
+            "type": "string"
+          },
+          "incarnation": {
+            "type": "string"
+          },
+          "resourceKind": {
+            "type": "string"
+          },
+          "resourceUid": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "detail": {
+            "$ref": "#/components/schemas/EngineObservation"
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "available",
+          "stale"
+        ]
+      },
+      "OperationalWorker": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contextId": {
+            "type": "string"
+          },
+          "incarnation": {
+            "type": "string"
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 128
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Capability"
+            }
+          },
+          "draining": {
+            "type": "boolean"
+          },
+          "heartbeatAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "draining",
+              "stale"
+            ]
+          },
+          "occupiedSlots": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "contextId",
+          "incarnation",
+          "capacity",
+          "capabilities"
+        ],
+        "additionalProperties": false
+      },
+      "OperationalServer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "pod": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "heartbeatAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "detail": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "heartbeatAt"
+        ]
+      },
+      "AdminJob": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contextId": {
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/SubmitRequest"
+          },
+          "state": {
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "RETRYING",
+              "CANCELLING",
+              "CANCELLED",
+              "FAILED",
+              "SUCCEEDED"
+            ]
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attemptCount": {
+            "type": "integer"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/Progress"
+          },
+          "failure": {
+            "$ref": "#/components/schemas/Failure"
+          },
+          "result": {
+            "$ref": "#/components/schemas/Result"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "contextName": {
+            "type": "string"
+          },
+          "contextVersion": {
+            "type": "string"
+          },
+          "metricContext": {
+            "type": "string"
+          },
+          "submittedBy": {
+            "type": "string"
+          },
+          "replayedFrom": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "contextId",
+          "request",
+          "state",
+          "submittedAt",
+          "updatedAt",
+          "attemptCount"
+        ],
+        "additionalProperties": false
+      },
+      "AdminSubmitRequest": {
+        "type": "object",
+        "properties": {
+          "handler": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "payload": {},
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "retry": {
+            "$ref": "#/components/schemas/RetryPolicy"
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "replayedFrom": {
+            "type": "string"
+          },
+          "activateIfStopped": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "handler",
+          "version",
+          "payload",
+          "idempotencyKey"
+        ],
+        "additionalProperties": false
+      },
+      "AdminAudit": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "contextId": {
+            "type": "string"
+          },
+          "jobId": {
+            "type": "string"
+          },
+          "replayedFrom": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string"
+          },
+          "acceptedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "actor",
+          "action",
+          "jobId",
+          "acceptedAt",
+          "outcome"
+        ]
+      },
+      "AdminPreview": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "validJSON": {
+            "type": "boolean"
+          },
+          "maxBytes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "text",
+          "truncated",
+          "validJSON",
+          "maxBytes"
+        ]
+      },
+      "AdminResult": {
+        "type": "object",
+        "properties": {
+          "descriptor": {
+            "$ref": "#/components/schemas/ResultDescriptor"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expired": {
+            "type": "boolean"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "file": {
+                  "$ref": "#/components/schemas/ResultFile"
+                },
+                "location": {
+                  "type": "string"
+                },
+                "unavailable": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "file",
+                "location"
+              ]
+            }
+          },
+          "dataset": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "metadata": {
+                "$ref": "#/components/schemas/DatasetManifest"
+              },
+              "location": {
+                "type": "string"
+              },
+              "available": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": [
+          "descriptor",
+          "expiresAt",
+          "expired",
+          "files"
+        ]
+      },
+      "OperationalContextPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OperationalContext"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "OperationalClientPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OperationalClient"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "OperationalInstancePage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OperationalInstance"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "OperationalWorkerPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OperationalWorker"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "OperationalServerPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OperationalServer"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "AdminJobPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminJob"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "AdminAuditPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminAudit"
+            }
+          },
+          "nextCursor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "AdminOverview": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "runningJobs": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "queuedJobs": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "retryingJobs": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "cancellingJobs": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "succeededJobs24h": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "failedJobs24h": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "cancelledJobs24h": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "activeContexts": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "liveClients": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "readyWorkers": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "workerSlots": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "occupiedSlots": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "serversReady": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "serversUnready": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "serversStale": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "oldestQueuedSeconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "meanProcessingSeconds24h": {
+            "type": "number",
+            "minimum": 0,
+            "nullable": true,
+            "description": "Mean finished execution-attempt duration in the last 24 hours; excludes initial queue wait and counts retries separately. Null if no durations exist."
+          },
+          "activeContextDetails": {
+            "type": "array",
+            "maxItems": 5,
+            "items": {
+              "$ref": "#/components/schemas/OverviewContext"
+            }
+          },
+          "recentFailures": {
+            "type": "array",
+            "maxItems": 5,
+            "items": {
+              "$ref": "#/components/schemas/OverviewFailure"
+            }
+          }
+        },
+        "required": [
+          "runningJobs",
+          "queuedJobs",
+          "retryingJobs",
+          "cancellingJobs",
+          "succeededJobs24h",
+          "failedJobs24h",
+          "cancelledJobs24h",
+          "activeContexts",
+          "liveClients",
+          "readyWorkers",
+          "workerSlots",
+          "occupiedSlots",
+          "serversReady",
+          "serversUnready",
+          "serversStale",
+          "observedAt",
+          "since",
+          "oldestQueuedSeconds",
+          "meanProcessingSeconds24h",
+          "activeContextDetails",
+          "recentFailures"
+        ],
+        "description": "Coherent read-only summary over all owners. Counts are independent of pagination. queuedJobs includes retryingJobs; terminal outcomes use updatedAt within since..observedAt. Server counts use the latest heartbeat per pod in that window."
+      },
+      "OverviewContext": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "condition": {
+            "type": "string"
+          },
+          "runningJobs": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "queuedJobs": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "owner",
+          "state",
+          "runningJobs",
+          "queuedJobs"
+        ]
+      },
+      "OverviewFailure": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contextId": {
+            "type": "string"
+          },
+          "contextName": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "handler": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "contextId",
+          "contextName",
+          "owner",
+          "handler",
+          "message",
+          "updatedAt"
+        ]
       }
     },
     "securitySchemes": {
@@ -3011,6 +5560,12 @@
         "type": "http",
         "scheme": "bearer",
         "description": "Credential scoped to worker context and incarnation"
+      },
+      "adminSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "linha_session",
+        "description": "Opaque HA browser session; viewer/operator mapping checked for each admin request. Cookie mutations additionally require Origin and X-Linha-CSRF."
       }
     }
   }

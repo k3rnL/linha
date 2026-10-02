@@ -3,6 +3,10 @@
 Linha is a durable job service with a Go server and Scala/JVM client and worker
 SDKs. The name means *ficelle* (string/thread) in French.
 
+[Admin console](docs/admin-ui.md) covers contexts, Spark UI links, request replay,
+cancellation and retained results. [Observability](docs/observability.md) covers
+Prometheus, the Grafana dashboard and optional Helm monitoring resources.
+
 [Job failure diagnostics](docs/job-failures.md) explain persisted exception types,
 stack traces, attempt history and correlated worker logs.
 
@@ -25,6 +29,7 @@ cover STS delegation, staging quotas and opt-in retention cleanup. Start with th
 
 ## Layout
 
+- `web/`: embedded React/TypeScript administrator console, disabled by default.
 - `server/`: Go API, PostgreSQL queue, storage providers and engine controllers.
 - `sdk/client-jvm/`: JSON and typed Scala clients, context/job handles and retrieval.
 - `sdk/worker-jvm/`: handler registration, dispatch, leases, progress and results.
@@ -35,7 +40,7 @@ cover STS delegation, staging quotas and opt-in retention cleanup. Start with th
 
 ## Build and run the restart example
 
-Use Go 1.27.1, Java 17, Maven, Python 3 and Docker. See the
+Use Go 1.27.1, Java 17, Maven, Node.js 22.12+ with npm, Python 3 and Docker. See the
 [compatibility matrix](docs/compatibility.md).
 
 ```sh

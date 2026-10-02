@@ -18,6 +18,9 @@ kind: Role
 metadata:
   name: {{ include "linha.name" . }}
 rules:
+  - apiGroups: [networking.k8s.io]
+    resources: [ingresses]
+    verbs: [get, list]
   - apiGroups: [sparkoperator.k8s.io]
     resources:
       - sparkapplications

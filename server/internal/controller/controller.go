@@ -18,10 +18,11 @@ import (
 )
 
 type Controller struct {
-	Pool    *pgxpool.Pool
-	Adapter engine.Adapter
-	Resolve func(context.Context, domain.BackendSpec) (string, error)
-	ID      string
+	Pool        *pgxpool.Pool
+	Adapter     engine.Adapter
+	Resolve     func(context.Context, domain.BackendSpec) (string, error)
+	ID          string
+	ObserveLoop func(string, time.Time, error)
 }
 type record struct {
 	instance  engine.Instance
@@ -34,7 +35,12 @@ func (c *Controller) Run(ctx context.Context) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	for {
-		if err := c.Tick(ctx); err != nil && ctx.Err() == nil {
+		started := time.Now()
+		err := c.Tick(ctx)
+		if c.ObserveLoop != nil {
+			c.ObserveLoop("reconcile", started, err)
+		}
+		if err != nil && ctx.Err() == nil {
 			slog.Warn("backend reconciliation unavailable", "error", err)
 		}
 		select {
@@ -138,7 +144,7 @@ func (c *Controller) reconcile(ctx context.Context, id string) error {
 		if err = c.valid(ctx, id, epoch); err != nil {
 			return err
 		}
-		observed, e := c.Adapter.Observe(ctx, r.instance)
+		observed, e := c.observe(ctx, r.instance)
 		if errors.Is(e, domain.NotFound) {
 			if r.instance.Incarnation == "" && r.instance.ResourceUID == "" && r.state != "DRAINING" {
 				ensureContext, ensureCancel := context.WithTimeout(ctx, 20*time.Second)
@@ -152,12 +158,19 @@ func (c *Controller) reconcile(ctx context.Context, id string) error {
 			if _, e = c.fenced(ctx, id, epoch, "UPDATE linha_workers SET draining=true WHERE id=$1", r.instance.Incarnation); e != nil {
 				return e
 			}
-			if _, e = c.fenced(ctx, id, epoch, "UPDATE linha_instances SET state='DEAD' WHERE id=$1", r.instance.ID); e != nil {
+			if _, e = c.fenced(ctx, id, epoch, "UPDATE linha_instances SET state='DEAD',replacement_reason=CASE WHEN $2 AND state<>'DRAINING' AND replacement_reason='' THEN 'lost' ELSE replacement_reason END WHERE id=$1", r.instance.ID, live || work); e != nil {
 				return e
 			}
 			continue
 		}
+
 		if e != nil {
+			var conflict *domain.Error
+			if errors.As(e, &conflict) && conflict.Code == "CONFLICT" {
+				if invalid := c.invalidateObservation(ctx, id, epoch, r.instance); invalid != nil {
+					return invalid
+				}
+			}
 			return e
 		}
 		if observed.Condition != "" {
@@ -165,8 +178,12 @@ func (c *Controller) reconcile(ctx context.Context, id string) error {
 				return e
 			}
 		}
-		if _, e = c.fenced(ctx, id, epoch, "UPDATE linha_instances SET pod_uid=$2,resource_uid=$3 WHERE id=$1 AND (pod_uid='' OR pod_uid=$2) AND (resource_uid='' OR resource_uid=$3)", r.instance.ID, observed.Incarnation, observed.ResourceUID); e != nil {
+		tag, e := c.fenced(ctx, id, epoch, "UPDATE linha_instances SET pod_uid=$2,resource_uid=$3,observation=$4,observed_at=clock_timestamp() WHERE id=$1 AND (pod_uid='' OR pod_uid=$2) AND (resource_uid='' OR resource_uid=$3)", r.instance.ID, observed.Incarnation, observed.ResourceUID, domain.JSON(observed.Observation))
+		if e != nil {
 			return e
+		}
+		if tag.RowsAffected() != 1 {
+			return domain.Stale
 		}
 		if observed.Draining || r.state == "DRAINING" || r.state == "STARTING" && now.Sub(r.createdAt) > 5*time.Minute {
 			if _, e = c.fenced(ctx, id, epoch, "UPDATE linha_workers SET draining=true WHERE id=$1", observed.Incarnation); e != nil {
@@ -183,7 +200,7 @@ func (c *Controller) reconcile(ctx context.Context, id string) error {
 				if e = c.Adapter.Stop(ctx, observed); e != nil {
 					return e
 				}
-				if _, e = c.fenced(ctx, id, epoch, "UPDATE linha_instances SET state='DRAINING' WHERE id=$1", observed.ID); e != nil {
+				if _, e = c.fenced(ctx, id, epoch, "UPDATE linha_instances SET state='DRAINING',replacement_reason=CASE WHEN $2 AND state<>'DRAINING' AND replacement_reason='' THEN 'failed' ELSE replacement_reason END WHERE id=$1", observed.ID, live || work); e != nil {
 					return e
 				}
 				if r.state == "STARTING" {
@@ -231,6 +248,9 @@ func (c *Controller) reconcile(ctx context.Context, id string) error {
 	}
 	if target > settings.Drivers.Max {
 		target = settings.Drivers.Max
+	}
+	if _, err = c.fenced(ctx, id, epoch, "UPDATE linha_contexts SET desired_instances=$2 WHERE id=$1", id, target); err != nil {
+		return err
 	}
 	canScale := now.Sub(lastScaled) >= time.Duration(settings.Drivers.CooldownSeconds)*time.Second
 	if target > len(records) && (len(records) < settings.Drivers.Min || len(records) == 0 || canScale && (queued >= settings.Drivers.QueueThreshold || wait >= float64(settings.Drivers.WaitSeconds))) {
@@ -370,7 +390,7 @@ func (c *Controller) cleanup(ctx context.Context, id string, epoch int64, image 
 		}
 		probe := i
 		probe.Incarnation = ""
-		observed, e := c.Adapter.Observe(ctx, probe)
+		observed, e := c.observe(ctx, probe)
 		if errors.Is(e, domain.NotFound) {
 			if i.Incarnation != "" || i.ResourceUID != "" {
 				if e = c.Adapter.Stop(ctx, i); e != nil {
@@ -417,10 +437,39 @@ func (c *Controller) lifetime(ctx context.Context, id string, epoch int64) (live
 			return
 		}
 	}
-	_, err = tx.Exec(ctx, `UPDATE linha_contexts SET state=CASE WHEN NOT $2 AND NOT $3 AND NOT EXISTS(SELECT 1 FROM linha_instances WHERE context_id=$1 AND state<>'DEAD') THEN 'STOPPED' WHEN NOT $2 THEN 'DRAINING' WHEN EXISTS(SELECT 1 FROM linha_instances WHERE context_id=$1 AND state='READY') THEN 'READY' ELSE 'STARTING' END WHERE id=$1`, id, live, work)
+	_, err = tx.Exec(ctx, `UPDATE linha_contexts SET desired_instances=CASE WHEN NOT $2 AND NOT $3 THEN 0 ELSE desired_instances END,state=CASE WHEN NOT $2 AND NOT $3 AND NOT EXISTS(SELECT 1 FROM linha_instances WHERE context_id=$1 AND state<>'DEAD') THEN 'STOPPED' WHEN NOT $2 THEN 'DRAINING' WHEN EXISTS(SELECT 1 FROM linha_instances WHERE context_id=$1 AND state='READY') THEN 'READY' ELSE 'STARTING' END WHERE id=$1`, id, live, work)
 	if err != nil {
 		return
 	}
 	err = tx.Commit(ctx)
 	return
+}
+
+func (c *Controller) observe(ctx context.Context, i engine.Instance) (engine.Instance, error) {
+	start := time.Now()
+	out, err := c.Adapter.Observe(ctx, i)
+	if c.ObserveLoop != nil {
+		reported := err
+		if errors.Is(err, domain.NotFound) {
+			reported = nil
+		}
+		c.ObserveLoop("observation", start, reported)
+	}
+	return out, err
+}
+
+// Preserve the last known detail/timestamp, but stop advertising a resource whose
+// current identity was rejected. An old controller cannot invalidate a new UID.
+func (c *Controller) invalidateObservation(ctx context.Context, id string, epoch int64, i engine.Instance) error {
+	tag, err := c.fenced(ctx, id, epoch, `UPDATE linha_instances SET observation=
+ (CASE WHEN jsonb_typeof(observation)='object' THEN observation ELSE '{}'::jsonb END)
+ || '{"available":false,"links":[],"condition":"resource_identity_changed"}'::jsonb
+ WHERE id=$1 AND context_id=$2 AND resource_uid=$3 AND pod_uid=$4`, i.ID, id, i.ResourceUID, i.Incarnation)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() != 1 {
+		return domain.Stale
+	}
+	return nil
 }

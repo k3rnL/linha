@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"linha/server/internal/domain"
+	"strings"
+	"unicode"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -62,21 +64,24 @@ func migrateVersions(ctx context.Context, tx pgx.Tx) error {
 }
 
 // Callers hold the context row lock, shared with retirement and job acceptance.
-func attachClient(ctx context.Context, tx pgx.Tx, id, client string) (*domain.ClientLease, error) {
+func attachClient(ctx context.Context, tx pgx.Tx, id, client, hostname string) (*domain.ClientLease, error) {
 	lease := &domain.ClientLease{ClientID: client, DurationSeconds: clientLeaseSeconds}
-	err := tx.QueryRow(ctx, `INSERT INTO linha_client_leases(id,context_id,client_id,expires_at) VALUES($1,$2,$3,clock_timestamp()+interval '90 seconds') ON CONFLICT(context_id,client_id) DO UPDATE SET id=CASE WHEN linha_client_leases.expires_at>clock_timestamp() THEN linha_client_leases.id ELSE excluded.id END,expires_at=excluded.expires_at RETURNING id,expires_at`, domain.ID(), id, client).Scan(&lease.ID, &lease.ExpiresAt)
+	err := tx.QueryRow(ctx, `INSERT INTO linha_client_leases(id,context_id,client_id,hostname,expires_at,last_renewed_at) VALUES($1,$2,$3,$4,clock_timestamp()+interval '90 seconds',clock_timestamp()) ON CONFLICT(context_id,client_id) DO UPDATE SET id=CASE WHEN linha_client_leases.expires_at>clock_timestamp() THEN linha_client_leases.id ELSE excluded.id END,hostname=CASE WHEN excluded.hostname='' AND linha_client_leases.expires_at>clock_timestamp() THEN linha_client_leases.hostname ELSE excluded.hostname END,expires_at=excluded.expires_at,last_renewed_at=clock_timestamp() RETURNING id,expires_at,hostname`, domain.ID(), id, client, hostname).Scan(&lease.ID, &lease.ExpiresAt, &lease.Hostname)
 	if err != nil {
 		return nil, err
 	}
 	_, err = tx.Exec(ctx, "UPDATE linha_contexts SET state=CASE WHEN state IN ('STOPPED','DRAINING') THEN 'STARTING' ELSE state END,reconcile_after='-infinity' WHERE id=$1", id)
 	return lease, err
 }
-func (s *Store) Attach(ctx context.Context, owner, id, client string) (out domain.BackendContext, err error) {
+func (s *Store) Attach(ctx context.Context, owner, id, client, hostname string) (out domain.BackendContext, err error) {
 	if client == "" {
 		client = domain.ID()
 	}
 	if len(client) > 128 {
 		return out, domain.Bad("clientId exceeds 128 bytes")
+	}
+	if err = validateHostname(hostname); err != nil {
+		return out, err
 	}
 	err = s.tx(ctx, func(tx pgx.Tx) error {
 		var e error
@@ -84,7 +89,7 @@ func (s *Store) Attach(ctx context.Context, owner, id, client string) (out domai
 		if e != nil {
 			return e
 		}
-		out.ClientLease, e = attachClient(ctx, tx, id, client)
+		out.ClientLease, e = attachClient(ctx, tx, id, client, hostname)
 		if out.State == "DRAINING" || out.State == "STOPPED" {
 			out.State = "STARTING"
 		}
@@ -99,7 +104,7 @@ func (s *Store) RenewClient(ctx context.Context, owner, id, token string) (out d
 		if e := tx.QueryRow(ctx, "SELECT id FROM linha_contexts WHERE id=$1 AND owner=$2 FOR NO KEY UPDATE", id, owner).Scan(&key); e != nil {
 			return missing(e)
 		}
-		e := tx.QueryRow(ctx, "UPDATE linha_client_leases SET expires_at=clock_timestamp()+interval '90 seconds' WHERE id=$1 AND context_id=$2 AND expires_at>clock_timestamp() RETURNING id,client_id,expires_at", token, id).Scan(&out.ID, &out.ClientID, &out.ExpiresAt)
+		e := tx.QueryRow(ctx, "UPDATE linha_client_leases SET expires_at=clock_timestamp()+interval '90 seconds',last_renewed_at=clock_timestamp() WHERE id=$1 AND context_id=$2 AND expires_at>clock_timestamp() RETURNING id,client_id,expires_at,hostname", token, id).Scan(&out.ID, &out.ClientID, &out.ExpiresAt, &out.Hostname)
 		if e == pgx.ErrNoRows {
 			return domain.ClientLeaseExpired
 		}
@@ -119,4 +124,12 @@ func (s *Store) ReleaseClient(ctx context.Context, owner, id, token string) erro
 		_, e := tx.Exec(ctx, "UPDATE linha_contexts SET reconcile_after='-infinity' WHERE id=$1", id)
 		return e
 	})
+}
+
+// Hostnames are optional display metadata, never an identity or a lookup target.
+func validateHostname(hostname string) error {
+	if len(hostname) > 253 || strings.IndexFunc(hostname, func(r rune) bool { return unicode.IsSpace(r) || unicode.IsControl(r) }) >= 0 {
+		return domain.Bad("hostname must be at most 253 bytes without whitespace or control characters")
+	}
+	return nil
 }

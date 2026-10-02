@@ -45,8 +45,22 @@ jobs:
           black --check scripts
           sqlfluff lint --rules layout server/internal/postgres/*.sql
           mvn -B spotless:check
+      - name: Check and build embedded admin console
+        run: |
+          npm --prefix web ci
+          npm --prefix web run check
+          npm --prefix web run build
+          cd web
+          npx playwright install --with-deps chromium
+          npm test
       - run: make check
       - run: go test -race ./server/...
+      - name: Admin response contracts and observability fixtures
+        run: |
+          LINHA_ADMIN_FIXTURE_OUTPUT=/tmp/linha-admin-fixtures.json go test ./server/internal/httpapi -run TestAdminOpenAPIResponseFixtures
+          LINHA_METRIC_LOAD=1 go test -v ./server/internal/postgres -run TestMetricRetainedHistoryAndConcurrentScrapers
+          pip install jsonschema==4.25.1
+          python scripts/check-observability.py --fixtures /tmp/linha-admin-fixtures.json
       - run: mvn -B package
       - run: make build && python3 scripts/e2e.py
       - run: pip install openapi-spec-validator==0.7.2 && python -m openapi_spec_validator api/openapi.json

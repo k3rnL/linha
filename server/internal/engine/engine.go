@@ -14,6 +14,7 @@ type Instance struct {
 	Kind, ResourceUID                 string
 	Ready, Draining                   bool
 	Condition                         string
+	Observation                       *domain.EngineObservation
 }
 type Adapter interface {
 	Validate(domain.EngineSpec) error

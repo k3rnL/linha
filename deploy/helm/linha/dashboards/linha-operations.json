@@ -1,0 +1,1426 @@
+{
+  "uid": "linha-operations",
+  "title": "Linha · Queries and capacity",
+  "description": "Query activity, outcomes, processing time and the capacity serving your requests. Expand Diagnostics for internal health checks.",
+  "tags": [
+    "linha",
+    "operations"
+  ],
+  "schemaVersion": 39,
+  "version": 2,
+  "timezone": "utc",
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "editable": true,
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {}
+      },
+      {
+        "name": "cluster",
+        "label": "Cluster",
+        "type": "query",
+        "hide": 0,
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": "label_values(linha_server_build_info,cluster)",
+        "definition": "label_values(linha_server_build_info,cluster)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "namespace",
+        "label": "Namespace",
+        "type": "query",
+        "hide": 0,
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": "label_values(linha_server_build_info{cluster=~\"$cluster\"},namespace)",
+        "definition": "label_values(linha_server_build_info{cluster=~\"$cluster\"},namespace)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "linha_deployment",
+        "label": "Deployment",
+        "type": "query",
+        "hide": 0,
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": "label_values(linha_server_build_info{cluster=~\"$cluster\",namespace=~\"$namespace\"},linha_deployment)",
+        "definition": "label_values(linha_server_build_info{cluster=~\"$cluster\",namespace=~\"$namespace\"},linha_deployment)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "engine",
+        "label": "Engine",
+        "type": "query",
+        "hide": 0,
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": "label_values(linha_context_versions{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\"},engine)",
+        "definition": "label_values(linha_context_versions{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\"},engine)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "context",
+        "label": "Context",
+        "type": "query",
+        "hide": 0,
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": "label_values(linha_context_versions{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\"},context)",
+        "definition": "label_values(linha_context_versions{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\"},context)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "pod",
+        "label": "Server pod (diagnostics)",
+        "type": "query",
+        "hide": 2,
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": "label_values(linha_server_build_info{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\"},pod)",
+        "definition": "label_values(linha_server_build_info{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\"},pod)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "uiBaseUrl",
+        "type": "constant",
+        "query": "",
+        "hide": 2
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Queries",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Running now",
+      "description": "Requests currently executing. Cancelling requests are shown separately in the activity chart.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum (max by (cluster,namespace,linha_deployment,engine,context,state) (linha_job_records{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=\"RUNNING\"}))",
+          "legendFormat": "Running now",
+          "interval": "15s",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Not available",
+          "links": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Queued now",
+      "description": "Accepted requests waiting to execute, including those waiting before a retry.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum (max by (cluster,namespace,linha_deployment,engine,context,state) (linha_job_records{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=~\"QUEUED|RETRYING\"}))",
+          "legendFormat": "Queued now",
+          "interval": "15s",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Not available",
+          "links": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Succeeded · selected period",
+      "description": "Successful requests during the dashboard time range. Estimated from Prometheus samples; retries are not extra requests.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum (increase((max by (cluster,namespace,linha_deployment,engine,context,outcome) (linha_job_completions_total{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",outcome=\"SUCCEEDED\"}))[$__range:15s]))",
+          "legendFormat": "Succeeded · selected period",
+          "interval": "15s",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Not available",
+          "links": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Failed · selected period",
+      "description": "Final request failures during the dashboard time range, after any allowed retries. Open Requests in the console for exceptions.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum (increase((max by (cluster,namespace,linha_deployment,engine,context,outcome) (linha_job_completions_total{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",outcome=\"FAILED\"}))[$__range:15s]))",
+          "legendFormat": "Failed · selected period",
+          "interval": "15s",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Not available",
+          "links": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Success rate · selected period",
+      "description": "Succeeded / (succeeded + failed) during the selected period. Cancelled requests are excluded. No completed requests means no percentage.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum (increase((max by (cluster,namespace,linha_deployment,engine,context,outcome) (linha_job_completions_total{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",outcome=\"SUCCEEDED\"}))[$__range:15s])) / sum (increase((max by (cluster,namespace,linha_deployment,engine,context,outcome) (linha_job_completions_total{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",outcome=~\"SUCCEEDED|FAILED\"}))[$__range:15s]))",
+          "legendFormat": "Success rate · selected period",
+          "interval": "15s",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "noValue": "Not available",
+          "links": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Ready servers",
+      "description": "Servers with a recent ready heartbeat. Deployment-wide: engine/context filters do not apply.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum (max by (cluster,namespace,linha_deployment,state) (linha_servers{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",state=\"ready\"}))",
+          "legendFormat": "Ready servers",
+          "interval": "15s",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Not available",
+          "links": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Query activity",
+      "description": "How many requests are running, waiting, or being cancelled at each moment.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum (max by (cluster,namespace,linha_deployment,engine,context,state) (linha_job_records{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=~\"RUNNING\"}))",
+          "legendFormat": "Running",
+          "interval": "15s",
+          "instant": false
+        },
+        {
+          "refId": "B",
+          "expr": "sum (max by (cluster,namespace,linha_deployment,engine,context,state) (linha_job_records{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=~\"QUEUED|RETRYING\"}))",
+          "legendFormat": "Queued",
+          "interval": "15s",
+          "instant": false
+        },
+        {
+          "refId": "C",
+          "expr": "sum (max by (cluster,namespace,linha_deployment,engine,context,state) (linha_job_records{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=~\"CANCELLING\"}))",
+          "legendFormat": "Cancelling",
+          "interval": "15s",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Not available",
+          "links": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Completions per minute",
+      "description": "Request outcomes per minute. Counts each request once, even when execution needed retries.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "60 * sum (rate((max by (cluster,namespace,linha_deployment,engine,context,outcome) (linha_job_completions_total{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",outcome=\"SUCCEEDED\"}))[$__rate_interval:15s]))",
+          "legendFormat": "Succeeded",
+          "interval": "15s",
+          "instant": false
+        },
+        {
+          "refId": "B",
+          "expr": "60 * sum (rate((max by (cluster,namespace,linha_deployment,engine,context,outcome) (linha_job_completions_total{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",outcome=\"FAILED\"}))[$__rate_interval:15s]))",
+          "legendFormat": "Failed",
+          "interval": "15s",
+          "instant": false
+        },
+        {
+          "refId": "C",
+          "expr": "60 * sum (rate((max by (cluster,namespace,linha_deployment,engine,context,outcome) (linha_job_completions_total{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",outcome=\"CANCELLED\"}))[$__rate_interval:15s]))",
+          "legendFormat": "Cancelled",
+          "interval": "15s",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Not available",
+          "links": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Time spent waiting and processing",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Processing time",
+      "description": "Time from assignment to a finished execution. Queue wait is excluded; retries count as separate executions. The 95% line highlights slower work.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum (rate((max by (cluster,namespace,linha_deployment,engine,context) (linha_attempt_duration_seconds_sum{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\"}))[$__rate_interval:15s])) / sum (rate((max by (cluster,namespace,linha_deployment,engine,context) (linha_attempt_duration_seconds_count{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\"}))[$__rate_interval:15s]))",
+          "legendFormat": "Average",
+          "interval": "15s",
+          "instant": false
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate((max by (cluster,namespace,linha_deployment,engine,context,le) (linha_attempt_duration_seconds_bucket{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\"}))[$__rate_interval:15s])))",
+          "legendFormat": "95% finish within",
+          "interval": "15s",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "Not available",
+          "links": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Queue waiting time",
+      "description": "Submission to first assignment for requests that started. A growing queue wait usually means demand exceeds available execution capacity.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 13,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.5, sum by (le) (rate((max by (cluster,namespace,linha_deployment,engine,context,le) (linha_job_queue_wait_seconds_bucket{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\"}))[$__rate_interval:15s])))",
+          "legendFormat": "Typical (median)",
+          "interval": "15s",
+          "instant": false
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate((max by (cluster,namespace,linha_deployment,engine,context,le) (linha_job_queue_wait_seconds_bucket{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\"}))[$__rate_interval:15s])))",
+          "legendFormat": "95% assigned within",
+          "interval": "15s",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "Not available",
+          "links": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "End-to-end request time",
+      "description": "Submission to a final outcome, including queue wait, retries and processing. Includes succeeded, failed and cancelled requests.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum (rate((max by (cluster,namespace,linha_deployment,engine,context,outcome) (linha_job_duration_seconds_sum{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\"}))[$__rate_interval:15s])) / sum (rate((max by (cluster,namespace,linha_deployment,engine,context,outcome) (linha_job_duration_seconds_count{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\"}))[$__rate_interval:15s]))",
+          "legendFormat": "Average",
+          "interval": "15s",
+          "instant": false
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate((max by (cluster,namespace,linha_deployment,engine,context,outcome,le) (linha_job_duration_seconds_bucket{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\"}))[$__rate_interval:15s])))",
+          "legendFormat": "95% finish within",
+          "interval": "15s",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "Not available",
+          "links": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Oldest queued request",
+      "description": "Age of the oldest waiting request across selected contexts, including retry backoff. Zero means the selected queues are empty.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max (max by (cluster,namespace,linha_deployment,engine,context) (linha_queue_oldest_age_seconds{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\"}))",
+          "legendFormat": "Oldest queued request",
+          "interval": "15s",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "noValue": "Not available",
+          "links": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "Capacity and resources",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 16,
+      "type": "stat",
+      "title": "Clients and contexts now",
+      "description": "Live client connections to context versions, plus versions starting, running or draining. One client can connect to several versions.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum (max by (cluster,namespace,linha_deployment,engine,context,state) (linha_client_leases{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=\"active\"}))",
+          "legendFormat": "Client connections",
+          "interval": "15s",
+          "instant": true
+        },
+        {
+          "refId": "B",
+          "expr": "sum (max by (cluster,namespace,linha_deployment,engine,context,state) (linha_context_versions{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state!=\"STOPPED\"}))",
+          "legendFormat": "Active context versions",
+          "interval": "15s",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Not available",
+          "links": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 17,
+      "type": "stat",
+      "title": "Worker capacity now",
+      "description": "Ready worker processes and the concurrent executions they can accept. Compare occupied slots with total slots when queues grow.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 28,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum (max by (cluster,namespace,linha_deployment,engine,context,state) (linha_workers{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=\"ready\"}))",
+          "legendFormat": "Ready workers",
+          "interval": "15s",
+          "instant": true
+        },
+        {
+          "refId": "B",
+          "expr": "sum (max by (cluster,namespace,linha_deployment,engine,context) (linha_worker_capacity_slots{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\"}))",
+          "legendFormat": "Execution slots",
+          "interval": "15s",
+          "instant": true
+        },
+        {
+          "refId": "C",
+          "expr": "sum (max by (cluster,namespace,linha_deployment,engine,context) (linha_worker_occupied_slots{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\"}))",
+          "legendFormat": "Slots in use",
+          "interval": "15s",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Not available",
+          "links": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 18,
+      "type": "stat",
+      "title": "Spark pods running now",
+      "description": "Currently running Spark pods. Not available when any required selected observation is stale or incomplete; retired instances are excluded.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 28,
+        "w": 8,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(sum (max by (cluster,namespace,linha_deployment,engine,context,state) (linha_spark_driver_pods{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=\"Running\"}))) unless on () (sum(max by (cluster,namespace,linha_deployment,engine,context,state) (linha_engine_observations{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=~\"stale|missing\"})) > 0)",
+          "legendFormat": "Drivers",
+          "interval": "15s",
+          "instant": true
+        },
+        {
+          "refId": "B",
+          "expr": "(sum (max by (cluster,namespace,linha_deployment,engine,context,state) (linha_spark_executor_pods{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=\"Running\"}))) unless on () (sum(max by (cluster,namespace,linha_deployment,engine,context,state) (linha_engine_observations{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=~\"stale|missing\"})) > 0)",
+          "legendFormat": "Executors",
+          "interval": "15s",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "noValue": "Not available",
+          "links": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "Spark CPU requests and limits",
+      "description": "Configured resources for current Spark pods, not measured consumption. Requests reserve capacity; limits cap it. Any stale or incomplete selected observation makes the total unavailable.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(sum (max by (cluster,namespace,linha_deployment,engine,context,role,allocation) (linha_spark_pod_cpu_cores{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",role=\"driver\",allocation=\"request\"}))) unless on () (sum(max by (cluster,namespace,linha_deployment,engine,context,state) (linha_engine_observations{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=~\"stale|missing\"})) > 0)",
+          "legendFormat": "Driver requests",
+          "interval": "15s",
+          "instant": false
+        },
+        {
+          "refId": "B",
+          "expr": "(sum (max by (cluster,namespace,linha_deployment,engine,context,role,allocation) (linha_spark_pod_cpu_cores{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",role=\"driver\",allocation=\"limit\"}))) unless on () (sum(max by (cluster,namespace,linha_deployment,engine,context,state) (linha_engine_observations{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=~\"stale|missing\"})) > 0)",
+          "legendFormat": "Driver limits",
+          "interval": "15s",
+          "instant": false
+        },
+        {
+          "refId": "C",
+          "expr": "(sum (max by (cluster,namespace,linha_deployment,engine,context,role,allocation) (linha_spark_pod_cpu_cores{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",role=\"executor\",allocation=\"request\"}))) unless on () (sum(max by (cluster,namespace,linha_deployment,engine,context,state) (linha_engine_observations{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=~\"stale|missing\"})) > 0)",
+          "legendFormat": "Executor requests",
+          "interval": "15s",
+          "instant": false
+        },
+        {
+          "refId": "D",
+          "expr": "(sum (max by (cluster,namespace,linha_deployment,engine,context,role,allocation) (linha_spark_pod_cpu_cores{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",role=\"executor\",allocation=\"limit\"}))) unless on () (sum(max by (cluster,namespace,linha_deployment,engine,context,state) (linha_engine_observations{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=~\"stale|missing\"})) > 0)",
+          "legendFormat": "Executor limits",
+          "interval": "15s",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "cores",
+          "noValue": "Not available",
+          "links": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Spark memory requests and limits",
+      "description": "Configured resources for current Spark pods, not measured consumption. Requests reserve capacity; limits cap it. Any stale or incomplete selected observation makes the total unavailable.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(sum (max by (cluster,namespace,linha_deployment,engine,context,role,allocation) (linha_spark_pod_memory_bytes{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",role=\"driver\",allocation=\"request\"}))) unless on () (sum(max by (cluster,namespace,linha_deployment,engine,context,state) (linha_engine_observations{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=~\"stale|missing\"})) > 0)",
+          "legendFormat": "Driver requests",
+          "interval": "15s",
+          "instant": false
+        },
+        {
+          "refId": "B",
+          "expr": "(sum (max by (cluster,namespace,linha_deployment,engine,context,role,allocation) (linha_spark_pod_memory_bytes{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",role=\"driver\",allocation=\"limit\"}))) unless on () (sum(max by (cluster,namespace,linha_deployment,engine,context,state) (linha_engine_observations{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=~\"stale|missing\"})) > 0)",
+          "legendFormat": "Driver limits",
+          "interval": "15s",
+          "instant": false
+        },
+        {
+          "refId": "C",
+          "expr": "(sum (max by (cluster,namespace,linha_deployment,engine,context,role,allocation) (linha_spark_pod_memory_bytes{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",role=\"executor\",allocation=\"request\"}))) unless on () (sum(max by (cluster,namespace,linha_deployment,engine,context,state) (linha_engine_observations{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=~\"stale|missing\"})) > 0)",
+          "legendFormat": "Executor requests",
+          "interval": "15s",
+          "instant": false
+        },
+        {
+          "refId": "D",
+          "expr": "(sum (max by (cluster,namespace,linha_deployment,engine,context,role,allocation) (linha_spark_pod_memory_bytes{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",role=\"executor\",allocation=\"limit\"}))) unless on () (sum(max by (cluster,namespace,linha_deployment,engine,context,state) (linha_engine_observations{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",engine=~\"$engine\",context=~\"$context\",state=~\"stale|missing\"})) > 0)",
+          "legendFormat": "Executor limits",
+          "interval": "15s",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "noValue": "Not available",
+          "links": [],
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "type": "row",
+      "title": "Diagnostics · expand when investigating a problem",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 39,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 22,
+          "type": "timeseries",
+          "title": "Server readiness",
+          "description": "1 means the server is ready, 0 means a dependency is unavailable. Deployment/server filters apply; context filters do not.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 40,
+            "w": 12,
+            "h": 7
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "linha_server_ready{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",pod=~\"$pod\"}",
+              "legendFormat": "{{pod}}",
+              "interval": "15s",
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "Not available",
+              "links": [],
+              "color": {
+                "mode": "palette-classic"
+              },
+              "min": 0,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 8,
+                "spanNulls": false
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 23,
+          "type": "timeseries",
+          "title": "Monitoring data age",
+          "description": "Seconds since each collector last succeeded. Growing values explain unavailable or stale panels. Zero timestamps mean collection has never succeeded.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 40,
+            "w": 12,
+            "h": 7
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "time()-linha_collector_last_success_timestamp_seconds{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",pod=~\"$pod\"}",
+              "legendFormat": "{{pod}} · {{collector}}",
+              "interval": "15s",
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "noValue": "Not available",
+              "links": [],
+              "color": {
+                "mode": "palette-classic"
+              },
+              "min": 0,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 8,
+                "spanNulls": false
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 24,
+          "type": "timeseries",
+          "title": "API failures per minute",
+          "description": "Server-side HTTP failures per minute. Inspect server logs for details; query business failures are shown in the main Queries section.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 47,
+            "w": 12,
+            "h": 7
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "60 * sum by (status_code) (rate(linha_api_requests_total{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",pod=~\"$pod\",status_code=~\"5..\"}[$__rate_interval]))",
+              "legendFormat": "{{status_code}}",
+              "interval": "15s",
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "Not available",
+              "links": [],
+              "color": {
+                "mode": "palette-classic"
+              },
+              "min": 0,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 8,
+                "spanNulls": false
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        },
+        {
+          "id": 25,
+          "type": "timeseries",
+          "title": "Dependency errors per minute",
+          "description": "Server-observed dependency failures per minute. Storage excludes direct worker/Spark traffic. These are process events, not failed query totals.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 47,
+            "w": 12,
+            "h": 7
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "expr": "60 * sum (rate(linha_kubernetes_api_requests_total{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",pod=~\"$pod\",outcome!=\"success\"}[$__rate_interval]))",
+              "legendFormat": "Kubernetes",
+              "interval": "15s",
+              "instant": false
+            },
+            {
+              "refId": "B",
+              "expr": "60 * sum (rate(linha_storage_operations_total{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",pod=~\"$pod\",outcome=\"error\"}[$__rate_interval]))",
+              "legendFormat": "Result storage",
+              "interval": "15s",
+              "instant": false
+            },
+            {
+              "refId": "C",
+              "expr": "60 * sum (rate(linha_database_pool_acquire_failures_total{cluster=~\"$cluster\",namespace=~\"$namespace\",linha_deployment=~\"$linha_deployment\",pod=~\"$pod\"}[$__rate_interval]))",
+              "legendFormat": "Database connections",
+              "interval": "15s",
+              "instant": false
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "noValue": "Not available",
+              "links": [],
+              "color": {
+                "mode": "palette-classic"
+              },
+              "min": 0,
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 8,
+                "spanNulls": false
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "multi"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "links": []
+}

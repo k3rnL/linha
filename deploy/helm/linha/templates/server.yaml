@@ -1,4 +1,5 @@
 {{- include "linha.validate" . -}}
+{{- include "linha.observability.validate" . -}}
 {{- $pullNames := list -}}
 {{- range .Values.imagePullSecrets -}}
 {{- $pullNames = append $pullNames .name -}}
@@ -15,6 +16,13 @@ spec:
   template:
     metadata:
       labels:
+        app.kubernetes.io/name: linha
+        app.kubernetes.io/instance: {{ .Release.Name | quote }}
+        app.kubernetes.io/component: server
+        linha_deployment: {{ .Release.Name | quote }}
+        {{- if .Values.metrics.cluster }}
+        cluster: {{ .Values.metrics.cluster | quote }}
+        {{- end }}
         app: {{ include "linha.name" . }}
       annotations: {{ toJson .Values.podAnnotations }}
     spec:
@@ -66,6 +74,33 @@ spec:
             periodSeconds: 5
           resources: {{ toJson .Values.resources }}
           env:
+            - name: LINHA_METRICS_ENABLED
+              value: {{ .Values.metrics.enabled | quote }}
+            - name: LINHA_METRICS_MAX_CONTEXTS
+              value: {{ .Values.metrics.maxContexts | quote }}
+            - name: LINHA_METRICS_CONTEXT_ALIASES
+              value: {{ toJson .Values.metrics.contextAliases | quote }}
+            - name: LINHA_UI_ENABLED
+              value: {{ .Values.ui.enabled | quote }}
+            {{- if .Values.ui.enabled }}
+            - name: LINHA_UI_PUBLIC_URL
+              value: {{ .Values.ui.publicURL | quote }}
+            - name: LINHA_UI_SESSION_SECONDS
+              value: {{ .Values.ui.sessionSeconds | quote }}
+            - name: LINHA_UI_OIDC_CLIENT_ID
+              value: {{ .Values.ui.oidc.clientId | quote }}
+            - name: LINHA_UI_GRAFANA_URL
+              value: {{ .Values.ui.grafanaURL | quote }}
+            - name: LINHA_ADMIN_MAPPINGS
+              value: {{ toJson .Values.security.admin | quote }}
+            {{- if .Values.ui.oidc.secretRef }}
+            - name: LINHA_UI_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.ui.oidc.secretRef | quote }}
+                  key: {{ .Values.ui.oidc.clientSecretKey | quote }}
+            {{- end }}
+            {{- end }}
             - name: LINHA_SECURITY_ENABLED
               value: {{ .Values.security.enabled | quote }}
             - name: LINHA_OIDC_ENABLED
@@ -161,6 +196,14 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "linha.name" . }}
+  labels:
+    app.kubernetes.io/name: linha
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    app.kubernetes.io/component: server
+    linha_deployment: {{ .Release.Name | quote }}
+    {{- if .Values.metrics.cluster }}
+    cluster: {{ .Values.metrics.cluster | quote }}
+    {{- end }}
 spec:
   selector:
     app: {{ include "linha.name" . }}

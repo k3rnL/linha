@@ -28,6 +28,132 @@
               "type": "string"
             }
           }
+        },
+        "admin": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "viewer": {
+              "type": "object",
+              "properties": {
+                "subjects": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "issuer",
+                      "subject"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "issuer": {
+                        "type": "string"
+                      },
+                      "subject": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                "claims": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "issuer",
+                      "path",
+                      "values"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "issuer": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 8,
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        }
+                      },
+                      "values": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            "operator": {
+              "type": "object",
+              "properties": {
+                "subjects": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "issuer",
+                      "subject"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "issuer": {
+                        "type": "string"
+                      },
+                      "subject": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  }
+                },
+                "claims": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "issuer",
+                      "path",
+                      "values"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                      "issuer": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 8,
+                        "items": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        }
+                      },
+                      "values": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          }
         }
       }
     },
@@ -197,6 +323,202 @@
         "maxStagingBytes": {
           "type": "integer",
           "minimum": 1
+        }
+      }
+    },
+    "ui": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "publicURL": {
+          "type": "string"
+        },
+        "grafanaURL": {
+          "type": "string"
+        },
+        "sessionSeconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 86400
+        },
+        "oidc": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "secretRef": {
+              "type": "string"
+            },
+            "clientSecretKey": {
+              "type": "string"
+            }
+          }
+        },
+        "ingress": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "className": {
+              "type": "string",
+              "maxLength": 253,
+              "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
+            },
+            "annotations": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "tls": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "secretName": {
+                  "type": "string",
+                  "maxLength": 253,
+                  "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?([.][a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "maxContexts": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "cluster": {
+          "type": "string"
+        },
+        "contextAliases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "owner",
+              "name",
+              "alias"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "owner": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "alias": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_.-]{1,80}$",
+                "not": {
+                  "const": "__other__"
+                }
+              }
+            }
+          }
+        },
+        "serviceMonitor": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "labels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "interval": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*s$"
+            },
+            "scrapeTimeout": {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*s$"
+            },
+            "scheme": {
+              "type": "string",
+              "enum": [
+                "http",
+                "https"
+              ]
+            },
+            "sampleLimit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000000
+            },
+            "relabelings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "metricRelabelings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "tlsConfig": {
+              "type": "object"
+            },
+            "authorization": {
+              "type": "object"
+            }
+          }
+        },
+        "grafanaDashboard": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "labels": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "instanceSelector": {
+              "type": "object"
+            },
+            "folder": {
+              "type": "string"
+            },
+            "datasourceUID": {
+              "type": "string"
+            },
+            "allowCrossNamespaceImport": {
+              "type": "boolean"
+            },
+            "resyncPeriod": {
+              "type": "string"
+            }
+          }
         }
       }
     }

@@ -12,7 +12,9 @@ import (
 	"linha/server/internal/engine"
 	"linha/server/internal/pathspec"
 	"linha/server/internal/storage"
+	"linha/server/internal/telemetry"
 	"log/slog"
+	"mime"
 	"net/http"
 	"strconv"
 	"strings"
@@ -21,13 +23,18 @@ import (
 )
 
 type Server struct {
-	Staging  storage.StagingBudget
-	Repo     domain.Repository
-	Auth     auth.Authenticator
-	Storage  storage.Registry
-	Engines  engine.Registry
-	requests atomic.Uint64
-	failures atomic.Uint64
+	Staging         storage.StagingBudget
+	Repo            domain.Repository
+	Auth            auth.Authenticator
+	Storage         storage.Registry
+	Engines         engine.Registry
+	Metrics         *telemetry.Monitor
+	MetricsDisabled bool
+	Admin           *auth.Admin
+	UI              http.Handler
+	GrafanaURL      string
+	requests        atomic.Uint64
+	failures        atomic.Uint64
 }
 
 func (s *Server) Handler() http.Handler {
@@ -38,7 +45,7 @@ func (s *Server) Handler() http.Handler {
 		defer cancel()
 		err := s.Repo.Ping(ctx)
 		if err == nil && s.Storage.Local != nil {
-			err = s.Storage.Local.Check()
+			err = s.Storage.Local.CheckContext(ctx)
 		}
 		if err != nil {
 			s.error(w, err)
@@ -46,22 +53,29 @@ func (s *Server) Handler() http.Handler {
 		}
 		write(w, 200, map[string]string{"status": "ready"})
 	})
-	m.HandleFunc("GET /metrics", func(w http.ResponseWriter, r *http.Request) {
-		var snapshot bytes.Buffer
-		if metrics, ok := s.Repo.(interface {
-			Metrics(context.Context, io.Writer) error
-		}); ok {
-			ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
-			defer cancel()
-			if err := metrics.Metrics(ctx, &snapshot); err != nil {
-				s.error(w, err)
-				return
-			}
+	if !s.MetricsDisabled {
+		if s.Metrics != nil {
+			s.Metrics.LegacyHTTP(func() float64 { return float64(s.requests.Load()) }, func() float64 { return float64(s.failures.Load()) })
+			m.Handle("GET /metrics", s.Metrics.Handler())
+		} else {
+			m.HandleFunc("GET /metrics", func(w http.ResponseWriter, r *http.Request) {
+				var snapshot bytes.Buffer
+				if metrics, ok := s.Repo.(interface {
+					Metrics(context.Context, io.Writer) error
+				}); ok {
+					ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+					defer cancel()
+					if err := metrics.Metrics(ctx, &snapshot); err != nil {
+						s.error(w, err)
+						return
+					}
+				}
+				w.Header().Set("Content-Type", "text/plain; version=0.0.4")
+				_, _ = w.Write(snapshot.Bytes())
+				fmt.Fprintf(w, "linha_http_requests_total %d\nlinha_http_errors_total %d\n", s.requests.Load(), s.failures.Load())
+			})
 		}
-		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
-		_, _ = w.Write(snapshot.Bytes())
-		fmt.Fprintf(w, "linha_http_requests_total %d\nlinha_http_errors_total %d\n", s.requests.Load(), s.failures.Load())
-	})
+	}
 	m.HandleFunc("POST /v1/contexts:ensure", s.user(s.ensure))
 	m.HandleFunc("GET /v1/contexts/{context}", s.user(s.getContext))
 	m.HandleFunc("POST /v1/contexts/{context}/clients", s.user(s.attachClient))
@@ -104,6 +118,14 @@ func (s *Server) Handler() http.Handler {
 	m.HandleFunc("POST /v1/jobs/{job}/outputs", s.worker(s.allocate))
 	m.HandleFunc("PUT /v1/jobs/{job}/outputs/{output}", s.worker(s.upload))
 	m.HandleFunc("POST /v1/jobs/{job}/complete", s.worker(s.complete))
+	m.HandleFunc("/v1/", func(w http.ResponseWriter, r *http.Request) { s.error(w, domain.NotFound) })
+	if s.Admin != nil {
+		s.adminRoutes(m)
+		m.Handle("GET /ui/", s.UI)
+	}
+	if s.Metrics != nil {
+		return s.measure(m)
+	}
 	return m
 }
 
@@ -142,6 +164,24 @@ func (s *Server) worker(h workerHandler) http.HandlerFunc {
 			e = h(w, r, identity)
 		}
 		if e != nil {
+			if s.Metrics != nil {
+				operation := workerOperation(r)
+				reason := "other"
+				var de *domain.Error
+				if errors.As(e, &de) {
+					switch de.Code {
+					case "UNAUTHORIZED":
+						reason = "identity_mismatch"
+					case "STALE_ATTEMPT":
+						reason = "stale_attempt"
+					case "INVALID_ARGUMENT":
+						reason = "invalid_payload"
+					case "CONFLICT":
+						reason = "invalid_state"
+					}
+				}
+				s.Metrics.Add("linha_worker_updates_rejected_total", 1, operation, reason)
+			}
 			s.error(w, e)
 		}
 	}
@@ -348,6 +388,8 @@ func (s *Server) download(w http.ResponseWriter, r *http.Request, owner string) 
 		return e
 	}
 	defer reader.Close()
+	w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": f.Name}))
+	w.Header().Set("Content-Security-Policy", "sandbox; default-src 'none'")
 	w.Header().Set("Content-Type", f.ContentType)
 	w.Header().Set("Content-Length", strconv.FormatInt(f.Size, 10))
 	w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -484,6 +526,7 @@ func (s *Server) allocate(w http.ResponseWriter, r *http.Request, id auth.Worker
 	if e := identity(in.AttemptUpdate, id); e != nil {
 		return e
 	}
+	started := time.Now()
 	out, e := s.Repo.Allocate(r.Context(), r.PathValue("job"), in)
 	if e == nil {
 		provider, err := s.Storage.For(out.Policy)
@@ -495,6 +538,7 @@ func (s *Server) allocate(w http.ResponseWriter, r *http.Request, id auth.Worker
 				return err
 			}
 		}
+		s.Metrics.Storage(out.Policy, "allocate", started, 0, "", nil)
 		out.UploadURL = "/v1/jobs/" + out.JobID + "/outputs/" + out.ID
 		write(w, 200, out)
 	}
@@ -581,11 +625,12 @@ func (s *Server) complete(w http.ResponseWriter, r *http.Request, id auth.Worker
 func (s *Server) attachClient(w http.ResponseWriter, r *http.Request, owner string) error {
 	var in struct {
 		ClientID string `json:"clientId"`
+		Hostname string `json:"hostname,omitempty"`
 	}
 	if err := decode(w, r, &in); err != nil {
 		return err
 	}
-	out, err := s.Repo.Attach(r.Context(), owner, r.PathValue("context"), in.ClientID)
+	out, err := s.Repo.Attach(r.Context(), owner, r.PathValue("context"), in.ClientID, in.Hostname)
 	if err == nil {
 		write(w, 200, out)
 	}

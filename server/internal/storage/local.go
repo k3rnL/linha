@@ -10,6 +10,8 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
+	"time"
 
 	"linha/server/internal/domain"
 	"linha/server/internal/pathspec"
@@ -22,8 +24,10 @@ type Backend interface {
 	Delete(context.Context, domain.Allocation) error
 }
 type Local struct {
-	RootPath string
-	root     *os.Root
+	RootPath  string
+	root      *os.Root
+	probeOnce sync.Once
+	probeGate chan struct{}
 }
 
 func NewLocal(root string) (*Local, error) {
@@ -31,7 +35,7 @@ func NewLocal(root string) (*Local, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Local{root, r}, nil
+	return &Local{RootPath: root, root: r}, nil
 }
 func (l *Local) Close() error { return l.root.Close() }
 func (l *Local) Check() error {
@@ -47,6 +51,25 @@ func (l *Local) Check() error {
 		return fmt.Errorf("configured result mount changed; restart the serving replica")
 	}
 	return nil
+}
+
+// CheckContext bounds a potentially blocked filesystem probe. A single outstanding
+// probe is allowed even when the underlying mount does not honor cancellation.
+func (l *Local) CheckContext(ctx context.Context) error {
+	l.probeOnce.Do(func() { l.probeGate = make(chan struct{}, 1) })
+	select {
+	case l.probeGate <- struct{}{}:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	result := make(chan error, 1)
+	go func() { defer func() { <-l.probeGate }(); result <- l.Check() }()
+	select {
+	case err := <-result:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 func (l *Local) validate(a domain.Allocation) error {
 	if err := l.Check(); err != nil {
@@ -175,19 +198,21 @@ func (r *contextReader) Read(b []byte) (int, error) {
 }
 
 type Registry struct {
-	Local        *Local
-	Destinations map[string]Backend
+	Local          *Local
+	Destinations   map[string]Backend
+	Observe        Observer
+	ObserveCleanup func(domain.ResultPolicy, time.Time, error)
 }
 
 func (r Registry) For(p domain.ResultPolicy) (Backend, error) {
 	switch p.Type {
 	case "local":
 		if r.Local != nil && p.Root == r.Local.RootPath {
-			return r.Local, nil
+			return r.observed(r.Local, p), nil
 		}
 	case "s3":
 		if s, ok := r.Destinations[p.Destination]; ok {
-			return s, nil
+			return r.observed(s, p), nil
 		}
 	}
 	return nil, domain.Bad(fmt.Sprintf("unconfigured result destination %q", p.Type))
@@ -199,10 +224,21 @@ func (r Registry) Check(ctx context.Context, p domain.ResultPolicy) error {
 		return err
 	}
 	if local, ok := b.(*Local); ok {
-		return local.Check()
+		return local.CheckContext(ctx)
 	}
 	if check, ok := b.(interface{ Check(context.Context) error }); ok {
 		return check.Check(ctx)
 	}
 	return nil
+}
+
+func (r Registry) observed(b Backend, p domain.ResultPolicy) Backend {
+	if r.Observe == nil {
+		return b
+	}
+	o := &observedBackend{Backend: b, policy: p, observe: r.Observe}
+	if d, ok := b.(DatasetBackend); ok {
+		return &observedDataset{observedBackend: o, dataset: d}
+	}
+	return o
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"linha/server/internal/auth"
 	"linha/server/internal/config"
 	"linha/server/internal/controller"
@@ -13,6 +14,8 @@ import (
 	"linha/server/internal/kube"
 	"linha/server/internal/postgres"
 	"linha/server/internal/storage"
+	"linha/server/internal/telemetry"
+	"linha/server/internal/webui"
 	"log/slog"
 	"net/http"
 	"os"
@@ -50,6 +53,10 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	uiConfig, err := config.ReadUI(os.Getenv, security)
+	if err != nil {
+		return err
+	}
 	dsn, err := config.DatabaseURL(os.Getenv)
 	if err != nil {
 		return err
@@ -58,8 +65,13 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	metricsEnabled, err := config.Bool(os.Getenv, "LINHA_METRICS_ENABLED", true)
+	if err != nil {
+		return err
+	}
+	monitor := telemetry.New(version, revision)
 	root := os.Getenv("LINHA_LOCAL_ROOT")
-	repo, err := postgres.Open(ctx, dsn)
+	repo, err := postgres.Open(ctx, dsn, monitor)
 	if err != nil {
 		return err
 	}
@@ -80,6 +92,7 @@ func run() error {
 		if e != nil {
 			return e
 		}
+		client.Observe = monitor.Kubernetes
 		adapter := &engine.Kubernetes{RequireApplication: true, Client: client, SecurityDisabled: !security.Enabled, ServerURL: os.Getenv("LINHA_SERVER_URL"), ServiceAccount: os.Getenv("LINHA_WORKER_SERVICE_ACCOUNT"), AllowedImages: strings.Split(os.Getenv("LINHA_ALLOWED_IMAGES"), ",")}
 		if adapter.ServerURL == "" || adapter.ServiceAccount == "" || os.Getenv("LINHA_ALLOWED_IMAGES") == "" {
 			return fmt.Errorf("managed backends require server URL, worker service account, and allowed image repositories")
@@ -101,7 +114,7 @@ func run() error {
 				}
 			}
 		}
-		reconciler = &controller.Controller{Pool: repo.Pool, Adapter: adapter, Resolve: adapter.Resolve, ID: domain.ID()}
+		reconciler = &controller.Controller{Pool: repo.Pool, Adapter: adapter, Resolve: adapter.Resolve, ID: domain.ID(), ObserveLoop: monitor.Loop}
 		managed = &auth.Kubernetes{Kube: client, ServiceAccount: adapter.ServiceAccount, AuthorizeInstance: reconciler.AuthorizeInstance}
 		engines["spark"] = adapter
 	}
@@ -147,8 +160,23 @@ func run() error {
 	if reconciler != nil {
 		go reconciler.Run(ctx)
 	}
-	registry := storage.Registry{Local: local, Destinations: destinations}
-	api := &httpapi.Server{Repo: repo, Auth: authentication, Storage: registry, Engines: engines}
+	registry := storage.Registry{Local: local, Destinations: destinations, Observe: monitor.Storage, ObserveCleanup: monitor.Cleanup}
+	api := &httpapi.Server{Repo: repo, Auth: authentication, Storage: registry, Engines: engines, Metrics: monitor, MetricsDisabled: !metricsEnabled}
+	if uiConfig.Enabled {
+		api.UI, err = webui.Handler()
+		if err != nil {
+			return err
+		}
+		var apiVerifier *oidc.IDTokenVerifier
+		if managed != nil {
+			apiVerifier = managed.Verifier
+		}
+		api.Admin, err = auth.NewAdmin(ctx, uiConfig, repo, apiVerifier)
+		if err != nil {
+			return err
+		}
+		api.GrafanaURL = os.Getenv("LINHA_UI_GRAFANA_URL")
+	}
 	cleanupEnabled, err := config.Bool(os.Getenv, "LINHA_CLEANUP_ENABLED", false)
 	if err != nil {
 		return err
@@ -160,6 +188,26 @@ func run() error {
 		}
 		api.Staging.Limit = n
 	}
+	metricCap := 100
+	if raw := os.Getenv("LINHA_METRICS_MAX_CONTEXTS"); raw != "" {
+		metricCap, err = strconv.Atoi(raw)
+		if err != nil {
+			return fmt.Errorf("invalid LINHA_METRICS_MAX_CONTEXTS")
+		}
+	}
+	if err = repo.ConfigureMetricContexts(ctx, metricCap); err != nil {
+		return err
+	}
+	if raw := os.Getenv("LINHA_METRICS_CONTEXT_ALIASES"); raw != "" {
+		var aliases []postgres.MetricAlias
+		if err = json.Unmarshal([]byte(raw), &aliases); err != nil {
+			return fmt.Errorf("invalid metric aliases")
+		}
+		if err = repo.ConfigureMetricAliases(ctx, aliases); err != nil {
+			return err
+		}
+	}
+	go observeRuntime(ctx, repo, api, monitor, metricsEnabled)
 	go func() {
 		ticker := time.NewTicker(time.Minute)
 		defer ticker.Stop()
@@ -168,11 +216,17 @@ func run() error {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				if err := repo.ExpireResults(ctx); err != nil && ctx.Err() == nil {
+				start := time.Now()
+				err := repo.ExpireResults(ctx)
+				monitor.Loop("retention", start, err)
+				if err != nil && ctx.Err() == nil {
 					slog.Warn("expiry metadata update unavailable", "error", err)
 				}
 				if cleanupEnabled {
-					if _, err := repo.CleanupOutputs(ctx, registry, 10*time.Minute, 100); err != nil && ctx.Err() == nil {
+					start := time.Now()
+					_, err := repo.CleanupOutputs(ctx, registry, 10*time.Minute, 100)
+					monitor.Loop("cleanup", start, err)
+					if err != nil && ctx.Err() == nil {
 						slog.Warn("result cleanup unavailable", "error", err)
 					}
 				}
@@ -194,7 +248,10 @@ func run() error {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				if err := repo.Recover(ctx); err != nil && ctx.Err() == nil {
+				start := time.Now()
+				err := repo.Recover(ctx)
+				monitor.Loop("recovery", start, err)
+				if err != nil && ctx.Err() == nil {
 					slog.Warn("recovery unavailable", "error", err)
 				}
 			}

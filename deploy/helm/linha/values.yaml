@@ -23,6 +23,13 @@ security:
     enabled: true
     issuer: ""
     audience: ""
+  admin:
+    viewer:
+      subjects: []
+      claims: []
+    operator:
+      subjects: []
+      claims: []
 rbac:
   # true: only namespaced Roles; verify workers with Kubernetes signing keys.
   # false: additionally grant cluster-scoped TokenReview for worker verification.
@@ -65,3 +72,46 @@ resources:
 podAnnotations: {}
 nodeSelector: {}
 tolerations: []
+# Embedded administrative console. No browser sessions/admin routes when disabled.
+ui:
+  enabled: false
+  publicURL: ""
+  # Optional same-origin UI/admin routing; host is inferred from publicURL.
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    tls:
+      enabled: false
+      secretName: ""
+  sessionSeconds: 3600
+  grafanaURL: ""
+  oidc:
+    clientId: ""
+    secretRef: ""
+    clientSecretKey: client-secret
+metrics:
+  enabled: true
+  maxContexts: 100
+  cluster: ""
+  # Persistent owner/name -> alias overrides are applied only before enrollment.
+  contextAliases: []
+  serviceMonitor:
+    enabled: false
+    labels: {}
+    interval: 30s
+    scrapeTimeout: 10s
+    scheme: http
+    sampleLimit: 100000
+    relabelings: []
+    metricRelabelings: []
+    tlsConfig: {}
+    authorization: {}
+  grafanaDashboard:
+    enabled: false
+    labels: {}
+    instanceSelector: {}
+    folder: Linha
+    datasourceUID: ""
+    allowCrossNamespaceImport: false
+    resyncPeriod: 10m

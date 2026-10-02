@@ -27,13 +27,32 @@ var controllerSchema string
 //go:embed datasets.sql
 var datasetSchema string
 
+//go:embed operations.sql
+var operationsSchema string
+
+//go:embed admin.sql
+var adminSchema string
+
+//go:embed metrics.sql
+var metricsSchema string
+
+//go:embed overview.sql
+var overviewSchema string
+
 type Store struct {
 	Pool  *pgxpool.Pool
 	Lease time.Duration
 }
 
-func Open(ctx context.Context, dsn string) (*Store, error) {
-	p, err := pgxpool.New(ctx, dsn)
+func Open(ctx context.Context, dsn string, tracer ...pgx.QueryTracer) (*Store, error) {
+	cfg, err := pgxpool.ParseConfig(dsn)
+	if err != nil {
+		return nil, err
+	}
+	if len(tracer) > 0 {
+		cfg.ConnConfig.Tracer = tracer[0]
+	}
+	p, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +69,7 @@ func (s *Store) Ping(ctx context.Context) error {
 	if err := s.Pool.QueryRow(ctx, "SELECT COALESCE(max(version),0) FROM linha_schema").Scan(&version); err != nil {
 		return err
 	}
-	if version != 6 {
+	if version != 10 {
 		return fmt.Errorf("database schema %d is incompatible with this server", version)
 	}
 	return nil
@@ -67,10 +86,10 @@ func (s *Store) migrate(ctx context.Context) error {
 		if err := tx.QueryRow(ctx, "SELECT COALESCE(max(version),0) FROM linha_schema").Scan(&version); err != nil {
 			return err
 		}
-		if version > 6 {
+		if version > 10 {
 			return fmt.Errorf("unsupported database schema %d", version)
 		}
-		if version == 6 {
+		if version == 10 {
 			return nil
 		}
 		if version == 0 {
@@ -107,7 +126,27 @@ func (s *Store) migrate(ctx context.Context) error {
 				return err
 			}
 		}
-		_, err := tx.Exec(ctx, datasetSchema)
+		if version < 6 {
+			if _, err := tx.Exec(ctx, datasetSchema); err != nil {
+				return err
+			}
+		}
+		if version < 7 {
+			if _, err := tx.Exec(ctx, operationsSchema); err != nil {
+				return err
+			}
+		}
+		if version < 8 {
+			if _, err := tx.Exec(ctx, metricsSchema); err != nil {
+				return err
+			}
+		}
+		if version < 9 {
+			if _, err := tx.Exec(ctx, adminSchema); err != nil {
+				return err
+			}
+		}
+		_, err := tx.Exec(ctx, overviewSchema)
 		return err
 	})
 }
@@ -151,6 +190,9 @@ func (s *Store) Ensure(ctx context.Context, owner string, in domain.EnsureReques
 	if len(in.ClientID) > 128 {
 		return out, domain.Bad("clientId exceeds 128 bytes")
 	}
+	if err = validateHostname(in.Hostname); err != nil {
+		return out, err
+	}
 	requested := in.Spec
 	if in.RequestedSpec != nil {
 		requested = *in.RequestedSpec
@@ -165,7 +207,7 @@ func (s *Store) Ensure(ctx context.Context, owner string, in domain.EnsureReques
 		if e != nil {
 			return e
 		}
-		out.ClientLease, e = attachClient(ctx, tx, out.ID, in.ClientID)
+		out.ClientLease, e = attachClient(ctx, tx, out.ID, in.ClientID, in.Hostname)
 		if out.State == "STOPPED" || out.State == "DRAINING" {
 			out.State = "STARTING"
 		}

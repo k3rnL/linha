@@ -13,8 +13,10 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 CHART = ROOT / "deploy/helm/linha"
 
 
-def render(*settings, succeeds=True):
+def render(*settings, succeeds=True, api_versions=()):
     command = ["helm", "template", "test", str(CHART), "--namespace", "isolated"]
+    for version in api_versions:
+        command += ["--api-versions", version]
     for setting in settings:
         command += ["--set", setting]
     with tempfile.TemporaryDirectory(prefix="linha-helm-plugins-") as plugins:
@@ -38,6 +40,289 @@ def environment(documents):
 
 
 class ChartConfiguration(unittest.TestCase):
+    def test_monitoring_combinations_and_namespaced_rbac(self):
+        versions = (
+            "monitoring.coreos.com/v1/ServiceMonitor",
+            "grafana.integreatly.org/v1beta1/GrafanaDashboard",
+        )
+        for monitor, dashboard in itertools.product((False, True), repeat=2):
+            settings = [
+                "security.enabled=false",
+                f"metrics.serviceMonitor.enabled={str(monitor).lower()}",
+                f"metrics.grafanaDashboard.enabled={str(dashboard).lower()}",
+                "metrics.grafanaDashboard.instanceSelector.matchLabels.team=linha",
+                "metrics.cluster=test",
+            ]
+            docs = render(*settings, api_versions=versions)
+            self.assertEqual(
+                sum(d["kind"] == "ServiceMonitor" for d in docs), int(monitor)
+            )
+            self.assertEqual(
+                sum(d["kind"] == "GrafanaDashboard" for d in docs), int(dashboard)
+            )
+            self.assertFalse(any(d["kind"].startswith("Cluster") for d in docs))
+            if monitor:
+                m = next(d for d in docs if d["kind"] == "ServiceMonitor")
+                self.assertEqual(
+                    m["spec"]["namespaceSelector"]["matchNames"], ["isolated"]
+                )
+                self.assertEqual(m["spec"]["endpoints"][0]["port"], "http")
+                self.assertNotIn("filterRunning", m["spec"]["endpoints"][0])
+            if dashboard:
+                d = next(d for d in docs if d["kind"] == "GrafanaDashboard")
+                data = json.loads(d["spec"]["json"])
+                self.assertEqual(data["uid"], "linha-operations")
+                self.assertFalse(data.get("links"))
+        self.assertIn(
+            "ServiceMonitor",
+            render(
+                "security.enabled=false",
+                "metrics.serviceMonitor.enabled=true",
+                succeeds=False,
+            ),
+        )
+        self.assertIn(
+            "GrafanaDashboard",
+            render(
+                "security.enabled=false",
+                "metrics.grafanaDashboard.enabled=true",
+                "metrics.grafanaDashboard.instanceSelector.matchLabels.team=linha",
+                succeeds=False,
+            ),
+        )
+        render(
+            "security.enabled=false",
+            "metrics.serviceMonitor.enabled=true",
+            "metrics.serviceMonitor.interval=5s",
+            "metrics.serviceMonitor.scrapeTimeout=10s",
+            api_versions=versions,
+            succeeds=False,
+        )
+        render(
+            "security.enabled=false",
+            "metrics.serviceMonitor.labels.app\\.kubernetes\\.io/name=spoof",
+            api_versions=versions,
+            succeeds=False,
+        )
+
+    def test_dashboard_overview_links_and_collapsed_diagnostics(self):
+        docs = render(
+            "security.enabled=false",
+            "ui.enabled=true",
+            "ui.publicURL=https://linha.example/ui/",
+            "metrics.grafanaDashboard.enabled=true",
+            "metrics.grafanaDashboard.datasourceUID=production",
+            "metrics.grafanaDashboard.instanceSelector.matchLabels.team=linha",
+            api_versions=("grafana.integreatly.org/v1beta1/GrafanaDashboard",),
+        )
+        data = json.loads(
+            next(d for d in docs if d["kind"] == "GrafanaDashboard")["spec"]["json"]
+        )
+        self.assertEqual(
+            [link["url"] for link in data["links"]],
+            [
+                "https://linha.example/ui/",
+                "https://linha.example/ui/contexts",
+                "https://linha.example/ui/requests",
+            ],
+        )
+        self.assertEqual(data["version"], 2)
+        self.assertTrue(data["panels"][-1]["collapsed"])
+        self.assertEqual(len(data["panels"][-1]["panels"]), 4)
+        self.assertEqual(
+            next(v for v in data["templating"]["list"] if v["name"] == "datasource")[
+                "current"
+            ]["value"],
+            "production",
+        )
+        # Aggregated panels have no context label: do not emit misleading per-series URLs.
+        for panel in data["panels"]:
+            if "fieldConfig" in panel:
+                self.assertFalse(panel["fieldConfig"]["defaults"]["links"])
+
+    def test_ui_security_matrix_and_browser_secret(self):
+        render(
+            "ui.enabled=true",
+            "ui.publicURL=https://linha.example/ui/",
+            "security.oidc.enabled=false",
+            succeeds=False,
+        )
+        render("security.enabled=false", "ui.enabled=true", succeeds=False)
+        docs = render(
+            "security.enabled=false",
+            "ui.enabled=true",
+            "ui.publicURL=http://linha.example/ui/",
+        )
+        self.assertEqual(environment(docs)["LINHA_UI_ENABLED"]["value"], "true")
+        docs = render(
+            "ui.enabled=true",
+            "ui.publicURL=https://linha.example/ui/",
+            "security.oidc.issuer=https://issuer.example",
+            "security.oidc.audience=sdk",
+            "ui.oidc.clientId=browser",
+            "ui.oidc.secretRef=browser-secret",
+            "ui.oidc.clientSecretKey=secret",
+        )
+        self.assertEqual(
+            environment(docs)["LINHA_UI_OIDC_CLIENT_SECRET"]["valueFrom"][
+                "secretKeyRef"
+            ],
+            {"name": "browser-secret", "key": "secret"},
+        )
+        self.assertEqual(
+            environment(docs)["LINHA_UI_OIDC_CLIENT_ID"]["value"], "browser"
+        )
+
+    def test_ui_ingress_disabled_preserves_external_routing(self):
+        for settings in (
+            (),
+            ("ui.enabled=true", "ui.publicURL=http://127.0.0.1:8080/ui/"),
+        ):
+            docs = render("security.enabled=false", *settings)
+            self.assertFalse(any(d["kind"] == "Ingress" for d in docs))
+
+    def test_ui_ingress_routes_canonical_origin_and_ha_service(self):
+        for public_url in (
+            "http://linha.example/ui/",
+            "https://linha.example/ui/",
+            "https://linha.example:8443/ui/",
+        ):
+            with self.subTest(public_url=public_url):
+                docs = render(
+                    "security.enabled=false",
+                    "ui.enabled=true",
+                    "ui.ingress.enabled=true",
+                    "ui.publicURL=" + public_url,
+                )
+                ingress = next(d for d in docs if d["kind"] == "Ingress")
+                self.assertEqual(ingress["apiVersion"], "networking.k8s.io/v1")
+                self.assertEqual(ingress["metadata"]["namespace"], "isolated")
+                self.assertEqual(ingress["metadata"]["name"], "test-linha-ui")
+                self.assertNotIn("annotations", ingress["metadata"])
+                self.assertNotIn("ingressClassName", ingress["spec"])
+                self.assertNotIn("tls", ingress["spec"])
+                self.assertNotIn("defaultBackend", ingress["spec"])
+                self.assertEqual(len(ingress["spec"]["rules"]), 1)
+                rule = ingress["spec"]["rules"][0]
+                self.assertEqual(rule["host"], "linha.example")
+                service = next(d for d in docs if d["kind"] == "Service")
+                paths = rule["http"]["paths"]
+                self.assertEqual([p["path"] for p in paths], ["/ui", "/v1/admin"])
+                for path in paths:
+                    self.assertEqual(path["pathType"], "Prefix")
+                    self.assertEqual(
+                        path["backend"]["service"],
+                        {"name": service["metadata"]["name"], "port": {"name": "http"}},
+                    )
+                self.assertIn(
+                    {"name": "http", "port": 8080, "targetPort": "http"},
+                    service["spec"]["ports"],
+                )
+                deployment = next(d for d in docs if d["kind"] == "Deployment")
+                self.assertEqual(deployment["spec"]["replicas"], 2)
+                self.assertEqual(service["spec"]["selector"], {"app": "test-linha"})
+                self.assertNotIn("sessionAffinity", service["spec"])
+                self.assertEqual(
+                    environment(docs)["LINHA_UI_PUBLIC_URL"]["value"], public_url
+                )
+                self.assertFalse(any(d["kind"].startswith("Cluster") for d in docs))
+
+    def test_ui_ingress_tls_class_annotations_and_oidc(self):
+        docs = render(
+            "ui.enabled=true",
+            "ui.publicURL=https://linha.example/ui/",
+            "security.oidc.issuer=https://issuer.example",
+            "security.oidc.audience=sdk",
+            "ui.oidc.clientId=browser",
+            "ui.ingress.enabled=true",
+            "ui.ingress.className=nginx",
+            "ui.ingress.annotations.cert-manager\\.io/cluster-issuer=letsencrypt",
+            "ui.ingress.tls.enabled=true",
+            "ui.ingress.tls.secretName=linha-ui-tls",
+        )
+        ingress = next(d for d in docs if d["kind"] == "Ingress")
+        self.assertEqual(ingress["spec"]["ingressClassName"], "nginx")
+        self.assertEqual(
+            ingress["metadata"]["annotations"],
+            {"cert-manager.io/cluster-issuer": "letsencrypt"},
+        )
+        self.assertEqual(
+            ingress["spec"]["tls"],
+            [{"hosts": ["linha.example"], "secretName": "linha-ui-tls"}],
+        )
+        self.assertEqual(environment(docs)["LINHA_SECURITY_ENABLED"]["value"], "true")
+        self.assertEqual(
+            environment(docs)["LINHA_UI_OIDC_CLIENT_ID"]["value"], "browser"
+        )
+        self.assertFalse(any(d["kind"] in ("Secret", "ClusterRole") for d in docs))
+
+    def test_ui_ingress_rejects_invalid_configuration(self):
+        self.assertIn(
+            "ui.enabled",
+            render("security.enabled=false", "ui.ingress.enabled=true", succeeds=False),
+        )
+        settings = (
+            "security.enabled=false",
+            "ui.enabled=true",
+            "ui.ingress.enabled=true",
+        )
+        for host in (
+            "127.0.0.1",
+            "[::1]",
+            "*.linha.example",
+            "user@linha.example",
+            "LINHA.example",
+            "linha..example",
+            "linha.example.",
+            "linha_example",
+            "-linha.example",
+            "linha-.example",
+            "a" * 64 + ".example",
+            ".".join(["a" * 63] * 3 + ["a" * 62]),
+        ):
+            with self.subTest(host=host):
+                self.assertIn(
+                    "ui.publicURL",
+                    render(
+                        *settings,
+                        "ui.publicURL=https://" + host + "/ui/",
+                        succeeds=False,
+                    ),
+                )
+        self.assertIn(
+            "https",
+            render(
+                *settings,
+                "ui.publicURL=http://linha.example/ui/",
+                "ui.ingress.tls.enabled=true",
+                "ui.ingress.tls.secretName=linha-ui-tls",
+                succeeds=False,
+            ),
+        )
+        self.assertIn(
+            "secretName",
+            render(
+                *settings,
+                "ui.publicURL=https://linha.example/ui/",
+                "ui.ingress.tls.enabled=true",
+                succeeds=False,
+            ),
+        )
+        for invalid in (
+            "ui.ingress.enabled=typo",
+            "ui.ingress.className=invalid_class",
+            "ui.ingress.annotations.flag=true",
+            "ui.ingress.tls.enabled=typo",
+            "ui.ingress.tls.secretName=invalid_secret",
+        ):
+            with self.subTest(invalid=invalid):
+                render(
+                    *settings,
+                    "ui.publicURL=https://linha.example/ui/",
+                    invalid,
+                    succeeds=False,
+                )
+
     def test_staging_limit_is_a_decimal_integer(self):
         env = environment(render("security.enabled=false"))
         self.assertEqual(env["LINHA_MAX_STAGING_BYTES"]["value"], "5368709120")

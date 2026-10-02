@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	"linha/server/internal/domain"
 	"linha/server/internal/kube"
 )
@@ -68,7 +69,10 @@ type applicationStatus struct {
 	} `json:"metadata"`
 	Status struct {
 		DriverInfo struct {
-			PodName string `json:"podName"`
+			PodName             string `json:"podName"`
+			WebUIIngressAddress string `json:"webUIIngressAddress"`
+			WebUIServiceName    string `json:"webUIServiceName"`
+			WebUIPort           int    `json:"webUIPort"`
 		} `json:"driverInfo"`
 		ApplicationState struct {
 			State        string `json:"state"`
@@ -98,6 +102,7 @@ func (k *Kubernetes) observeApplication(ctx context.Context, i Instance) (Instan
 		return i, err
 	}
 	i.ResourceUID = app.Metadata.UID
+	i.Observation = &domain.EngineObservation{Application: "linha-" + i.ID, ApplicationState: app.Status.ApplicationState.State, DriverPod: app.Status.DriverInfo.PodName, UIAddress: app.Status.DriverInfo.WebUIIngressAddress, UIService: app.Status.DriverInfo.WebUIServiceName, UIPort: app.Status.DriverInfo.WebUIPort, Condition: app.Status.ApplicationState.ErrorMessage}
 	i.Condition = app.Status.ApplicationState.ErrorMessage
 	state := app.Status.ApplicationState.State
 	i.Draining = app.Metadata.DeletionTimestamp != nil || state == "FAILED" || state == "COMPLETED" || state == "FAILED_SUBMISSION" || state == "SUBMISSION_FAILED" || state == "UNKNOWN"
@@ -105,6 +110,7 @@ func (k *Kubernetes) observeApplication(ctx context.Context, i Instance) (Instan
 		return i, nil
 	}
 	var pod struct {
+		Spec     corev1.PodSpec `json:"spec"`
 		Metadata struct {
 			UID             string            `json:"uid"`
 			Labels          map[string]string `json:"labels"`
@@ -139,6 +145,15 @@ func (k *Kubernetes) observeApplication(ctx context.Context, i Instance) (Instan
 	}
 	i.Incarnation = pod.Metadata.UID
 	i.Ready = pod.Status.Phase == "Running"
+	i.Observation.DriverPhase = pod.Status.Phase
+	if pod.Metadata.DeletionTimestamp != nil {
+		i.Observation.DriverPhase = "Terminating"
+	}
+	i.Observation.Resources = map[string]float64{}
+	addPodResources(i.Observation.Resources, "driver", pod.Spec)
+	if err := k.completeSparkObservation(ctx, i, pod.Metadata.Labels); err != nil {
+		i.Observation.Condition = "runtime observation unavailable: " + err.Error()
+	}
 	i.Draining = i.Draining || pod.Metadata.DeletionTimestamp != nil || pod.Status.Phase == "Failed" || pod.Status.Phase == "Succeeded"
 	return i, nil
 }

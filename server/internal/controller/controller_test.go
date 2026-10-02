@@ -167,7 +167,7 @@ func TestLastClientDrainsAcceptedWorkBeforeStoppingAndReattaches(t *testing.T) {
 			t.Fatal(condition, e)
 		}
 	}
-	second, e := s.Attach(ctx, "owner", backend.ID, "second")
+	second, e := s.Attach(ctx, "owner", backend.ID, "second", "")
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -223,7 +223,7 @@ func TestLastClientDrainsAcceptedWorkBeforeStoppingAndReattaches(t *testing.T) {
 	if j, e := s.Job(ctx, "owner", job.ID); e != nil || j.State != "CANCELLED" {
 		t.Fatal(j, e)
 	}
-	attached, e := s.Attach(ctx, "owner", backend.ID, "third")
+	attached, e := s.Attach(ctx, "owner", backend.ID, "third", "")
 	if e != nil || attached.ID != backend.ID {
 		t.Fatal(attached, e)
 	}
@@ -232,5 +232,58 @@ func TestLastClientDrainsAcceptedWorkBeforeStoppingAndReattaches(t *testing.T) {
 	rs, e = c.instances(ctx, backend.ID, "")
 	if e != nil || len(rs) != 1 {
 		t.Fatal("reattach did not restore minimum", rs, e)
+	}
+}
+
+type identityChangeAdapter struct {
+	*engine.Fake
+	changed bool
+}
+
+func (a *identityChangeAdapter) Observe(ctx context.Context, i engine.Instance) (engine.Instance, error) {
+	if a.changed {
+		return i, domain.Conflict("application UID changed")
+	}
+	out, e := a.Fake.Observe(ctx, i)
+	if e != nil {
+		return out, e
+	}
+	out.ResourceUID = "current-application"
+	out.Observation = &domain.EngineObservation{Available: true, Links: []domain.EngineLink{{Name: "spark-ui", URL: "https://current.example"}}}
+	return out, nil
+}
+func TestRejectedResourceIdentityImmediatelySuppressesLinks(t *testing.T) {
+	s, backend := fixture(t)
+	ctx := context.Background()
+	adapter := &identityChangeAdapter{Fake: engine.NewFake()}
+	c := &Controller{Pool: s.Pool, Adapter: adapter, ID: "observer", Resolve: func(context.Context, domain.BackendSpec) (string, error) { return "image@sha256:fixed", nil }}
+	for n := 0; n < 3; n++ {
+		if e := c.Tick(ctx); e != nil {
+			t.Fatal(e)
+		}
+	}
+	before, e := s.OperationalInstances(ctx, "owner", backend.ID, domain.OperationalFilter{})
+	if e != nil || len(before.Items) != 1 || !before.Items[0].Available {
+		t.Fatal(before, e)
+	}
+	adapter.changed = true
+	if e = c.Tick(ctx); e != nil {
+		t.Fatal(e)
+	}
+	after, e := s.OperationalInstances(ctx, "owner", backend.ID, domain.OperationalFilter{})
+	if e != nil || after.Items[0].Available || !after.Items[0].ObservedAt.Equal(*before.Items[0].ObservedAt) {
+		t.Fatal(after, e)
+	}
+	var detail domain.EngineObservation
+	if e = json.Unmarshal(after.Items[0].Detail, &detail); e != nil || len(detail.Links) != 0 || detail.Condition != "resource_identity_changed" {
+		t.Fatal(detail, e)
+	}
+	var epoch int64
+	if e = s.Pool.QueryRow(ctx, "SELECT reconcile_epoch FROM linha_contexts WHERE id=$1", backend.ID).Scan(&epoch); e != nil {
+		t.Fatal(e)
+	}
+	stale := engine.Instance{ID: after.Items[0].ID, ContextID: backend.ID, ResourceUID: "previous-application", Incarnation: after.Items[0].Incarnation}
+	if e = c.invalidateObservation(ctx, backend.ID, epoch, stale); !errors.Is(e, domain.Stale) {
+		t.Fatal("stale UID invalidation", e)
 	}
 }

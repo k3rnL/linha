@@ -17,6 +17,19 @@ final class LinhaClient(baseUrl: String, credentials: CredentialProvider)(implic
   private[client] val transport = new Transport(baseUrl, credentials)
   private val lifecycle = new Transport(baseUrl, credentials, timeoutSeconds = 5, retries = 0)
   private val clientId = UUID.randomUUID().toString
+  private val hostname = scala.util
+    .Try(sys.env.get("HOSTNAME"))
+    .toOption
+    .flatten
+    .filter(_.nonEmpty)
+    .orElse(scala.util.Try(java.net.InetAddress.getLocalHost.getHostName).toOption)
+    .filter(h =>
+      h.getBytes(StandardCharsets.UTF_8).length <= 253 && !h
+        .exists(c => c.isWhitespace || c.isControl)
+    )
+    .getOrElse("")
+  private val clientMetadata =
+    Json.obj("clientId" -> clientId.asJson, "hostname" -> hostname.asJson)
   private val attachments = scala.collection.mutable.Map.empty[String, Attachment]
   private var closed = false
   private val scheduler = java.util.concurrent.Executors.newScheduledThreadPool(
@@ -39,7 +52,7 @@ final class LinhaClient(baseUrl: String, credentials: CredentialProvider)(implic
       initial.hcursor.downField("clientLease").get[Long]("durationSeconds").getOrElse(90L)
     private val path = "/v1/contexts/" + segment(id)
     private def acquire(): Unit = {
-      val json = lifecycle.call("POST", path + "/clients", Json.obj("clientId" -> clientId.asJson))
+      val json = lifecycle.call("POST", path + "/clients", clientMetadata)
       lease = json.hcursor.downField("clientLease").get[String]("id").fold(throw _, identity)
     }
     private def renew(): Unit = synchronized {
@@ -94,7 +107,7 @@ final class LinhaClient(baseUrl: String, credentials: CredentialProvider)(implic
         transport.call(
           "POST",
           "/v1/contexts:ensure",
-          Json.obj("name" -> name.asJson, "spec" -> spec, "clientId" -> clientId.asJson)
+          Json.obj("name" -> name.asJson, "spec" -> spec).deepMerge(clientMetadata)
         )
       )
     }
@@ -106,7 +119,7 @@ final class LinhaClient(baseUrl: String, credentials: CredentialProvider)(implic
         lifecycle.call(
           "POST",
           "/v1/contexts/" + segment(id) + "/clients",
-          Json.obj("clientId" -> clientId.asJson)
+          clientMetadata
         )
       )
     }

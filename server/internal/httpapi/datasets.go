@@ -7,6 +7,7 @@ import (
 	"linha/server/internal/auth"
 	"linha/server/internal/domain"
 	"linha/server/internal/storage"
+	"mime"
 	"net/http"
 	"strconv"
 	"time"
@@ -228,6 +229,8 @@ func (s *Server) datasetDownload(w http.ResponseWriter, r *http.Request, owner s
 		return err
 	}
 	defer reader.Close()
+	w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": part.Path}))
+	w.Header().Set("Content-Security-Policy", "sandbox; default-src 'none'")
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Length", strconv.FormatInt(part.Size, 10))
 	w.Header().Set("X-Content-Type-Options", "nosniff")
