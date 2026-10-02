@@ -174,10 +174,31 @@ external settings.
 - Both Docker images build locally; the server reports version `0.1.0`, and the
   Spark image contains the versioned example JAR, connectors and native entrypoint.
 
-GitHub-hosted execution and actual GHCR/Central publication have not been run.
+GitHub-hosted execution and actual GHCR/Central publication are verified below.
 
 The first tagged validation restored a cached Go test success without restoring
 its generated `/tmp` API fixture file. The workflow now runs fixture generation
 and measured load checks with `-count=1`. Verified by reproducing the cached-pass
 case with a deleted output, regenerating all 17 responses twice, and validating
 them against OpenAPI along with the 40 PromQL expressions and load fixture.
+
+## First hosted release (2026-10-02)
+
+Release `v0.1.0` at `bd12e85531e6f1975d174331f9bf14a08905ef69` completed
+[all validation and publishing jobs](https://github.com/k3rnL/linha/actions/runs/37000431814).
+The permanent fixture-cache correction on `main` is `0de744e` and also passed
+[its branch CI](https://github.com/k3rnL/linha/actions/runs/37007633896). The release
+tag stayed unchanged; the failed validation was retried after removing the one
+stale Go cache. No artifacts had been published before that retry.
+
+Both GHCR tags allow anonymous pulls:
+
+- `ghcr.io/k3rnl/linha/server:0.1.0` —
+  `sha256:600526e385a2affd34e7628314dd2064aec4b9f8556b450c3e098d218a0c7581`
+- `ghcr.io/k3rnl/linha/spark-example:0.1.0` —
+  `sha256:6b11842523bd5eb33d7562375a0b8580f0fe722949c94dcac35c8767fce0ed71`
+
+The published server image was pulled and reports `Linha 0.1.0`. Central confirmed
+the deployment as published, and HTTP checks confirmed all 17 parent/SDK artifacts
+and their 17 detached signatures at `repo.maven.apache.org`: the parent POM and
+four SDK modules, each with POM, binary, sources and API-documentation JARs.
