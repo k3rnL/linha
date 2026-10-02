@@ -53,11 +53,12 @@ func TestOverviewEmptyAndCompleteSnapshot(t *testing.T) {
 	worker(t, s, c, "draining-worker", 2)
 	exec("UPDATE linha_workers SET heartbeat=clock_timestamp()-interval '61 seconds' WHERE id='stale-worker'")
 	exec("UPDATE linha_workers SET draining=true WHERE id='draining-worker'")
+	// One statement timestamp keeps the fixture's 10s and 30s durations exact.
 	exec(`INSERT INTO linha_attempts(id,job_id,number,worker_id,incarnation,fence,descriptor,state,lease_expires_at,started_at,finished_at)
-        VALUES('active','job-1',1,$1,$2,1,'{}','RUNNING',clock_timestamp()+interval '1 hour',clock_timestamp(),NULL),
-        ('finished-1','job-18',1,$1,$2,2,'{}','FAILED',clock_timestamp(),clock_timestamp()-interval '20 seconds',clock_timestamp()-interval '10 seconds'),
-        ('finished-2','job-18',2,$1,$2,3,'{}','SUCCEEDED',clock_timestamp(),clock_timestamp()-interval '40 seconds',clock_timestamp()-interval '10 seconds'),
-        ('old','job-29',1,$1,$2,4,'{}','FAILED',clock_timestamp(),clock_timestamp()-interval '26 hours',clock_timestamp()-interval '25 hours')`, w.ID, w.Incarnation)
+        VALUES('active','job-1',1,$1,$2,1,'{}','RUNNING',statement_timestamp()+interval '1 hour',statement_timestamp(),NULL),
+        ('finished-1','job-18',1,$1,$2,2,'{}','FAILED',statement_timestamp(),statement_timestamp()-interval '20 seconds',statement_timestamp()-interval '10 seconds'),
+        ('finished-2','job-18',2,$1,$2,3,'{}','SUCCEEDED',statement_timestamp(),statement_timestamp()-interval '40 seconds',statement_timestamp()-interval '10 seconds'),
+        ('old','job-29',1,$1,$2,4,'{}','FAILED',statement_timestamp(),statement_timestamp()-interval '26 hours',statement_timestamp()-interval '25 hours')`, w.ID, w.Incarnation)
 	exec("UPDATE linha_jobs SET current_attempt='active' WHERE id='job-1'")
 	exec(`INSERT INTO linha_servers(id,pod,version,started_at,heartbeat_at,state) VALUES
         ('old-process','pod-a','test',now()-interval '1 hour',now()-interval '50 seconds','ready'),

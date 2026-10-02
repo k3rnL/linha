@@ -48,6 +48,7 @@ def yaml_text(text):
 
 def files():
     yield from ROOT.glob("pom.xml")
+    yield from ROOT.glob("release-metadata.json")
     yield from (ROOT / "sdk").glob("*/pom.xml")
     yield from (ROOT / "examples").glob("*/pom.xml")
     for directory in ["api", "deploy/helm"]:

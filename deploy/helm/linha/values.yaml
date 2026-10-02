@@ -1,6 +1,6 @@
 replicaCount: 2
 image:
-  repository: linha/server
+  repository: ghcr.io/k3rnl/linha/server
   tag: 0.1.0
   pullPolicy: IfNotPresent
 imagePullSecrets: []

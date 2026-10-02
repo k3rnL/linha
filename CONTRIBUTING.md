@@ -34,3 +34,5 @@ produce disposable IDs and machine-specific paths that do not belong in commits.
 Before staging, run `git status --short` and review `git diff --cached --check`
 and `git diff --cached --stat`. Use your own deployment values and credentials
 outside the tracked chart defaults.
+
+Release automation and publisher setup are documented in [releases](docs/releases.md).

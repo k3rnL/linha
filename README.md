@@ -27,6 +27,9 @@ immutable published parts. [Dataset setup and limits](docs/dataset-results.md)
 cover STS delegation, staging quotas and opt-in retention cleanup. Start with the
 [client and worker walkthrough](docs/walkthrough.md).
 
+[Release setup](docs/releases.md) covers GitHub CI, GHCR images and signed
+`com.k3rnl` SDK publication to Maven Central.
+
 ## Layout
 
 - `web/`: embedded React/TypeScript administrator console, disabled by default.
@@ -52,7 +55,7 @@ python3 scripts/e2e.py
 
 To install the JVM artifacts for another local project, run `mvn -B install`
 with Java 17. Each SDK and the example module installs its binary and matching
-`-sources.jar` under `io.linha`, version `0.1.0-SNAPSHOT`, in the local Maven
+`-sources.jar` under `com.k3rnl`, version `0.1.0-SNAPSHOT`, in the local Maven
 repository. Reload your IDE's Maven project to pick up the sources.
 
 The smoke test creates its own temporary PostgreSQL container and result root,

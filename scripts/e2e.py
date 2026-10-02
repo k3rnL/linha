@@ -11,10 +11,14 @@ import time
 import urllib.request
 import urllib.error
 import uuid
+import xml.etree.ElementTree as ET
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 JAVA = str(pathlib.Path(os.environ.get("JAVA_HOME", "/usr")) / "bin/java")
-JAR = ROOT / "examples/jvm/target/linha-examples_2.12-0.1.0-SNAPSHOT.jar"
+VERSION = ET.parse(ROOT / "pom.xml").findtext(
+    "{http://maven.apache.org/POM/4.0.0}version"
+)
+JAR = ROOT / f"examples/jvm/target/linha-examples_2.12-{VERSION}.jar"
 
 
 def wait_for(check, processes=(), timeout=40):

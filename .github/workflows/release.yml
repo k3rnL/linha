@@ -1,0 +1,158 @@
+name: release
+on:
+  push:
+    tags:
+      - 'v*'
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: release
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+      image_prefix: ${{ steps.metadata.outputs.image_prefix }}
+      license: ${{ steps.metadata.outputs.license }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Validate release configuration
+        id: metadata
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 scripts/prepare-release.py --check --tag "$RELEASE_TAG" --repository "$GITHUB_REPOSITORY"
+      - name: Check required publishing secrets
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          for secret in MAVEN_CENTRAL_USERNAME MAVEN_CENTRAL_PASSWORD GPG_PRIVATE_KEY GPG_PASSPHRASE; do
+            if [ -z "${!secret}" ]; then
+              echo "::error::Configure the $secret Actions secret in the release environment."
+              exit 1
+            fi
+          done
+          if [[ "$GPG_PRIVATE_KEY" != *"-----BEGIN PGP PRIVATE KEY BLOCK-----"* ]]; then
+            echo '::error::GPG_PRIVATE_KEY must contain an ASCII-armored private-key export, not a key listing.'
+            exit 1
+          fi
+  checks:
+    needs: prepare
+    uses: ./.github/workflows/check.yml
+  images:
+    needs:
+      - prepare
+      - checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: release
+    permissions:
+      contents: read
+      packages: write
+    env:
+      RELEASE_TAG: ${{ github.ref_name }}
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+      - name: Prepare release version
+        run: python3 scripts/prepare-release.py --tag "$RELEASE_TAG" --repository "$GITHUB_REPOSITORY"
+      - name: Build server with embedded console and Spark example
+        run: |
+          make build VERSION="$RELEASE_VERSION" REVISION="$GITHUB_SHA"
+          mvn -B --no-transfer-progress package
+          bash scripts/prepare-spark-connectors.sh
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish server
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: server/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ needs.prepare.outputs.image_prefix }}/server:${{ needs.prepare.outputs.version }}
+            ${{ needs.prepare.outputs.image_prefix }}/server:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
+            org.opencontainers.image.licenses=${{ needs.prepare.outputs.license }}
+      - name: Publish Spark example
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: examples/spark/Dockerfile
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            LINHA_EXAMPLES_JAR=examples/jvm/target/linha-examples_2.12-${{ needs.prepare.outputs.version }}.jar
+          tags: |
+            ${{ needs.prepare.outputs.image_prefix }}/spark-example:${{ needs.prepare.outputs.version }}
+            ${{ needs.prepare.outputs.image_prefix }}/spark-example:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ needs.prepare.outputs.version }}
+            org.opencontainers.image.licenses=${{ needs.prepare.outputs.license }}
+  sdk:
+    needs:
+      - prepare
+      - checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: release
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          server-id: central
+          server-username: MAVEN_CENTRAL_USERNAME
+          server-password: MAVEN_CENTRAL_PASSWORD
+      - name: Prepare release version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 scripts/prepare-release.py --tag "$RELEASE_TAG" --repository "$GITHUB_REPOSITORY"
+      - name: Publish parent and SDKs to Maven Central
+        env:
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          MAVEN_GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: >-
+          mvn -B --no-transfer-progress -Prelease
+          -pl sdk/protocol-jvm,sdk/client-jvm,sdk/worker-jvm,sdk/spark-jvm -am
+          -Dcentral.autoPublish=true -Dcentral.waitUntil=published deploy

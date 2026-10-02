@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>io.linha</groupId>
+    <groupId>com.k3rnl</groupId>
     <artifactId>linha-jvm</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
@@ -10,17 +10,17 @@
   <artifactId>linha-examples_2.12</artifactId>
   <dependencies>
     <dependency>
-      <groupId>io.linha</groupId>
+      <groupId>com.k3rnl</groupId>
       <artifactId>linha-client_2.12</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.linha</groupId>
+      <groupId>com.k3rnl</groupId>
       <artifactId>linha-worker_2.12</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.linha</groupId>
+      <groupId>com.k3rnl</groupId>
       <artifactId>linha-spark_2.12</artifactId>
       <version>${project.version}</version>
     </dependency>
