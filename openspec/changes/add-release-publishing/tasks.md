@@ -13,3 +13,7 @@
 
 - [x] 3.1 Test malformed/mismatched tags, incomplete metadata, artifact selection, workflow syntax, local release packaging and disposable signatures without public writes.
 - [x] 3.2 Run relevant formatting/build/checks and a restart smoke; document namespace/token/GPG setup, release commands and partial-failure recovery.
+
+## 4. Hosted release follow-up
+
+- [x] 4.1 Disable Go result caching for generated API fixtures and measured load checks; verify fixture regeneration with a warm cache and deleted output, then validate the regenerated responses.

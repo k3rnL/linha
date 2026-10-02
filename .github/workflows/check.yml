@@ -66,8 +66,9 @@ jobs:
       - run: go test -race ./server/...
       - name: Admin response contracts and observability fixtures
         run: |
-          LINHA_ADMIN_FIXTURE_OUTPUT=/tmp/linha-admin-fixtures.json go test ./server/internal/httpapi -run TestAdminOpenAPIResponseFixtures
-          LINHA_METRIC_LOAD=1 go test -v ./server/internal/postgres -run TestMetricRetainedHistoryAndConcurrentScrapers
+          # Cached test results do not recreate generated files or rerun measurements.
+          LINHA_ADMIN_FIXTURE_OUTPUT=/tmp/linha-admin-fixtures.json go test -count=1 ./server/internal/httpapi -run TestAdminOpenAPIResponseFixtures
+          LINHA_METRIC_LOAD=1 go test -count=1 -v ./server/internal/postgres -run TestMetricRetainedHistoryAndConcurrentScrapers
           pip install jsonschema==4.25.1
           python scripts/check-observability.py --fixtures /tmp/linha-admin-fixtures.json
       - name: Check release preparation and signed SDK artifacts

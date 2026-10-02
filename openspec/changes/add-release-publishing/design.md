@@ -56,3 +56,7 @@ verifies the uploaded bundle rather than relying on the plugin's skipPublishing
 mode, which omits module staging. A pre-existing overview test fixture now uses
 a single statement timestamp so its exact processing-duration assertion is
 deterministic under the race detector. Application timing behavior is unchanged.
+
+Tests that emit API fixture files or collect performance measurements run with
+`-count=1`: Go's restored test-result cache records success but does not recreate
+temporary files in a fresh runner. Normal package checks retain build/test caching.
