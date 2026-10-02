@@ -1,0 +1,77 @@
+{{- if .Values.metrics.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "linha.name" . }}
+  labels:
+    app.kubernetes.io/name: linha
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    {{- with .Values.metrics.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: linha
+      app.kubernetes.io/instance: {{ .Release.Name | quote }}
+      app.kubernetes.io/component: server
+  namespaceSelector:
+    matchNames: [{{ .Release.Namespace | quote }}]
+  targetLabels: [linha_deployment, cluster]
+  podTargetLabels: [linha_deployment, cluster]
+  sampleLimit: {{ .Values.metrics.serviceMonitor.sampleLimit }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.metrics.serviceMonitor.interval | quote }}
+      scrapeTimeout: {{ .Values.metrics.serviceMonitor.scrapeTimeout | quote }}
+      scheme: {{ .Values.metrics.serviceMonitor.scheme }}
+      honorLabels: false
+      {{- with .Values.metrics.serviceMonitor.relabelings }}
+      relabelings: {{ toJson . }}
+      {{- end }}
+      {{- with .Values.metrics.serviceMonitor.metricRelabelings }}
+      metricRelabelings: {{ toJson . }}
+      {{- end }}
+      {{- with .Values.metrics.serviceMonitor.tlsConfig }}
+      tlsConfig: {{ toJson . }}
+      {{- end }}
+      {{- with .Values.metrics.serviceMonitor.authorization }}
+      authorization: {{ toJson . }}
+      {{- end }}
+{{- end }}
+{{- if .Values.metrics.grafanaDashboard.enabled }}
+{{- $dashboard := .Files.Get "dashboards/linha-operations.json" | fromJson }}
+{{- if .Values.ui.enabled }}
+{{- $uiURL := trimSuffix "/" .Values.ui.publicURL }}
+{{- $_ := set $dashboard "links" (list
+      (dict "title" "Admin overview" "url" (printf "%s/" $uiURL) "targetBlank" true)
+      (dict "title" "Contexts" "url" (printf "%s/contexts" $uiURL) "targetBlank" true)
+      (dict "title" "Requests" "url" (printf "%s/requests" $uiURL) "targetBlank" true)) }}
+{{- end }}
+{{- if .Values.metrics.grafanaDashboard.datasourceUID }}
+{{- range $variable := $dashboard.templating.list }}
+{{- if eq $variable.name "datasource" }}
+{{- $_ := set $variable "current" (dict "text" $.Values.metrics.grafanaDashboard.datasourceUID "value" $.Values.metrics.grafanaDashboard.datasourceUID) }}
+{{- end }}
+{{- end }}
+{{- end }}
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: {{ include "linha.name" . }}-operations
+  labels:
+    app.kubernetes.io/name: linha
+    app.kubernetes.io/instance: {{ .Release.Name | quote }}
+    {{- with .Values.metrics.grafanaDashboard.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  instanceSelector: {{ toJson .Values.metrics.grafanaDashboard.instanceSelector }}
+  folder: {{ .Values.metrics.grafanaDashboard.folder | quote }}
+  allowCrossNamespaceImport: {{ .Values.metrics.grafanaDashboard.allowCrossNamespaceImport }}
+  resyncPeriod: {{ .Values.metrics.grafanaDashboard.resyncPeriod | quote }}
+  json: |
+    {{- $dashboard | toPrettyJson | nindent 4 }}
+{{- end }}

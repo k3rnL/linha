@@ -1,0 +1,104 @@
+{
+  "rule_files": [],
+  "evaluation_interval": "1m",
+  "tests": [
+    {
+      "name": "HA snapshots and local resets",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "linha_job_records{namespace=\"test\",linha_deployment=\"test\",engine=\"spark\",context=\"metoc\",state=\"QUEUED\",pod=\"a\"}",
+          "values": "5 5 5 5 5 5"
+        },
+        {
+          "series": "linha_job_records{namespace=\"test\",linha_deployment=\"test\",engine=\"spark\",context=\"metoc\",state=\"QUEUED\",pod=\"b\"}",
+          "values": "5 5 5 stale stale stale"
+        },
+        {
+          "series": "linha_job_submissions_total{engine=\"spark\",context=\"metoc\",source=\"sdk\",pod=\"a\"}",
+          "values": "0 10 20 30 40 50"
+        },
+        {
+          "series": "linha_job_submissions_total{engine=\"spark\",context=\"metoc\",source=\"sdk\",pod=\"b\"}",
+          "values": "0 10 20 stale stale stale"
+        },
+        {
+          "series": "linha_api_requests_total{route=\"/v1/jobs\",method=\"GET\",status_code=\"200\",pod=\"a\"}",
+          "values": "0 10 20 0 10 20"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "sum(max by(namespace,linha_deployment,engine,context,state)(linha_job_records))",
+          "eval_time": "5m",
+          "exp_samples": [
+            {
+              "labels": "{}",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "expr": "round(sum(rate((max by(engine,context,source)(linha_job_submissions_total))[5m:15s])),0.000001)",
+          "eval_time": "5m",
+          "exp_samples": [
+            {
+              "labels": "{}",
+              "value": 0.166667
+            }
+          ]
+        },
+        {
+          "expr": "sum(rate(linha_api_requests_total[5m]))",
+          "eval_time": "5m",
+          "exp_samples": [
+            {
+              "labels": "{}",
+              "value": 0.125
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "outage and incomplete engine observations",
+      "interval": "1m",
+      "input_series": [
+        {
+          "series": "linha_collector_success{collector=\"database\",pod=\"a\"}",
+          "values": "0 0 0 0 0 0"
+        },
+        {
+          "series": "linha_engine_observations{engine=\"spark\",context=\"metoc\",state=\"stale\",pod=\"a\"}",
+          "values": "1 1 1 1 1 1"
+        },
+        {
+          "series": "linha_spark_executor_pods{engine=\"spark\",context=\"metoc\",state=\"Running\",pod=\"a\"}",
+          "values": "5 5 5 5 5 5"
+        }
+      ],
+      "promql_expr_test": [
+        {
+          "expr": "sum(linha_job_records)",
+          "eval_time": "5m",
+          "exp_samples": []
+        },
+        {
+          "expr": "sum(max by(engine,context,state)(linha_spark_executor_pods) unless on(engine,context) max by(engine,context)(linha_engine_observations{state=~\"stale|missing\"}>0))",
+          "eval_time": "5m",
+          "exp_samples": []
+        },
+        {
+          "expr": "sum(linha_collector_success{collector=\"database\"})",
+          "eval_time": "5m",
+          "exp_samples": [
+            {
+              "labels": "{}",
+              "value": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -28,3 +28,14 @@ func (b *StagingBudget) Reserve(bytes int64) (func(), error) {
 	var once sync.Once
 	return func() { once.Do(func() { b.mu.Lock(); b.used -= bytes; b.mu.Unlock() }) }, nil
 }
+
+// Stats returns the reservation total without racing concurrent uploads.
+func (b *StagingBudget) Stats() (int64, int64) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	limit := b.Limit
+	if limit == 0 {
+		limit = 5 << 30
+	}
+	return b.used, limit
+}

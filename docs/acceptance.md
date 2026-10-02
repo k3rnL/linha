@@ -320,3 +320,12 @@ Regression group: Domain/PostgreSQL diagnostics tests; FailureDiagnosticsTest; W
 | Deadline authority | Implemented; covered by the group above |
 
 Total: 163 specification scenarios across 14 capabilities.
+
+## Admin UI and observability — 2026-10-01
+
+The [new acceptance record](admin-observability-validation.md) maps all 59 tasks
+from the two changes to signed OIDC/database/browser tests, real Spark, live
+Prometheus/Grafana operators, HA restart/failure recovery and measured limits.
+That initial implementation used schema 9; its measurements remain historical.
+The 2026-10-02 admin refinement adds schema 10 and the Overview; see the follow-up
+section of the same acceptance record for its verification.

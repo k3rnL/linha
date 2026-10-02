@@ -1,5 +1,10 @@
 # Validation record
 
+Admin UI and observability were added on 2026-10-01. The
+[acceptance record](admin-observability-validation.md) maps their 59 tasks to
+checks, measured collection/cardinality results and disposable-cluster evidence.
+
+
 The platform acceptance run completed on 2026-09-30. All 68 foundation tasks and
 six follow-up changes were implemented and archived. The
 [acceptance matrix](acceptance.md) maps 163 scenarios across 14 capabilities to
@@ -41,8 +46,9 @@ Production IAM, multi-node storage failure, maximum-size payloads/part counts an
 capacity sizing need validation in the target environment. No production rollout,
 image push or METOC migration was performed as part of this acceptance run.
 
-Schema v6 adds dataset metadata and writer cleanup grants. Old schema-v5 server
-binaries cannot run against v6. Result cleanup remains opt-in, and job metadata,
+Schema v10 includes optional client hostnames and overview indexes, in addition
+to the operational observations, durable metrics, admin sessions/audit and dataset
+metadata. Older server binaries cannot run against v10. Result cleanup remains opt-in, and job metadata,
 completion receipts and idempotency records remain indefinitely. See
 [dataset configuration](dataset-results.md), [operations](operations.md) and the
 [client/worker walkthrough](walkthrough.md) before deployment.

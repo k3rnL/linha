@@ -16,6 +16,7 @@ class ClientLeaseTest {
   @Test def sharedHandlesRenewRecoverAndRelease(): Unit = {
     val renewals = new AtomicInteger(0); val releases = new AtomicInteger(0);
     val attaches = new AtomicInteger(0)
+    val metadata = new java.util.concurrent.ConcurrentLinkedQueue[Json]()
     val expired = new AtomicBoolean(false)
     val server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0)
     server.createContext(
@@ -35,6 +36,11 @@ class ClientLeaseTest {
             (202, """{"id":"job"}""")
           } else {
             if (path.endsWith("/clients")) attaches.incrementAndGet()
+            val request = new String(
+              exchange.getRequestBody.readAllBytes(),
+              java.nio.charset.StandardCharsets.UTF_8
+            )
+            metadata.add(parse(request).fold(throw _, identity))
             (
               200,
               """{"id":"context","version":"hash","clientLease":{"id":"lease","durationSeconds":3}}"""
@@ -68,6 +74,16 @@ class ClientLeaseTest {
       second.close(); assertEquals(1, releases.get())
       val restored = await(client.restoreContext("context")); assertEquals("context", restored.id)
       client.close(); assertEquals(2, releases.get())
+      import scala.collection.JavaConverters._
+      val registrations = metadata.asScala.toList
+      assertTrue(registrations.size >= 4)
+      val ids =
+        registrations.map(_.hcursor.get[String]("clientId").fold(throw _, identity)).distinct
+      val hosts =
+        registrations.map(_.hcursor.get[String]("hostname").fold(throw _, identity)).distinct
+      assertEquals(1, ids.size); assertEquals(1, hosts.size)
+      assertTrue(hosts.head.nonEmpty)
+      assertNotEquals(ids.head, hosts.head)
       // Job retrieval handles have no attachment and remain independent of context closure.
       assertEquals("job", client.rawJob("job").id)
     } finally { client.close(); server.stop(0) }

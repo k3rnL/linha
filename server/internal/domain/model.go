@@ -60,6 +60,7 @@ type BackendSpec struct {
 type ClientLease struct {
 	ID              string    `json:"id"`
 	ClientID        string    `json:"clientId"`
+	Hostname        string    `json:"hostname,omitempty"`
 	ExpiresAt       time.Time `json:"expiresAt"`
 	DurationSeconds int       `json:"durationSeconds"`
 }
@@ -76,6 +77,7 @@ type BackendContext struct {
 }
 type EnsureRequest struct {
 	ClientID      string       `json:"clientId,omitempty"`
+	Hostname      string       `json:"hostname,omitempty"`
 	RequestedSpec *BackendSpec `json:"-"`
 	Name          string       `json:"name"`
 	Spec          BackendSpec  `json:"spec"`
@@ -207,7 +209,7 @@ type Attempt struct {
 type Repository interface {
 	Ensure(context.Context, string, EnsureRequest) (BackendContext, error)
 	Context(context.Context, string, string) (BackendContext, error)
-	Attach(context.Context, string, string, string) (BackendContext, error)
+	Attach(context.Context, string, string, string, string) (BackendContext, error)
 	RenewClient(context.Context, string, string, string) (ClientLease, error)
 	ReleaseClient(context.Context, string, string, string) error
 	Submit(context.Context, string, string, SubmitRequest) (Job, error)

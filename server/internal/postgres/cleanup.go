@@ -44,6 +44,7 @@ func (s *Store) CleanupOutputs(ctx context.Context, registry storage.Registry, g
 			}
 			call, cancel := context.WithTimeout(ctx, 30*time.Second)
 			defer cancel()
+			start := time.Now()
 			if allocation.Kind == "dataset" {
 				d, ok := provider.(storage.DatasetBackend)
 				if !ok {
@@ -52,6 +53,9 @@ func (s *Store) CleanupOutputs(ctx context.Context, registry storage.Registry, g
 				err = d.DeleteDataset(call, allocation)
 			} else {
 				err = provider.Delete(call, allocation)
+			}
+			if registry.ObserveCleanup != nil {
+				registry.ObserveCleanup(allocation.Policy, start, err)
 			}
 			if err != nil {
 				return err

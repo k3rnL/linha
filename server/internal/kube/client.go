@@ -18,6 +18,7 @@ import (
 type Client struct {
 	URL, TokenFile, Namespace string
 	HTTP                      *http.Client
+	Observe                   func(resource, verb string, status int, start time.Time, err error)
 }
 type APIError struct {
 	Status  int
@@ -44,7 +45,22 @@ func InCluster(namespace string) (*Client, error) {
 	}
 	return &Client{URL: "https://" + host + ":" + port, TokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token", Namespace: namespace, HTTP: &http.Client{Timeout: 15 * time.Second, Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: roots, MinVersion: tls.VersionTLS12}}}}, nil
 }
-func (c *Client) Do(ctx context.Context, method, path string, body any, out any) error {
+func (c *Client) Do(ctx context.Context, method, path string, body any, out any) (err error) {
+	start := time.Now()
+	statusCode := 0
+	defer func() {
+		if c.Observe != nil {
+			resource := "other"
+			parts := strings.Split(strings.SplitN(path, "?", 2)[0], "/")
+			for _, p := range parts {
+				switch p {
+				case "pods", "services", "configmaps", "secrets", "sparkapplications", "ingresses", "tokenreviews":
+					resource = p
+				}
+			}
+			c.Observe(resource, method, statusCode, start, err)
+		}
+	}()
 	var data []byte
 	if body != nil {
 		var err error
@@ -69,6 +85,7 @@ func (c *Client) Do(ctx context.Context, method, path string, body any, out any)
 	if err != nil {
 		return err
 	}
+	statusCode = response.StatusCode
 	defer response.Body.Close()
 	if response.StatusCode >= 400 {
 		b, _ := io.ReadAll(io.LimitReader(response.Body, 8192))
@@ -87,6 +104,9 @@ func (c *Client) Path(resource, name string) string {
 	path := "/api/v1/namespaces/" + c.Namespace + "/" + resource
 	if resource == "sparkapplications" {
 		path = "/apis/sparkoperator.k8s.io/v1beta2/namespaces/" + c.Namespace + "/" + resource
+	}
+	if resource == "ingresses" {
+		path = "/apis/networking.k8s.io/v1/namespaces/" + c.Namespace + "/" + resource
 	}
 	if name != "" {
 		path += "/" + name

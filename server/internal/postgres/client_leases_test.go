@@ -15,7 +15,7 @@ func TestClientLeasesVersionsAndLogicalIdempotency(t *testing.T) {
 	if err != nil || second.ID != c.ID || second.ClientLease.ID == c.ClientLease.ID {
 		t.Fatal(second, err)
 	}
-	again, err := s.Attach(ctx, "owner", c.ID, "api-b")
+	again, err := s.Attach(ctx, "owner", c.ID, "api-b", "")
 	if err != nil || again.ClientLease.ID != second.ClientLease.ID {
 		t.Fatal(again, err)
 	}
@@ -44,7 +44,7 @@ func TestClientLeasesVersionsAndLogicalIdempotency(t *testing.T) {
 	if _, err = s.Submit(ctx, "owner", c.ID, request); err != nil {
 		t.Fatal("live replica cannot submit", err)
 	}
-	if _, err = s.Attach(ctx, "other", c.ID, "api-b"); !errors.Is(err, domain.NotFound) {
+	if _, err = s.Attach(ctx, "other", c.ID, "api-b", ""); !errors.Is(err, domain.NotFound) {
 		t.Fatal(err)
 	}
 	if _, err = s.RenewClient(ctx, "other", c.ID, second.ClientLease.ID); !errors.Is(err, domain.NotFound) {
@@ -56,7 +56,7 @@ func TestClientLeasesVersionsAndLogicalIdempotency(t *testing.T) {
 	if _, err = s.RenewClient(ctx, "owner", c.ID, second.ClientLease.ID); !errors.Is(err, domain.ClientLeaseExpired) {
 		t.Fatal("expired token revived", err)
 	}
-	restored, err := s.Attach(ctx, "owner", c.ID, "api-b")
+	restored, err := s.Attach(ctx, "owner", c.ID, "api-b", "")
 	if err != nil || restored.ClientLease.ID == second.ClientLease.ID {
 		t.Fatal(restored, err)
 	}
@@ -78,7 +78,7 @@ func TestRetiredInstanceCannotRegisterAfterReattachment(t *testing.T) {
 	if _, err := s.Pool.Exec(ctx, "INSERT INTO linha_instances(id,context_id,pod_uid,state) VALUES('retired',$1,'old-worker','DRAINING')", c.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.Attach(ctx, "owner", c.ID, "new-client"); err != nil {
+	if _, err := s.Attach(ctx, "owner", c.ID, "new-client", ""); err != nil {
 		t.Fatal(err)
 	}
 	err := s.Register(ctx, domain.Worker{ID: "old-worker", ContextID: c.ID, Incarnation: "old-worker", Capacity: 1, Capabilities: []domain.Capability{{Handler: "sum", Version: 1, Result: domain.ResultDescriptor{Kind: "json", Schema: "sum", Version: 1}}}})

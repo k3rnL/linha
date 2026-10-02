@@ -21,3 +21,22 @@ Spark cleanup also requires namespaced `deletecollection` on Pods and ConfigMaps
 The chart grants it only to the worker Role. Update the Helm release to correct
 older installations; no server/worker image rebuild is needed. See
 [operations](../../../docs/operations.md) for verification commands.
+
+The image embeds the [admin console](../../../docs/admin-ui.md); `ui.enabled`
+defaults to false. Configure `ui.publicURL`, a browser OIDC client and explicit
+viewer/operator mappings before enabling it. Database and browser credentials
+use caller-managed `secretRef` plus selected key names.
+
+Enable `ui.ingress.enabled` for chart-managed UI/admin routing. Its host is derived
+from `ui.publicURL`; configure `ui.ingress.className`, `annotations` and optional
+`tls.enabled`/`tls.secretName`. TLS at the ingress requires an HTTPS public URL
+and a Secret in the release namespace. The fixed `/ui` and `/v1/admin` Prefix
+routes use the existing Service without path rewriting. See the
+[HTTPS values example](../../../docs/admin-ui.md#enable-with-oidc). This adds no
+RBAC permissions, controller installation or Spark UI ingress.
+
+[Observability](../../../docs/observability.md) documents `/metrics`, the packaged
+Grafana dashboard and `metrics.serviceMonitor`/`metrics.grafanaDashboard`. Both
+operator resources default to disabled and can be enabled independently. They
+require their respective installed CRDs and add no Linha ClusterRole. UI and
+metric export can be disabled independently.
