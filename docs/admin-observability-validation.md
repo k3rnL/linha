@@ -126,9 +126,9 @@ make check
 make format-check
 LINHA_TEST_DATABASE=YOUR_TEST_DSN go test -race ./server/...
 LINHA_TEST_DATABASE=YOUR_TEST_DSN LINHA_METRIC_LOAD=1 \
-  go test -v ./server/internal/postgres -run TestMetricRetainedHistoryAndConcurrentScrapers
+  go test -count=1 -v ./server/internal/postgres -run TestMetricRetainedHistoryAndConcurrentScrapers
 LINHA_TEST_DATABASE=YOUR_TEST_DSN LINHA_ADMIN_FIXTURE_OUTPUT=/tmp/linha-admin-fixtures.json \
-  go test ./server/internal/httpapi -run TestAdminOpenAPIResponseFixtures
+  go test -count=1 ./server/internal/httpapi -run TestAdminOpenAPIResponseFixtures
 uv run --no-project --with jsonschema==4.25.1 \
   python scripts/check-observability.py --fixtures /tmp/linha-admin-fixtures.json
 python3 scripts/test-helm.py
