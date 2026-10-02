@@ -175,3 +175,9 @@ external settings.
   Spark image contains the versioned example JAR, connectors and native entrypoint.
 
 GitHub-hosted execution and actual GHCR/Central publication have not been run.
+
+The first tagged validation restored a cached Go test success without restoring
+its generated `/tmp` API fixture file. The workflow now runs fixture generation
+and measured load checks with `-count=1`. Verified by reproducing the cached-pass
+case with a deleted output, regenerating all 17 responses twice, and validating
+them against OpenAPI along with the 40 PromQL expressions and load fixture.
