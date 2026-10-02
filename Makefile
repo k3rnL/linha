@@ -1,5 +1,8 @@
 .PHONY: check build clean format format-check frontend frontend-check observability-check
 
+VERSION ?= dev
+REVISION ?= unknown
+
 FORMAT_PYTHON = uv run --no-project --with-requirements requirements-format.txt
 
 check:
@@ -19,7 +22,7 @@ frontend-check:
 
 build: frontend
 	mkdir -p bin
-	CGO_ENABLED=0 go build -trimpath -o bin/linha-server ./server/cmd/linha-server
+	CGO_ENABLED=0 go build -trimpath -ldflags "-X main.version=$(VERSION) -X main.revision=$(REVISION)" -o bin/linha-server ./server/cmd/linha-server
 
 format:
 	npm --prefix web run format
