@@ -124,7 +124,7 @@ separate manual Portal step unless your GitHub environment policy requires one.
 
 ## Local publication rehearsal
 
-Use Java 17, Maven, Python 3 and GnuPG:
+Use Java 17, Maven 3.9.9, Python 3 and GnuPG:
 
 ```sh
 python3 scripts/test-release.py
@@ -137,6 +137,9 @@ The receiver simulates a completed Portal deployment. It verifies the parent
 and four SDKs, every signature/checksum, and nonempty sources/API documentation.
 It uses isolated Maven settings and skips Maven installation. No real signing
 key, publishing token, local artifact replacement or public registry write is needed.
+CI validation and publishing install Apache Maven 3.9.9 with a pinned SHA-512
+checksum. The hosted runner's Maven 3.10.0 stages repository bookkeeping files
+that our bundle verification rejects; do not weaken that artifact allowlist.
 Dependency/plugin downloads still require network access. CI also runs this
 rehearsal, workflow lint, the Go/PostgreSQL and JVM suites, browser tests,
 Helm/observability contracts, and the all-process restart smoke.
