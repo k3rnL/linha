@@ -60,3 +60,9 @@ deterministic under the race detector. Application timing behavior is unchanged.
 Tests that emit API fixture files or collect performance measurements run with
 `-count=1`: Go's restored test-result cache records success but does not recreate
 temporary files in a fresh runner. Normal package checks retain build/test caching.
+
+Hosted validation and publishing use Apache Maven 3.9.9, installed from the
+official archive with a pinned SHA-512 checksum. The runner's Maven 3.10.0
+stages `_remote.repositories` and local metadata into the Central bundle; the
+strict artifact allowlist rejects these files. The signed loopback rehearsal
+passes with 3.9.9, so both rehearsal and real publication use that same version.

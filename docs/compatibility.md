@@ -3,7 +3,7 @@
 | Component | Baseline |
 | --- | --- |
 | Go server/toolchain | Go 1.27.1, Linux amd64 |
-| SDKs | Scala 2.12.20, Java 17, Maven 3 |
+| SDKs | Scala 2.12.20, Java 17, Maven 3.9.9 |
 | Spark Operator | Kubeflow 2.4.0, SparkApplication v1beta2 |
 | Spark integration | Classic Spark 3.5.6, Scala 2.12 |
 | Database | PostgreSQL 16/17, schema 10 |

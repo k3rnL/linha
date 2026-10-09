@@ -1,0 +1,18 @@
+name: Set up verified Maven toolchain
+description: Install the Maven version used to verify Central publication bundles.
+runs:
+  using: composite
+  steps:
+    - name: Install Apache Maven 3.9.9
+      shell: bash
+      run: |
+        set -euo pipefail
+        maven_archive="$RUNNER_TEMP/apache-maven-3.9.9-bin.tar.gz"
+        maven_checksum=a555254d6b53d267965a3404ecb14e53c3827c09c3b94b5678835887ab404556bfaf78dcfe03ba76fa2508649dca8531c74bca4d5846513522404d48e8c4ac8b
+        curl --fail --silent --show-error --location --retry 3 \
+          https://archive.apache.org/dist/maven/maven-3/3.9.9/binaries/apache-maven-3.9.9-bin.tar.gz \
+          --output "$maven_archive"
+        printf '%s  %s\n' "$maven_checksum" "$maven_archive" | sha512sum --check
+        tar -xzf "$maven_archive" -C "$RUNNER_TEMP"
+        echo "$RUNNER_TEMP/apache-maven-3.9.9/bin" >> "$GITHUB_PATH"
+        "$RUNNER_TEMP/apache-maven-3.9.9/bin/mvn" --version
