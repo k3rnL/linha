@@ -563,9 +563,9 @@ class ChartConfiguration(unittest.TestCase):
             "security.oidc.tls.skipTLS=true",
         ):
             with self.subTest(setting=setting):
-                self.assertIn(
-                    "security.oidc.tls",
+                self.assertRegex(
                     render("security.enabled=false", setting, succeeds=False),
+                    r"security[./]oidc[./]tls",
                 )
 
     def test_admin_mapping_issuer_inheritance(self):
