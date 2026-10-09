@@ -53,6 +53,10 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	oidcCtx := auth.OIDCContext(ctx, security.OIDCInsecureSkipVerify)
+	if security.OIDCInsecureSkipVerify {
+		slog.Warn("OIDC HTTPS certificate and hostname verification is disabled", "setting", "LINHA_OIDC_TLS_INSECURE_SKIP_VERIFY")
+	}
 	uiConfig, err := config.ReadUI(os.Getenv, security)
 	if err != nil {
 		return err
@@ -133,7 +137,7 @@ func run() error {
 			}
 		}
 		if security.OIDCEnabled {
-			managed.Verifier, err = auth.NewOIDCVerifier(ctx, security.Issuer, security.Audience)
+			managed.Verifier, err = auth.NewOIDCVerifier(oidcCtx, security.Issuer, security.Audience)
 			if err != nil {
 				return err
 			}
@@ -171,7 +175,7 @@ func run() error {
 		if managed != nil {
 			apiVerifier = managed.Verifier
 		}
-		api.Admin, err = auth.NewAdmin(ctx, uiConfig, repo, apiVerifier)
+		api.Admin, err = auth.NewAdmin(oidcCtx, uiConfig, repo, apiVerifier)
 		if err != nil {
 			return err
 		}

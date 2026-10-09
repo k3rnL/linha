@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Linha",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Versioned JSON base protocol. SDKs wrap these operations. Result templates and policies are snapshotted; job IDs survive process restarts. Authentication follows deployment configuration: security.enabled=false disables client and worker authentication; security.oidc.enabled=false disables only client authentication. Anonymous clients share owner anonymous. Secured deployments require the bearer schemes below."
   },
   "paths": {

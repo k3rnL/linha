@@ -16,6 +16,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -112,9 +113,15 @@ func TestAdminIssuerBoundNestedMappingsAndCookies(t *testing.T) {
 		t.Fatal("expired session accepted")
 	}
 }
-func TestOIDCPKCECallbackAcrossReplicasAndTokenValidation(t *testing.T) { oidcReplicaFlow(t, false) }
-func TestOIDCPKCECallbackWithIndependentDatabasePools(t *testing.T)     { oidcReplicaFlow(t, true) }
-func oidcReplicaFlow(t *testing.T, persistent bool) {
+func TestOIDCPKCECallbackAcrossReplicasAndTokenValidation(t *testing.T) {
+	oidcReplicaFlow(t, false, false)
+}
+func TestOIDCPKCECallbackWithIndependentDatabasePools(t *testing.T) { oidcReplicaFlow(t, true, false) }
+func TestOIDCTLSPKCECallbackAcrossReplicas(t *testing.T)            { oidcReplicaFlow(t, false, true) }
+func TestOIDCTLSPKCECallbackWithIndependentDatabasePools(t *testing.T) {
+	oidcReplicaFlow(t, true, true)
+}
+func oidcReplicaFlow(t *testing.T, persistent, useTLS bool) {
 	key, e := rsa.GenerateKey(rand.Reader, 2048)
 	if e != nil {
 		t.Fatal(e)
@@ -133,7 +140,7 @@ func oidcReplicaFlow(t *testing.T, persistent bool) {
 		}
 		return payload + "." + enc(signature)
 	}
-	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	provider := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/.well-known/openid-configuration":
@@ -159,11 +166,28 @@ func oidcReplicaFlow(t *testing.T, persistent bool) {
 			if invalid == "issuer" {
 				claims["iss"] = "https://untrusted"
 			}
-			json.NewEncoder(w).Encode(map[string]any{"access_token": "never-in-browser", "token_type": "Bearer", "id_token": sign(claims)})
+			if invalid == "subject" {
+				claims["sub"] = ""
+			}
+			if invalid == "role" {
+				claims["sub"] = "ordinary-user"
+			}
+			raw := sign(claims)
+			if invalid == "signature" {
+				parts := strings.Split(raw, ".")
+				parts[2] = enc(make([]byte, key.Size()))
+				raw = strings.Join(parts, ".")
+			}
+			json.NewEncoder(w).Encode(map[string]any{"access_token": "never-in-browser", "token_type": "Bearer", "id_token": raw})
 		default:
 			http.NotFound(w, r)
 		}
 	}))
+	if useTLS {
+		provider.StartTLS()
+	} else {
+		provider.Start()
+	}
 	defer provider.Close()
 	issuer = provider.URL
 	var repo domain.BrowserRepository = newBrowserMemory()
@@ -201,15 +225,27 @@ func oidcReplicaFlow(t *testing.T, persistent bool) {
 		repo = first
 		second = other
 	}
-	config := AdminConfig{Enabled: true, SecurityEnabled: true, Issuer: issuer, PublicURL: "https://linha.example/ui/", ClientID: "browser", SessionSeconds: 3600, Mappings: AdminMappings{Operator: RoleRules{Subjects: []SubjectRule{{Issuer: issuer, Subject: "admin"}}}}}
-	a, e := NewAdmin(context.Background(), config, repo, nil)
-	if e != nil {
-		t.Fatal(e)
+	membership := SubjectRule{Subject: "admin"}
+	if !useTLS {
+		membership.Issuer = issuer
+	} // Retain the legacy explicit-issuer flow too.
+	config := AdminConfig{Enabled: true, SecurityEnabled: true, Issuer: issuer, PublicURL: "https://linha.example/ui/", ClientID: "browser", SessionSeconds: 3600, Mappings: AdminMappings{Operator: RoleRules{Subjects: []SubjectRule{membership}}}}
+	newReplica := func(repository domain.BrowserRepository) *Admin {
+		initialization, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		a, err := NewAdmin(OIDCContext(initialization, useTLS), config, repository, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return a
 	}
-	b, e := NewAdmin(context.Background(), config, second, nil)
-	if e != nil {
-		t.Fatal(e)
+	if useTLS {
+		if _, err := NewAdmin(context.Background(), config, repo, nil); err == nil {
+			t.Fatal("browser provider accepted untrusted certificate without opt-in")
+		}
 	}
+	a := newReplica(repo)
+	b := newReplica(second)
 	login := func() (*http.Request, *httptest.ResponseRecorder) {
 		out := httptest.NewRecorder()
 		r := httptest.NewRequest("GET", "https://linha.example/ui/oidc/login", nil)
@@ -257,16 +293,85 @@ func oidcReplicaFlow(t *testing.T, persistent bool) {
 	if e = b.Callback(httptest.NewRecorder(), callback); e == nil {
 		t.Fatal("callback replay accepted")
 	}
-	for _, mode := range []string{"nonce", "audience", "expiry", "issuer"} {
+	for _, mode := range []string{"nonce", "audience", "expiry", "issuer", "subject", "signature", "role"} {
 		invalid = mode
 		callback, out = login()
 		if e = b.Callback(out, callback); e == nil {
 			t.Fatal("invalid token accepted:", mode)
 		}
 	}
+	invalid = ""
+	callback, out = login()
+	config.Mappings.Operator.Subjects[0].Issuer = "" // Upgrade legacy rules without invalidating retained identity.
+	b = newReplica(second)                           // Recreate the callback service with durable login/session state.
+	if e = b.Callback(out, callback); e != nil {
+		t.Fatalf("callback after restart: %v", e)
+	}
+	if _, e = b.Identity(request.Context(), request, false); e != nil {
+		t.Fatalf("session after restart: %v", e)
+	}
 	callback, _ = login()
 	callback.Header.Del("Cookie")
 	if e = b.Callback(httptest.NewRecorder(), callback); e == nil {
 		t.Fatal("callback without browser state accepted")
+	}
+}
+
+func TestAdminMappingsInheritConfiguredIssuer(t *testing.T) {
+	for _, role := range []string{"viewer", "operator"} {
+		for _, kind := range []string{"subject", "claim"} {
+			for _, ruleIssuer := range []string{"", "https://issuer.example", "https://untrusted.example"} {
+				t.Run(role+"/"+kind+"/"+ruleIssuer, func(t *testing.T) {
+					config := AdminConfig{
+						Enabled: true, SecurityEnabled: true, Issuer: "https://issuer.example",
+						PublicURL: "https://linha.example/ui/", ClientID: "browser", SessionSeconds: 3600,
+					}
+					rules := RoleRules{}
+					if kind == "subject" {
+						rules.Subjects = []SubjectRule{{Issuer: ruleIssuer, Subject: "admin"}}
+					} else {
+						rules.Claims = []ClaimRule{{Issuer: ruleIssuer, Path: []string{"realm_access", "roles"}, Values: []string{"linha-admin"}}}
+					}
+					if role == "operator" {
+						config.Mappings.Operator = rules
+					} else {
+						config.Mappings.Viewer = rules
+					}
+					err := ValidateAdminConfig(config)
+					if ruleIssuer == "https://untrusted.example" {
+						if err == nil {
+							t.Fatal("conflicting explicit issuer accepted")
+						}
+						return
+					}
+					if err != nil {
+						t.Fatal(err)
+					}
+					a := &Admin{Config: config}
+					claims := map[string]any{"iss": config.Issuer, "sub": "admin", "realm_access": map[string]any{"roles": []any{"linha-admin"}}}
+					if got := a.role(claims); got != role {
+						t.Fatalf("role=%q want %q", got, role)
+					}
+					claims["iss"] = "https://untrusted.example"
+					if a.role(claims) != "" {
+						t.Fatal("inherited rule accepted another issuer")
+					}
+					claims["iss"] = config.Issuer
+					claims["sub"] = ""
+					if a.role(claims) != "" {
+						t.Fatal("inherited rule accepted an empty subject")
+					}
+					claims["sub"] = "ordinary-user"
+					claims["realm_access"] = map[string]any{"roles": []any{"unrelated"}}
+					if a.role(claims) != "" {
+						t.Fatal("non-member received an admin role")
+					}
+					a.Config.Mappings = AdminMappings{}
+					if a.role(claims) != "" {
+						t.Fatal("missing membership rules granted access")
+					}
+				})
+			}
+		}
 	}
 }

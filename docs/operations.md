@@ -55,6 +55,70 @@ cannot choose ownership. Missing issuer/audience fails chart rendering and serve
 startup. Tokens must be signed JWTs from the issuer's discovery/JWKS endpoint,
 with the configured audience. Opaque OAuth access tokens are unsupported.
 
+For an OIDC provider with a self-signed or privately signed HTTPS certificate,
+`security.oidc.tls.insecureSkipVerify` explicitly disables certificate-chain and
+hostname verification:
+
+```yaml
+security:
+  oidc:
+    tls:
+      insecureSkipVerify: true
+```
+
+The equivalent server setting is `LINHA_OIDC_TLS_INSECURE_SKIP_VERIFY=true`.
+The default is `false`. This setting applies to server-side OIDC discovery,
+signing-key retrieval/refresh, and the admin UI's OAuth token exchange. JWT
+signature, issuer, audience, expiry, browser nonce and administrator membership
+checks remain enabled. Other connections (including Kubernetes worker identities,
+database and result storage) retain their own TLS verification. Disabled security
+or OIDC ignores the server setting. Active bypass logs a startup warning.
+
+Use the `0.1.1` server image and chart or newer;
+the `0.1.0` image does not support the new option. It requires no SDK
+upgrade or database migration. Set the option back to `false` to restore normal
+verification. It does not change certificate trust in users' browsers; browsers
+must still trust the identity provider and UI certificates.
+
+Skipping verification allows a network attacker to impersonate the provider,
+including its signing-key endpoint. Trusting the provider CA keeps verification
+enabled and is preferable for production. Create a ConfigMap containing that CA
+(use the actual server certificate if it is genuinely self-signed):
+
+```sh
+kubectl -n YOUR_NAMESPACE create configmap linha-oidc-ca \
+  --from-file=ca.crt=/path/to/provider-ca.crt
+```
+
+Append these entries to any existing extra environment variables, volumes and
+mounts in your Helm values:
+
+```yaml
+extraEnv:
+  - name: SSL_CERT_DIR
+    value: /etc/ssl/certs:/etc/linha/oidc-ca
+extraVolumes:
+  - name: oidc-ca
+    configMap:
+      name: linha-oidc-ca
+extraVolumeMounts:
+  - name: oidc-ca
+    mountPath: /etc/linha/oidc-ca
+    readOnly: true
+```
+
+The Linux server image includes the system CA bundle. Keep the standard directory
+in `SSL_CERT_DIR` so its CA certificates remain available. This system-trust
+configuration also applies to other Go clients using system roots; clients with
+explicit CA configuration (such as Kubernetes) keep their own roots. Roll server
+Pods after subsequent CA updates so cached root pools are reloaded.
+
+Administrator subject and claim mappings under `security.admin.viewer` and
+`security.admin.operator` inherit `security.oidc.issuer`. Only subject or claim
+path/values are needed. Existing explicit issuers remain valid when they match
+the configured issuer; conflicting issuers are rejected. See the
+[admin UI example](admin-ui.md#enable-with-oidc).
+
 The Scala client can use `CredentialProvider.none` for an anonymous API. Managed
 workers keep using `LinhaWorker.projectedIdentity()` and `projectedCredentials()`;
 the updated SDK handles the master switch automatically. Rebuild worker images

@@ -24,13 +24,11 @@ security:
   admin:
     viewer:
       claims:
-        - issuer: https://identity.example/realms/platform
-          path: [realm_access, roles]
+        - path: [realm_access, roles]
           values: [linha-viewer]
     operator:
       subjects:
-        - issuer: https://identity.example/realms/platform
-          subject: operator-subject-id
+        - subject: operator-subject-id
 ui:
   enabled: true
   publicURL: https://linha.example/ui/
@@ -42,9 +40,14 @@ ui:
   grafanaURL: https://grafana.example/d/linha-operations/linha-operations
 ```
 
-No user has administrator access by default. Rules bind an issuer to either an
-exact subject or a nested claim path with allowed values. The path identifies
-nested objects; string values and arrays of strings are supported. Operators can
+No user has administrator access by default. Rules inherit `security.oidc.issuer`
+and match either an exact subject or a nested claim path with allowed values.
+`security.admin` is a sibling of `security.oidc`. Existing explicit rule issuers
+remain accepted when they match the configured issuer; a conflicting issuer is
+rejected. Use the `0.1.1` chart and server or newer before omitting rule issuers;
+server `0.1.0` still requires them.
+
+The path identifies nested objects; string values and arrays of strings are supported. Operators can
 also read. Viewers cannot submit/replay/cancel, even with forged browser headers.
 Mappings are re-evaluated on every request using the running server configuration.
 Redeploy replicas to apply configuration changes; sessions do not freeze roles.

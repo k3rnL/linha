@@ -1,7 +1,7 @@
 replicaCount: 2
 image:
   repository: ghcr.io/k3rnl/linha/server
-  tag: 0.1.0
+  tag: 0.1.1
   pullPolicy: IfNotPresent
 imagePullSecrets: []
 database:
@@ -23,6 +23,10 @@ security:
     enabled: true
     issuer: ""
     audience: ""
+    tls:
+      # Only OIDC HTTPS; skips certificate-chain and hostname verification.
+      insecureSkipVerify: false
+  # Membership rules inherit oidc.issuer; no per-rule issuer is needed.
   admin:
     viewer:
       subjects: []

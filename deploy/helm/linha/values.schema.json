@@ -26,6 +26,16 @@
             },
             "audience": {
               "type": "string"
+            },
+            "tls": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "insecureSkipVerify": {
+                  "type": "boolean",
+                  "default": false
+                }
+              }
             }
           }
         },
@@ -41,7 +51,6 @@
                   "items": {
                     "type": "object",
                     "required": [
-                      "issuer",
                       "subject"
                     ],
                     "additionalProperties": false,
@@ -61,7 +70,6 @@
                   "items": {
                     "type": "object",
                     "required": [
-                      "issuer",
                       "path",
                       "values"
                     ],
@@ -101,7 +109,6 @@
                   "items": {
                     "type": "object",
                     "required": [
-                      "issuer",
                       "subject"
                     ],
                     "additionalProperties": false,
@@ -121,7 +128,6 @@
                   "items": {
                     "type": "object",
                     "required": [
-                      "issuer",
                       "path",
                       "values"
                     ],

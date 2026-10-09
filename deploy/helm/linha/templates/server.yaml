@@ -121,6 +121,8 @@ spec:
               value: {{ .Values.security.oidc.issuer | quote }}
             - name: LINHA_OIDC_AUDIENCE
               value: {{ .Values.security.oidc.audience | quote }}
+            - name: LINHA_OIDC_TLS_INSECURE_SKIP_VERIFY
+              value: {{ .Values.security.oidc.tls.insecureSkipVerify | quote }}
             - name: LINHA_DATABASE_HOST
               value: {{ .Values.database.postgres.host | quote }}
             - name: LINHA_DATABASE_PORT

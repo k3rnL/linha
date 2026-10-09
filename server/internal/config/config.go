@@ -11,6 +11,7 @@ import (
 type Security struct {
 	Enabled                      bool
 	OIDCEnabled                  bool
+	OIDCInsecureSkipVerify       bool
 	Issuer, Audience, WorkerAuth string
 }
 
@@ -44,6 +45,12 @@ func ReadSecurity(get func(string) string) (s Security, err error) {
 	s.Issuer, s.Audience = get("LINHA_OIDC_ISSUER"), get("LINHA_OIDC_AUDIENCE")
 	if s.OIDCEnabled && (s.Issuer == "" || s.Audience == "") {
 		return s, fmt.Errorf("OIDC requires LINHA_OIDC_ISSUER and LINHA_OIDC_AUDIENCE")
+	}
+	if s.OIDCEnabled {
+		s.OIDCInsecureSkipVerify, err = Bool(get, "LINHA_OIDC_TLS_INSECURE_SKIP_VERIFY", false)
+		if err != nil {
+			return
+		}
 	}
 	s.WorkerAuth = get("LINHA_WORKER_AUTH")
 	if s.WorkerAuth == "" {

@@ -49,7 +49,7 @@ invent missing original frames.
 ## Upgrade and limitations
 
 Upgrade the server first, then rebuild worker images with the updated
-`com.k3rnl:linha-worker_2.12:0.1.0-SNAPSHOT` SDK (including through
+`com.k3rnl:linha-worker_2.12:0.1.1-SNAPSHOT` SDK (including through
 `linha-spark_2.12`). This change needs no database migration. Old workers and
 old failures containing only code/message/retryable remain supported by the new
 server. Old strict servers reject the new worker's additional fields.

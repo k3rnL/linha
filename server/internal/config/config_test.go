@@ -86,3 +86,44 @@ func TestSecuritySwitches(t *testing.T) {
 		})
 	}
 }
+
+func TestOIDCTLSSettings(t *testing.T) {
+	for _, tc := range []struct {
+		name, value          string
+		security, oidc, want bool
+		wantError            bool
+	}{
+		{"default", "", true, true, false, false},
+		{"strict", "false", true, true, false, false},
+		{"insecure", "true", true, true, true, false},
+		{"invalid", "typo", true, true, false, true},
+		{"security disabled ignores invalid", "typo", false, true, false, false},
+		{"OIDC disabled ignores invalid", "typo", true, false, false, false},
+		{"security disabled ignores opt-in", "true", false, true, false, false},
+		{"OIDC disabled ignores opt-in", "true", true, false, false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			values := map[string]string{
+				"LINHA_SECURITY_ENABLED": "true", "LINHA_OIDC_ENABLED": "true",
+				"LINHA_OIDC_ISSUER": "https://issuer.example", "LINHA_OIDC_AUDIENCE": "linha",
+				"LINHA_OIDC_TLS_INSECURE_SKIP_VERIFY": tc.value,
+			}
+			if !tc.security {
+				values["LINHA_SECURITY_ENABLED"] = "false"
+			}
+			if !tc.oidc {
+				values["LINHA_OIDC_ENABLED"] = "false"
+			}
+			got, err := ReadSecurity(env(values))
+			if tc.wantError {
+				if err == nil || !strings.Contains(err.Error(), "LINHA_OIDC_TLS_INSECURE_SKIP_VERIFY") {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				return
+			}
+			if err != nil || got.OIDCInsecureSkipVerify != tc.want {
+				t.Fatalf("got %+v, %v; want bypass=%v", got, err, tc.want)
+			}
+		})
+	}
+}

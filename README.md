@@ -55,7 +55,7 @@ python3 scripts/e2e.py
 
 To install the JVM artifacts for another local project, run `mvn -B install`
 with Java 17. Each SDK and the example module installs its binary and matching
-`-sources.jar` under `com.k3rnl`, version `0.1.0-SNAPSHOT`, in the local Maven
+`-sources.jar` under `com.k3rnl`, version `0.1.1-SNAPSHOT`, in the local Maven
 repository. Reload your IDE's Maven project to pick up the sources.
 
 The smoke test creates its own temporary PostgreSQL container and result root,
@@ -238,8 +238,8 @@ after preparing the pinned connectors and running `mvn package`:
 
 ```sh
 scripts/prepare-spark-connectors.sh
-docker build -f server/Dockerfile -t your-registry/linha-server:0.1.0 .
-docker build -f examples/spark/Dockerfile -t your-registry/linha-worker:0.1.0 .
+docker build -f server/Dockerfile -t your-registry/linha-server:0.1.1 .
+docker build -f examples/spark/Dockerfile -t your-registry/linha-worker:0.1.1 .
 helm lint deploy/helm/linha --set security.enabled=false
 ```
 

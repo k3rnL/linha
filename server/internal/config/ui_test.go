@@ -25,3 +25,18 @@ func TestUISecurityMatrix(t *testing.T) {
 		})
 	}
 }
+
+func TestUIInheritedMappingIssuers(t *testing.T) {
+	for _, raw := range []string{
+		`{"viewer":{"subjects":[{"subject":"viewer"}]},"operator":{"claims":[{"path":["roles"],"values":["operator"]}]}}`,
+		`{"viewer":{"claims":[{"path":["roles"],"values":["viewer"]}]},"operator":{"subjects":[{"subject":"operator"}]}}`,
+	} {
+		values := map[string]string{
+			"LINHA_UI_ENABLED": "true", "LINHA_UI_PUBLIC_URL": "https://linha.example/ui/",
+			"LINHA_UI_OIDC_CLIENT_ID": "browser", "LINHA_ADMIN_MAPPINGS": raw,
+		}
+		if _, err := ReadUI(env(values), Security{Enabled: true, OIDCEnabled: true, Issuer: "https://issuer.example"}); err != nil {
+			t.Fatalf("inherited mappings rejected: %v", err)
+		}
+	}
+}
