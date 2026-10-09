@@ -1,7 +1,7 @@
 # Publishing Linha
 
 Branch pushes and pull requests run `.github/workflows/check.yml` without publisher
-secrets. A `vMAJOR.MINOR.PATCH` tag (or prerelease such as `v0.1.0-rc.1`) starts
+secrets. A `vMAJOR.MINOR.PATCH` tag (or prerelease such as `v0.1.1-rc.1`) starts
 `.github/workflows/release.yml`. It validates publishing setup, runs the same full
 suite at the tagged commit, then publishes images and SDKs in separate jobs.
 Tag releases are serialized; there is no implicit `latest` image tag.
@@ -86,8 +86,8 @@ Only the image publishing job requests `packages: write`. Published image paths
 are lowercase:
 
 ```text
-ghcr.io/owner/repository/server:0.1.0
-ghcr.io/owner/repository/spark-example:0.1.0
+ghcr.io/owner/repository/server:0.1.1
+ghcr.io/owner/repository/spark-example:0.1.1
 ```
 
 Each also receives `sha-<full-commit-sha>` and source/revision/version/license OCI
@@ -98,24 +98,24 @@ images are built by their application projects.
 ## Create a release
 
 1. Finish the public configuration and secrets above. Keep the root version and
-   every module's parent version aligned, for example `0.1.0-SNAPSHOT`.
+   every module's parent version aligned, for example `0.1.1-SNAPSHOT`.
 2. Run the local checks and commit the release configuration/code changes.
 3. Validate the intended tag against the configured repository:
 
    ```sh
-   python3 scripts/prepare-release.py --check --tag v0.1.0 --repository OWNER/REPOSITORY
+   python3 scripts/prepare-release.py --check --tag v0.1.1 --repository OWNER/REPOSITORY
    ```
 
 4. Create and push the version tag when you intend to publish:
 
    ```sh
-   git tag -a v0.1.0 -m 'Linha 0.1.0'
-   git push origin v0.1.0
+   git tag -a v0.1.1 -m 'Linha 0.1.1'
+   git push origin v0.1.1
    ```
 
 The workflow changes versions and metadata in its disposable workspace. It does
 not commit generated POMs back to the branch. The declared development version
-must match the release (`0.1.0-SNAPSHOT` also permits `v0.1.0-rc.1`). Update all
+must match the release (`0.1.1-SNAPSHOT` also permits `v0.1.1-rc.1`). Update all
 parent versions together before releasing the next minor/patch version.
 
 Central publication is automatic after checks pass and waits for Central to

@@ -5,6 +5,13 @@ services, health probes and disruption controls. PostgreSQL and result storage
 are external persistent dependencies. See [operations](../../../docs/operations.md)
 for database Secret keys, security/OIDC and namespace-only RBAC.
 
+`security.oidc.tls.insecureSkipVerify` defaults to `false`. Set it to `true` to
+skip certificate and hostname verification only for server-side OIDC discovery,
+signing keys and browser token exchange. Deploy a server image containing this
+option alongside chart `0.1.1` or newer; image `0.1.0` does not contain it.
+See [operations](../../../docs/operations.md) for usage and the alternative of
+mounting the provider CA while keeping verification enabled.
+
 Use `workerPodTemplates.driverPodTemplate` and `executorPodTemplate` for native
 Pod defaults. Client ensure requests can customize both; effective templates are
 persisted for replacement. `registrySecrets.allowedNames` grants the server get
@@ -24,7 +31,8 @@ older installations; no server/worker image rebuild is needed. See
 
 The image embeds the [admin console](../../../docs/admin-ui.md); `ui.enabled`
 defaults to false. Configure `ui.publicURL`, a browser OIDC client and explicit
-viewer/operator mappings before enabling it. Database and browser credentials
+viewer/operator mappings before enabling it. Subject and claim mappings inherit
+`security.oidc.issuer`; omit repeated issuer fields after upgrading the server. Database and browser credentials
 use caller-managed `secretRef` plus selected key names.
 
 Enable `ui.ingress.enabled` for chart-managed UI/admin routing. Its host is derived

@@ -2,5 +2,5 @@ apiVersion: v2
 name: linha
 description: Durable engine-independent job server with managed Spark workers
 type: application
-version: 0.1.0
-appVersion: 0.1.0-SNAPSHOT
+version: 0.1.1
+appVersion: 0.1.1

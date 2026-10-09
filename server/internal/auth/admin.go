@@ -21,11 +21,11 @@ import (
 var Forbidden = &domain.Error{Code: "FORBIDDEN", Message: "administrator role required", Status: 403}
 
 type SubjectRule struct {
-	Issuer  string `json:"issuer"`
+	Issuer  string `json:"issuer,omitempty"`
 	Subject string `json:"subject"`
 }
 type ClaimRule struct {
-	Issuer string   `json:"issuer"`
+	Issuer string   `json:"issuer,omitempty"`
 	Path   []string `json:"path"`
 	Values []string `json:"values"`
 }
@@ -56,6 +56,7 @@ type Admin struct {
 	Verifier, APIVerifier *oidc.IDTokenVerifier
 	Origin                string
 	Secure                bool
+	oidcHTTPClient        *http.Client
 }
 
 func ValidateAdminConfig(c AdminConfig) error {
@@ -77,13 +78,13 @@ func ValidateAdminConfig(c AdminConfig) error {
 	}
 	for _, rules := range []RoleRules{c.Mappings.Viewer, c.Mappings.Operator} {
 		for _, s := range rules.Subjects {
-			if s.Issuer != c.Issuer || s.Subject == "" {
-				return fmt.Errorf("admin subjects must bind the configured issuer and a nonempty subject")
+			if (s.Issuer != "" && s.Issuer != c.Issuer) || s.Subject == "" {
+				return fmt.Errorf("admin subjects require a nonempty subject and any explicit issuer must match the configured issuer")
 			}
 		}
 		for _, s := range rules.Claims {
-			if s.Issuer != c.Issuer || len(s.Path) == 0 || len(s.Path) > 8 || len(s.Values) == 0 {
-				return fmt.Errorf("admin claim rules require the trusted issuer, a bounded claim path and allowed values")
+			if (s.Issuer != "" && s.Issuer != c.Issuer) || len(s.Path) == 0 || len(s.Path) > 8 || len(s.Values) == 0 {
+				return fmt.Errorf("admin claim rules require a bounded claim path, allowed values and any explicit issuer must match the configured issuer")
 			}
 			for _, p := range s.Path {
 				if p == "" || len(p) > 128 || p == "__proto__" {
@@ -103,6 +104,9 @@ func NewAdmin(ctx context.Context, c AdminConfig, repo domain.BrowserRepository,
 	if !c.SecurityEnabled {
 		return a, nil
 	}
+	// Keep the provider client for callbacks, whose request contexts do not
+	// carry the initialization context's transport policy.
+	a.oidcHTTPClient, _ = ctx.Value(oauth2.HTTPClient).(*http.Client)
 	call, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	provider, e := oidc.NewProvider(call, c.Issuer)
@@ -139,12 +143,12 @@ func (a *Admin) role(claims map[string]any) string {
 	}
 	matches := func(rules RoleRules) bool {
 		for _, r := range rules.Subjects {
-			if issuer == r.Issuer && subject == r.Subject {
+			if (r.Issuer == "" || issuer == r.Issuer) && subject == r.Subject {
 				return true
 			}
 		}
 		for _, r := range rules.Claims {
-			if issuer != r.Issuer {
+			if r.Issuer != "" && issuer != r.Issuer {
 				continue
 			}
 			var v any = claims
@@ -263,6 +267,9 @@ func (a *Admin) Callback(w http.ResponseWriter, r *http.Request) error {
 	a.setCookie(w, "linha_login", "", -1)
 	call, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
+	if a.oidcHTTPClient != nil {
+		call = oidc.ClientContext(call, a.oidcHTTPClient)
+	}
 	token, e := a.OAuth.Exchange(call, r.URL.Query().Get("code"), oauth2.VerifierOption(l.Verifier))
 	if e != nil {
 		return Unauthorized

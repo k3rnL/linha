@@ -540,6 +540,68 @@ class ChartConfiguration(unittest.TestCase):
             succeeds=False,
         )
 
+    def test_oidc_tls_option_and_types(self):
+        key = "LINHA_OIDC_TLS_INSECURE_SKIP_VERIFY"
+        defaults = environment(render("security.enabled=false"))
+        self.assertEqual(defaults[key]["value"], "false")
+        for security, oidc, skip in itertools.product((False, True), repeat=3):
+            with self.subTest(security=security, oidc=oidc, skip=skip):
+                docs = render(
+                    f"security.enabled={str(security).lower()}",
+                    f"security.oidc.enabled={str(oidc).lower()}",
+                    f"security.oidc.tls.insecureSkipVerify={str(skip).lower()}",
+                    "security.oidc.issuer=https://issuer.example",
+                    "security.oidc.audience=linha",
+                )
+                env = environment(docs)
+                self.assertEqual(env[key]["value"], str(skip).lower())
+                self.assertEqual(env["LINHA_WORKER_AUTH"]["value"], "projected-token")
+        for setting in (
+            "security.oidc.tls.insecureSkipVerify=typo",
+            "security.oidc.tls.insecureSkipVerify=1",
+            "security.oidc.tls.insecureSkipVerify[0]=true",
+            "security.oidc.tls.skipTLS=true",
+        ):
+            with self.subTest(setting=setting):
+                self.assertIn(
+                    "security.oidc.tls",
+                    render("security.enabled=false", setting, succeeds=False),
+                )
+
+    def test_admin_mapping_issuer_inheritance(self):
+        for role, kind in itertools.product(
+            ("viewer", "operator"), ("subjects", "claims")
+        ):
+            with self.subTest(role=role, kind=kind):
+                prefix = f"security.admin.{role}.{kind}[0]"
+                settings = (
+                    [f"{prefix}.subject=admin"]
+                    if kind == "subjects"
+                    else [f"{prefix}.path[0]=roles", f"{prefix}.values[0]=admin"]
+                )
+                for legacy in (False, True):
+                    docs = render(
+                        "security.oidc.issuer=https://issuer.example",
+                        "security.oidc.audience=sdk",
+                        "ui.enabled=true",
+                        "ui.publicURL=https://linha.example/ui/",
+                        "ui.oidc.clientId=browser",
+                        *settings,
+                        *(
+                            [f"{prefix}.issuer=https://issuer.example"]
+                            if legacy
+                            else []
+                        ),
+                    )
+                    mappings = json.loads(
+                        environment(docs)["LINHA_ADMIN_MAPPINGS"]["value"]
+                    )
+                    rule = mappings[role][kind][0]
+                    if legacy:
+                        self.assertEqual(rule["issuer"], "https://issuer.example")
+                    else:
+                        self.assertNotIn("issuer", rule)
+
     def test_invalid_configuration(self):
         self.assertIn("security.oidc.issuer", render(succeeds=False))
         self.assertIn(
