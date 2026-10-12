@@ -44,6 +44,43 @@ published bytes come from the sealed manifest, independent of transport traffic.
 Staging reservations and cleanup backlog/attempts are separate. Cleanup remains
 opt-in; scrape/export settings do not enable deletion.
 
+## Kubernetes resource cleanup
+
+Active Spark contexts keep the one-second capacity reconciliation cadence.
+Stopped contexts and DEAD instance history do not trigger individual Kubernetes
+resource probes. Each server inventories existing Linha-managed Pods, Services
+and SparkApplications in its namespace once per minute, including on startup.
+Pagination adds requests only for currently existing resources. With no resources,
+this is three collection GETs per minute per replica, independent of history size.
+
+A resource is removed only if its context, immutable instance ID and kind match a
+persisted DEAD intent and the controller can claim that context's reconciliation
+lease. Deletion uses the UID from inventory. This recovers late creates after
+failover and leftover legacy driver Services without deleting context/job/result
+history. SparkApplication children continue to use Kubernetes garbage collection.
+Reattaching to a stopped context promptly restores normal capacity reconciliation.
+
+Inventory and deletion failures retry on the minute cadence, are reported through
+reconciliation warning logs/loop metrics, and do not set a healthy context's
+provisioning condition. A cleanup sweep has a twenty-second deadline. A 404
+while deleting a resource that disappeared since inventory is harmless; repeated
+per-name 404s while the deployment is idle indicate an older server still running.
+All replicas must be updated to remove that old polling behavior. A legacy cluster
+without the SparkApplication CRD can still clean Pods and Services; its collection
+404 is treated as an unavailable resource type.
+
+To inspect API traffic, sum these process-local counters across replicas (with
+your usual deployment filters):
+
+```promql
+sum by (resource, verb, outcome) (
+  rate(linha_kubernetes_api_requests_total[5m])
+)
+```
+
+This engine-resource cleanup is automatic and separate from opt-in result-file
+retention cleanup.
+
 ## Context labels and HA PromQL
 
 A persisted registry admits 100 logical owner/name dimensions by default, stable

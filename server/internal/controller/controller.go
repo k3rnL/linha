@@ -23,6 +23,7 @@ type Controller struct {
 	Resolve     func(context.Context, domain.BackendSpec) (string, error)
 	ID          string
 	ObserveLoop func(string, time.Time, error)
+	nextCleanup time.Time // Tick runs serially; each replica bounds its own inventory.
 }
 type record struct {
 	instance  engine.Instance
@@ -51,7 +52,7 @@ func (c *Controller) Run(ctx context.Context) {
 	}
 }
 func (c *Controller) Tick(ctx context.Context) error {
-	rows, err := c.Pool.Query(ctx, "SELECT id FROM linha_contexts WHERE spec->'engine'->>'type'='spark' AND reconcile_after<=clock_timestamp()")
+	rows, err := c.Pool.Query(ctx, "SELECT id FROM linha_contexts WHERE spec->'engine'->>'type'='spark' AND state<>'STOPPED' AND reconcile_after<=clock_timestamp()")
 	if err != nil {
 		return err
 	}
@@ -75,7 +76,7 @@ func (c *Controller) Tick(ctx context.Context) error {
 			slog.Warn("backend reconcile failed", "contextId", id, "error", err)
 		}
 	}
-	return nil
+	return c.cleanup(ctx)
 }
 func (c *Controller) valid(ctx context.Context, id string, epoch int64) error {
 	tag, err := c.Pool.Exec(ctx, "UPDATE linha_contexts SET reconcile_until=clock_timestamp()+interval '30 seconds' WHERE id=$1 AND reconcile_owner=$2 AND reconcile_epoch=$3 AND reconcile_until>clock_timestamp()", id, c.ID, epoch)
@@ -128,9 +129,6 @@ func (c *Controller) reconcile(ctx context.Context, id string) error {
 		if err = c.Pool.QueryRow(ctx, "SELECT resolved_image FROM linha_contexts WHERE id=$1", id).Scan(&image); err != nil {
 			return err
 		}
-	}
-	if err = c.cleanup(ctx, id, epoch, image); err != nil {
-		return err
 	}
 	_, err = c.fenced(ctx, id, epoch, "UPDATE linha_contexts SET condition='' WHERE id=$1", id)
 	if err != nil {
@@ -361,52 +359,6 @@ func (c *Controller) fenced(ctx context.Context, id string, epoch int64, sql str
 		return tag, err
 	}
 	return tag, tx.Commit(ctx)
-}
-
-// Retired intents remain discoverable: an ambiguous, late create by a previous
-// controller must not leave an untracked pod or service after failover.
-func (c *Controller) cleanup(ctx context.Context, id string, epoch int64, image string) error {
-	rows, err := c.Pool.Query(ctx, "SELECT id,pod_uid,resource_kind,resource_uid FROM linha_instances WHERE context_id=$1 AND state='DEAD'", id)
-	if err != nil {
-		return err
-	}
-	var retired []engine.Instance
-	for rows.Next() {
-		i := engine.Instance{ContextID: id, Image: image}
-		if err = rows.Scan(&i.ID, &i.Incarnation, &i.Kind, &i.ResourceUID); err != nil {
-			rows.Close()
-			return err
-		}
-		retired = append(retired, i)
-	}
-	err = rows.Err()
-	rows.Close()
-	if err != nil {
-		return err
-	}
-	for _, i := range retired {
-		if err = c.valid(ctx, id, epoch); err != nil {
-			return err
-		}
-		probe := i
-		probe.Incarnation = ""
-		observed, e := c.observe(ctx, probe)
-		if errors.Is(e, domain.NotFound) {
-			if i.Incarnation != "" || i.ResourceUID != "" {
-				if e = c.Adapter.Stop(ctx, i); e != nil {
-					return e
-				}
-			}
-			continue
-		}
-		if e != nil {
-			return e
-		}
-		if e = c.Adapter.Stop(ctx, observed); e != nil {
-			return e
-		}
-	}
-	return nil
 }
 
 // Attachment, acceptance and retirement share this row lock. Once an instance is

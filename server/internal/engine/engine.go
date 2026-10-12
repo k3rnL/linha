@@ -16,12 +16,23 @@ type Instance struct {
 	Condition                         string
 	Observation                       *domain.EngineObservation
 }
+
+// ManagedResource is an existing engine root or auxiliary resource. Discovery
+// does not authorize deletion: the controller must first verify the durable
+// retired intent and claim its context. Kind and UID are adapter-specific.
+type ManagedResource struct {
+	InstanceID, ContextID, InstanceKind string
+	Kind, UID                           string
+}
+
 type Adapter interface {
 	Validate(domain.EngineSpec) error
 	Ensure(context.Context, domain.BackendContext, Instance) error
 	Observe(context.Context, Instance) (Instance, error)
 	Drain(context.Context, Instance) error
 	Stop(context.Context, Instance) error
+	ListResources(context.Context) ([]ManagedResource, error)
+	DeleteResource(context.Context, ManagedResource) error
 }
 type Registry map[string]Adapter
 
@@ -90,5 +101,28 @@ func (f *Fake) Stop(_ context.Context, i Instance) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	delete(f.instances, i.ID)
+	return nil
+}
+
+func (f *Fake) ListResources(_ context.Context) ([]ManagedResource, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var resources []ManagedResource
+	for _, i := range f.instances {
+		resources = append(resources, ManagedResource{InstanceID: i.ID, ContextID: i.ContextID, InstanceKind: i.Kind, Kind: "fake", UID: i.Incarnation})
+	}
+	return resources, nil
+}
+func (f *Fake) DeleteResource(_ context.Context, r ManagedResource) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	i, ok := f.instances[r.InstanceID]
+	if !ok {
+		return nil
+	}
+	if r.Kind != "fake" || r.UID == "" || r.UID != i.Incarnation || r.ContextID != i.ContextID || r.InstanceKind != i.Kind {
+		return domain.Conflict("resource identity changed")
+	}
+	delete(f.instances, r.InstanceID)
 	return nil
 }

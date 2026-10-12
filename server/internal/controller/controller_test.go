@@ -11,6 +11,7 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -137,10 +138,11 @@ func TestFailoverReplacementAndStaleController(t *testing.T) {
 	if e != nil || len(records) != 1 || records[0].instance.ID == original.ID {
 		t.Fatalf("replacement missing: %+v %v", records, e)
 	}
-	// A late create for a retired intent is cleaned, not counted as usable capacity.
+	// A late create for a retired intent is cleaned on the next sweep, not counted as usable capacity.
 	if e = adapter.Fake.Ensure(ctx, c, original); e != nil {
 		t.Fatal(e)
 	}
+	next.nextCleanup = time.Time{}
 	if e = next.Tick(ctx); e != nil {
 		t.Fatal(e)
 	}

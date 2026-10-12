@@ -52,3 +52,32 @@ metadata. Older server binaries cannot run against v10. Result cleanup remains o
 completion receipts and idempotency records remain indefinitely. See
 [dataset configuration](dataset-results.md), [operations](operations.md) and the
 [client/worker walkthrough](walkthrough.md) before deployment.
+
+## Retired-resource cleanup regression (2026-10-12)
+
+A read-only investigation of a two-replica 0.1.1 deployment found 64 DEAD
+instances, zero live engine instances, and approximately 150 missing-resource
+Kubernetes requests per second across the replicas. Two metrics snapshots were
+181.5 seconds apart. The supplied audit CSV contained 4,053 404 calls: 1,102 each
+for Pod GET, Pod DELETE and Service GET, plus 747 SparkApplication GETs.
+The retired-intent loop was repeatedly probing already absent resources.
+
+The regression suite uses PostgreSQL 17 and HTTP Kubernetes fixtures. With 5,000
+retired records and no resources, 100 controller ticks issue three collection
+GETs and no per-resource GET/DELETE calls; the next scheduled sweep adds three
+collection GETs. Tests cover pagination, namespace/label/name filtering, UID
+preconditions, legacy Service-only cleanup, unknown/active/foreign intents,
+competing controllers and ownership transfer, a late create after controller
+restart, bounded retries after inventory/deletion failure, and restored capacity
+when a client reattaches. Historical records remain intact.
+
+Validation passed: `make check` with `LINHA_TEST_DATABASE`, uncached
+`go test -race -count=1 ./server/...` against PostgreSQL 17, Java 17 `mvn -B
+package`, a rebuilt Go server with `scripts/e2e.py`, and `openspec validate --all
+--strict` (25 items). The restart smoke verified exception diagnostics and
+retained file results across client/server/worker restarts. Temporary PostgreSQL
+containers were removed after testing.
+
+The cluster investigation made no production changes. Post-fix request rates
+must be checked after all server replicas receive the corrected image; the
+fixture measurements do not represent an already deployed production fix.
