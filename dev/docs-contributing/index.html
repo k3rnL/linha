@@ -815,6 +815,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#audit-public-content" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Audit public content
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#choose-one-page-purpose" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1489,6 +1500,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#audit-public-content" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Audit public content
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#choose-one-page-purpose" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1547,6 +1569,32 @@ of attempts to replace a release snapshot with a different source commit. It doe
 not write to GitHub or alter branches in your checkout.</p>
 <p>Generated <code>site/</code> output is ignored. Local validation logs and JSON evidence are
 excluded from the site even when they exist under <code>docs/validation/</code>.</p>
+<h2 id="audit-public-content">Audit public content<a class="headerlink" href="#audit-public-content" title="Permanent link">&para;</a></h2>
+<p>CI runs the generic workspace-path check and its synthetic fixture tests. It does
+not contain organization-specific names, identifier hashes or a private denylist.
+Fork pull requests run the same generic checks without receiving private policy.</p>
+<p>Maintainers can perform an additional <strong>local-only</strong> identifier audit. Supply
+<code>LINHA_PUBLIC_CONTENT_DENYLIST</code> as a JSON array of identifiers. For example, a
+policy for an invented integration could contain:</p>
+<div class="highlight"><pre><span></span><code><span class="p">[</span><span class="s2">"internal-workload"</span><span class="p">,</span><span class="w"> </span><span class="s2">"corp.example"</span><span class="p">,</span><span class="w"> </span><span class="s2">"io.example"</span><span class="p">]</span>
+</code></pre></div>
+<p>Keep the real policy outside the checkout and generated site. Load it from a
+private local file and require it before inspecting source, history or output:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">LINHA_PUBLIC_CONTENT_DENYLIST</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span>/tmp/linha-private-denylist.json<span class="k">)</span><span class="s2">"</span>
+python3<span class="w"> </span>scripts/check-public-content.py<span class="w"> </span>--require-denylist
+python3<span class="w"> </span>scripts/check-public-content.py<span class="w"> </span>--history<span class="w"> </span>--require-denylist
+python3<span class="w"> </span>scripts/check-public-content.py<span class="w"> </span>--directory<span class="w"> </span>site<span class="w"> </span>--require-denylist
+<span class="nb">unset</span><span class="w"> </span>LINHA_PUBLIC_CONTENT_DENYLIST
+</code></pre></div>
+<p><code>--require-denylist</code> fails when the policy is absent, empty or invalid. Omitting
+it permits the generic path check when no policy is configured; a supplied
+malformed policy still fails. Identifier matching is case-insensitive and checks
+whole names, separator components, domain suffixes and adjacent dotted pairs,
+including package prefixes within longer class names. Diagnostics report only
+file/line locations and never matched source text or policy values.</p>
+<p>Do not commit the policy, embed hashes of its values or send it to CI. The local
+identifier audit complements the generic CI check; CI success does not establish
+that an organization-specific audit has run.</p>
 <h2 id="choose-one-page-purpose">Choose one page purpose<a class="headerlink" href="#choose-one-page-purpose" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
