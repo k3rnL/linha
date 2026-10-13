@@ -741,13 +741,13 @@ class ChartConfiguration(unittest.TestCase):
 
     def test_invalid_configuration(self):
         self.assertIn("security.api.jwt.issuer", render(succeeds=False))
-        self.assertIn(
-            "security.api.jwt.audience",
+        self.assertRegex(
             render(
                 "security.api.jwt.issuer=https://issuer.example",
                 "security.api.jwt.audience=",
                 succeeds=False,
             ),
+            r"security[./]api[./]jwt[./]audience",
         )
         for setting in (
             "existingSecret=old",

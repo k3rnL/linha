@@ -7,7 +7,7 @@
 ## 2. Publishing
 
 - [x] 2.1 Implement trusted GitHub Pages deployment with frozen version snapshots and development/release aliases; validate versioned output locally.
-- [ ] 2.2 Configure the repository hosting and publish the reviewed documentation source when checks pass.
+- [x] 2.2 Configure the repository hosting and publish the reviewed documentation source when checks pass.
 
 ## 3. Public repository isolation
 

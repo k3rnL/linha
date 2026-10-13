@@ -14,7 +14,7 @@ Verified locally on 2026-10-13. Built-in application credential acquisition uses
 
 - make check passed with disposable PostgreSQL, including integration tests and vet. Auth/config race checks passed.
 - Signed JWT tests retain issuer/audience/expiry/subject validation, ten application identities with one audience, cross-owner separation and browser administrator isolation.
-- Nineteen Linha Helm tests passed. Frontend types, formatting, production build and eleven browser tests passed.
+- Nineteen Linha Helm tests passed under Helm 3.18.4 and Helm 4.3.0; schema diagnostics accept dotted and JSON-pointer forms. Frontend types, formatting, production build and eleven browser tests passed.
 - Forty PromQL expressions, seventeen real admin OpenAPI response contracts, retained-history metrics checks and OpenAPI validation passed.
 - Real process-restart smoke tests passed for immediate durable IDs, typed/raw requests, files, retained results and nested/suppressed failure traces.
 - Local server image linha-server:oauth-only reports Linha dev-oauth. No live cluster deployment performed.
