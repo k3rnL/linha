@@ -1,7 +1,7 @@
 schema: spec-driven
 
 context: |
-  Linha is a new engine-agnostic durable job platform, separate from example application.
+  Linha is an engine-agnostic durable job platform.
   The user requested a Go job server and Scala/JVM client and worker SDKs.
   There are three logical modules: client SDK, job server, and worker SDK.
   Initial deployment target is Kubernetes with a Helm chart; Spark is the first engine.

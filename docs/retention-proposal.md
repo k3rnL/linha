@@ -1,15 +1,21 @@
-# Optional physical result cleanup
+# Result expiry and physical cleanup
 
-Implemented in schema v6 after authorization to complete the platform. Cleanup
-remains disabled by default; administrators enable it with
-`results.cleanup.enabled: true` or `LINHA_CLEANUP_ENABLED=true`.
+A job ID identifies durable metadata. Result retention controls how long its
+payload remains available. These lifetimes are separate: an expired payload does
+not erase status, attempt history, completion receipts or idempotency records.
 
-See [the implemented cleanup contract](dataset-results.md#limits-and-cleanup)
-and [validation evidence](validation.md). Only allocated outputs from terminal
-attempts are eligible after their writer authorization and grace period expire.
-Retained results and active attempts are protected. PostgreSQL locks coordinate
-replicas; retries are idempotent. No user bucket/root is removed. Public job IDs,
-completion receipts and idempotency records remain after payload expiry.
+Expiry is enforced at retrieval even when physical cleanup is disabled.
+`results.cleanup.enabled` is an independent opt-in deletion policy. Eligible
+allocations must belong to terminal attempts and be unprotected by a retained
+result, delegated writer or grace period.
 
-S3 object versions, external backups and filesystem snapshots follow their own
-retention policies. No production cleanup has been enabled by this development work.
+Cleanup uses persisted allocation identity, not a scan of arbitrary user roots
+or buckets. Repeated sweeps tolerate partial failures. S3 object versions,
+backups and filesystem snapshots remain subject to external policies.
+
+Set external storage lifecycle rules so they do not remove retained payloads
+before Linha's promised period. A missing object retains its metadata and returns
+an explicit storage failure; it is not silently treated as an empty result.
+
+For the configuration and operational steps, see
+[bound storage and enable cleanup](dataset-results.md#bound-storage-and-enable-cleanup).

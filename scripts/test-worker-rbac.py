@@ -140,6 +140,8 @@ with tempfile.TemporaryDirectory(prefix="linha-rbac-") as temp:
                 "templates/rbac.yaml",
                 "--set",
                 "security.oidc.enabled=false",
+                "--set",
+                "security.api.enabled=false",
             ],
             text=True,
             env=dict(os.environ, HELM_PLUGINS=plugins),

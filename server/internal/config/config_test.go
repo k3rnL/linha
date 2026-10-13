@@ -61,12 +61,12 @@ func TestSecuritySwitches(t *testing.T) {
 		enabled, oidc bool
 		errorPart     string
 	}{
-		{"secure default needs OIDC", nil, false, false, "OIDC requires"},
-		{"OIDC", map[string]string{"LINHA_OIDC_ISSUER": "https://issuer", "LINHA_OIDC_AUDIENCE": "linha"}, true, true, ""},
-		{"anonymous API, authenticated workers", map[string]string{"LINHA_OIDC_ENABLED": "false"}, true, false, ""},
+		{"secure default needs API JWT", nil, false, false, "API JWT authentication requires"},
+		{"OIDC", map[string]string{"LINHA_API_JWT_ISSUER": "https://issuer", "LINHA_OIDC_ISSUER": "https://browser"}, true, true, ""},
+		{"anonymous API, authenticated workers", map[string]string{"LINHA_API_AUTH_ENABLED": "false", "LINHA_OIDC_ENABLED": "false"}, true, false, ""},
 		{"all disabled", map[string]string{"LINHA_SECURITY_ENABLED": "false", "LINHA_OIDC_ENABLED": "true", "LINHA_WORKER_AUTH": "ignored"}, false, false, ""},
 		{"invalid boolean", map[string]string{"LINHA_SECURITY_ENABLED": "flase"}, false, false, "boolean"},
-		{"invalid worker auth", map[string]string{"LINHA_OIDC_ENABLED": "false", "LINHA_WORKER_AUTH": "none"}, false, false, "LINHA_WORKER_AUTH"},
+		{"invalid worker auth", map[string]string{"LINHA_API_AUTH_ENABLED": "false", "LINHA_OIDC_ENABLED": "false", "LINHA_WORKER_AUTH": "none"}, false, false, "LINHA_WORKER_AUTH"},
 		{"legacy mode", map[string]string{"LINHA_MODE": "development"}, false, false, "was removed"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -105,7 +105,7 @@ func TestOIDCTLSSettings(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			values := map[string]string{
 				"LINHA_SECURITY_ENABLED": "true", "LINHA_OIDC_ENABLED": "true",
-				"LINHA_OIDC_ISSUER": "https://issuer.example", "LINHA_OIDC_AUDIENCE": "linha",
+				"LINHA_API_JWT_ISSUER": "https://api.example", "LINHA_UI_ENABLED": "true", "LINHA_OIDC_ISSUER": "https://issuer.example",
 				"LINHA_OIDC_TLS_INSECURE_SKIP_VERIFY": tc.value,
 			}
 			if !tc.security {
@@ -125,5 +125,38 @@ func TestOIDCTLSSettings(t *testing.T) {
 				t.Fatalf("got %+v, %v; want bypass=%v", got, err, tc.want)
 			}
 		})
+	}
+}
+
+func TestIndependentAPIConfiguration(t *testing.T) {
+	values := map[string]string{"LINHA_API_JWT_ISSUER": "https://api.example", "LINHA_OIDC_ISSUER": "https://browser.example", "LINHA_UI_ENABLED": "true"}
+	got, err := ReadSecurity(env(values))
+	if err != nil || got.APIIssuer != "https://api.example" || got.Issuer != "https://browser.example" || got.APIAudience != "linha" {
+		t.Fatalf("%+v %v", got, err)
+	}
+	values["LINHA_API_JWT_TLS_INSECURE_SKIP_VERIFY"] = "true"
+	got, err = ReadSecurity(env(values))
+	if err != nil || !got.APIInsecureSkipVerify || got.OIDCInsecureSkipVerify {
+		t.Fatalf("TLS policies mixed: %+v %v", got, err)
+	}
+	values["LINHA_API_JWT_TLS_INSECURE_SKIP_VERIFY"] = "false"
+	values["LINHA_OIDC_TLS_INSECURE_SKIP_VERIFY"] = "true"
+	got, err = ReadSecurity(env(values))
+	if err != nil || got.APIInsecureSkipVerify || !got.OIDCInsecureSkipVerify {
+		t.Fatalf("TLS policies mixed: %+v %v", got, err)
+	}
+	values["LINHA_OIDC_AUDIENCE"] = "old"
+	if _, err = ReadSecurity(env(values)); err == nil {
+		t.Fatal("legacy shared audience accepted")
+	}
+	delete(values, "LINHA_OIDC_AUDIENCE")
+	values["LINHA_API_JWT_TLS_INSECURE_SKIP_VERIFY"] = "invalid"
+	if _, err = ReadSecurity(env(values)); err == nil {
+		t.Fatal("invalid active API TLS flag accepted")
+	}
+	values["LINHA_API_AUTH_ENABLED"] = "false"
+	got, err = ReadSecurity(env(values))
+	if err != nil || got.APIEnabled || !got.OIDCEnabled {
+		t.Fatalf("API disable affected browser: %+v %v", got, err)
 	}
 }

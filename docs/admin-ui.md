@@ -1,210 +1,117 @@
-# Administrator console
+# Enable the administrator console
 
-The server image embeds a React/TypeScript console at `/ui/`. It is disabled by
-default. Administrators can inspect contexts and their immutable versions,
-clients, workers, instances, requests, attempts, diagnostics, audit and retained
-results. Opening a page never acquires a client lease. Ordinary SDK endpoints
-retain owner isolation; the separate `/v1/admin/` endpoints require an explicit
-administrator mapping.
+The console displays contexts, clients, workers, requests, attempts and retained
+results. Operators can create or edit-and-replay requests and cancel accepted work.
+It is embedded in the server image and disabled by default.
 
-## Enable with OIDC
+This guide assumes a reachable Linha server and an OIDC provider. API OAuth
+configuration remains independent; see [client authentication](client-authentication.md).
 
-Configure the normal SDK token audience and a separate browser OIDC client. The
-browser client uses authorization code with PKCE. Register this exact redirect:
-`https://linha.example/ui/oidc/callback`. Set its client secret in a caller-managed
-Secret if the identity provider requires a confidential client:
+## 1. Register a browser client
+
+Create a separate OpenID Connect client, such as `linha-admin`, using authorization
+code with PKCE. Register the exact callback URL:
+
+```text
+https://linha.example/ui/oidc/callback
+```
+
+Use the provider's issuer URL for `security.oidc.issuer`. If the browser client is
+confidential, store its secret in a Secret in the release namespace. A public
+client can omit `ui.oidc.secretRef`.
+
+## 2. Configure administrator groups
+
+Add a provider mapper that includes group membership in the **ID token**. Match
+the exact emitted values, including any group path prefix. For example:
 
 ```yaml
 security:
-  enabled: true
   oidc:
     enabled: true
-    issuer: https://identity.example/realms/platform
-    audience: linha-sdk
+    issuer: https://identity.example/realms/jobs
   admin:
     viewer:
       claims:
-        - path: [realm_access, roles]
-          values: [linha-viewer]
+        - path: [groups]
+          values: [linha-viewers]
     operator:
-      subjects:
-        - subject: operator-subject-id
+      claims:
+        - path: [groups]
+          values: [linha-operators]
 ui:
   enabled: true
   publicURL: https://linha.example/ui/
   sessionSeconds: 3600
   oidc:
     clientId: linha-admin
-    secretRef: linha-browser-credentials
+    scopes: [openid, profile, email, groups]
+    secretRef: linha-browser-client
     clientSecretKey: client-secret
-  grafanaURL: https://grafana.example/d/linha-operations/linha-operations
 ```
 
-No user has administrator access by default. Rules inherit `security.oidc.issuer`
-and match either an exact subject or a nested claim path with allowed values.
-`security.admin` is a sibling of `security.oidc`. Existing explicit rule issuers
-remain accepted when they match the configured issuer; a conflicting issuer is
-rejected. Use the `0.1.1` chart and server or newer before omitting rule issuers;
-server `0.1.0` still requires them.
+Add a `groups` scope only if the provider supports it. Alternatively attach a
+default group mapper and use the provider's ordinary browser scopes. Keycloak's
+Group Membership mapper can emit a claim such as `groups`; configure **Add to ID
+token** and choose whether values include full group paths.
 
-The path identifies nested objects; string values and arrays of strings are supported. Operators can
-also read. Viewers cannot submit/replay/cancel, even with forged browser headers.
-Mappings are re-evaluated on every request using the running server configuration.
-Redeploy replicas to apply configuration changes; sessions do not freeze roles.
+Rules belong under `security.admin`, alongside `security.oidc`. They inherit the
+browser issuer; do not repeat it. Claim paths support nested objects and values
+that are strings or arrays of strings. Operators can also view. No administrator
+is granted access by default.
 
-`publicURL` must be absolute HTTP(S), end in `/ui/`, and have no query or fragment.
-Use HTTPS in deployed environments. The chart can create the console ingress
-with `ui.ingress.enabled: true`. Add this to the UI/OIDC configuration above:
+## 3. Expose the same origin
 
 ```yaml
 ui:
-  enabled: true
   publicURL: https://linha.example/ui/
   ingress:
     enabled: true
     className: nginx
-    annotations: {}
     tls:
       enabled: true
       secretName: linha-ui-tls
 ```
 
-The host is inferred from `publicURL`; there is no second host setting to keep in
-sync. The ingress routes `/ui` and `/v1/admin` with `Prefix` matching to the
-existing server Service's `http` port. Login/callbacks, runtime configuration,
-assets, deep links, API calls and result downloads all use that origin. It adds
-no catch-all route for SDK/worker endpoints, metrics or health probes.
+Install the ingress controller, configure DNS and provide its TLS Secret.
+The chart infers the host from `ui.publicURL` and routes `/ui` and `/v1/admin`
+to the existing Service. Preserve these paths; no rewriting or sticky sessions
+are required. If TLS terminates upstream, retain the external HTTPS public URL
+and set ingress TLS to false. An externally managed ingress can use the same routes.
 
-Install/select your ingress controller, point DNS at it, and provide the TLS
-Secret in the release namespace (or have your certificate controller create it).
-`className` is optional when your cluster has a suitable default IngressClass.
-`annotations` accepts controller-specific string values, including certificate
-issuer annotations. Preserve request paths and the `Origin` header; path-rewrite
-annotations break the console's existing API and login URLs. The ingress does not
-require sticky sessions: all replicas use the same database-backed sessions.
-These settings follow the [Kubernetes Ingress API](https://kubernetes.io/docs/concepts/services-networking/ingress/).
+## 4. Verify the four pages
 
-Ingress TLS requires an HTTPS `publicURL` and `tls.secretName`. If TLS terminates
-upstream of the ingress controller, use the external HTTPS public URL with
-`tls.enabled: false`. Keep `ui.ingress.enabled: false` (the default) when using
-an externally managed ingress; route `/ui` and `/v1/admin` on the same origin.
-UI ingress requires `ui.enabled: true`. It does not change administrator role
-checks or create Spark UI ingresses. A chart upgrade is sufficient; the existing
-server image does not need rebuilding.
+- **Overview:** current work, capacity, health and recent activity.
+- **Contexts:** logical names and immutable versions, clients with hostnames,
+  worker instances, current allocations and separated historical observations.
+- **Requests:** payloads, state, progress, attempts, failures, cancellation and
+  links to retained results. Edit-and-replay opens the create form.
+- **Create request:** select a context version, edit JSON, set policy and submit.
 
-The server validates state, PKCE, nonce, issuer, signature, audience and expiry.
-Login transactions are single-use PostgreSQL records. Sessions contain verified
-claims and a hash of a random opaque session ID, and can be used through any
-replica after restart. Cookies are HttpOnly, SameSite=Lax and Secure for HTTPS.
-Cookie mutations require a matching origin and CSRF header, including logout.
-Browser JavaScript never stores access/refresh tokens. Session lifetime is capped
-by both the configured duration (60–86,400 seconds) and ID-token expiry; re-login
-is required when it expires.
+Spark instances link to a current UI ingress when the SparkApplication exposes
+one. Otherwise use the displayed service/port and
+[port forwarding](versioned-spark-applications.md#open-a-driver-ui).
+Historical instances do not imply that their UI is still reachable.
 
-With the UI disabled, admin, login, session and runtime configuration routes are
-not registered. If master security is enabled while OIDC is disabled, enabling
-the UI is rejected. Explicitly setting `security.enabled: false` and
-`ui.enabled: true` gives every visitor anonymous operator access, useful for an
-isolated development installation. It shares the existing `anonymous` owner.
+File results expose names, sizes, digests and locations, with bounded previews
+when supported. Dataset parts are paginated. Operators have actions; viewers
+have inspection access. Actions are recorded in the persisted audit history.
 
-## Contexts and Spark links
+## Diagnose login
 
-Contexts group by owner and logical name. Each configuration hash identifies an
-immutable version. Detail shows live clients and accepted work separately,
-registered worker readiness, desired instances, timestamped observations, and
-configuration. A running Kubernetes pod is different from a registered worker.
+| Symptom | Check |
+| --- | --- |
+| Provider rejects the callback | Exact registered callback, browser client flow and PKCE settings |
+| `administrator role required` | `security.admin` location, emitted ID-token claim path and exact group values |
+| Groups missing | Provider mapper includes the ID token; requested scope is supported |
+| Invalid audience | Browser ID token targets `ui.oidc.clientId`, not API audience `linha` |
+| Certificate error | Provider CA trusted by server and browser; these are separate trust stores |
 
-For Spark, each driver instance shows its application/pod, current owned executor
-counts and main-container CPU/memory requests and limits. These are allocations,
-not resource usage. Stale, missing or partial observations are displayed as such.
-The controller persists them under its epoch and current application/pod identity.
+Log in again after changing scopes or the provider's token mapper. Administrator
+mappings are evaluated using the running server configuration on every request.
+The browser session is database-backed, HttpOnly, SameSite=Lax and Secure over
+HTTPS. Its lifetime is bounded by the configured session duration and ID-token
+expiry. JavaScript never stores bearer tokens.
 
-Linha uses the existing SparkApplication
-`status.driverInfo.webUIIngressAddress`. A scheme-less address requires matching
-owned ingress metadata; TLS metadata determines the scheme. Linha neither
-creates nor proxies Spark UI ingresses. Configure your Spark Operator's ingress
-settings and an ingress controller/DNS/access policy separately. Each URL opens
-in a new tab. Retired or replaced instances lose their live link. If no ingress
-is published, the console shows the available service/port metadata instead.
-
-## Overview and context history
-
-`/ui/` opens the Overview, alongside Contexts, Requests and Servers. It shows
-running/queued work now, outcomes during the last 24 hours, live client connections,
-context versions, worker slots and server readiness. Average processing time uses
-finished execution attempts during that window, excludes queue wait and counts
-retries separately. The oldest waiting request helps identify a growing backlog.
-Recent failures link to their full request diagnostics; active versions link to
-context details.
-
-`GET /v1/admin/overview` is read-only and has the same viewer/operator authorization
-as other admin reads. Complete totals come from a consistent PostgreSQL snapshot,
-independent of list pagination; detail lists contain at most five items. Queries
-have a three-second timeout and indexes for current work and recent completions.
-A loading/error state never substitutes a healthy zero. The overview needs neither
-Prometheus nor Grafana and never creates demand or renews a client lease.
-
-Context instance views show current/starting/stopping instances first, with a
-compact driver/executor table for CPU and memory requests/limits. Retired instances
-are independently paginated and loaded only when their collapsed history section
-is opened. Historical resource values are explicitly last-recorded snapshots and
-are excluded from current capacity. Stale/stopping instances show last-known
-allocations; historical Spark URLs are never presented as live links.
-The instance API supports `state=active` (all non-DEAD instances) and exact states;
-omitting the filter preserves the previous behavior.
-
-In Clients, the hostname appears above the client ID. The JVM client automatically
-reports `HOSTNAME`, falling back to the JVM host resolver, when ensuring,
-restoring or reacquiring a context. It is optional display metadata, limited to
-253 UTF-8 bytes without whitespace/control characters. It does not affect context
-versions, authorization or metric labels. Existing clients display **Hostname not
-reported** until upgraded and attached again. Deploy the schema-10 server before
-upgraded clients; older SDKs remain compatible with the new server.
-
-## Creation, replay and cancellation
-
-Operators create requests against an existing context version. Worker
-capabilities suggest handler/version contracts; business JSON parameters remain
-user-defined. The context determines ownership and result policy.
-
-Replay opens the same editable form, defaulting to the source's exact version.
-You can choose another version of the same owner's logical context, change the
-payload/retry policy, and supply a new future deadline. The old job, result,
-idempotency key and deadline are never changed. Each deliberate submission gets
-a fresh key and ID. Network retries of that pending submission reuse the key;
-conflicting edits produce a conflict rather than another acceptance.
-
-A stopped or draining version requires explicit activation. Job creation,
-wake-up, provenance and accepted audit commit together before HTTP 202. Accepted
-work keeps capacity available until it finishes, even if the browser closes,
-the administrator logs out or every API replica restarts. No browser client lease
-is created. With no remaining SDK clients or accepted work, the context drains.
-Replay executes business code again; business side effects are not exactly-once.
-
-Cancellation uses existing attempt fencing. Queued requests cancel immediately;
-running requests remain CANCELLING until worker acknowledgement or recovery.
-Cancelling one request never kills its shared driver. Success committed first
-remains success; cancellation committed first fences subsequent completion.
-Accepted create/replay/cancel audit and provenance survive process restarts.
-
-## Results and pagination
-
-Result locations refer only to committed allocations: an absolute shared
-filesystem path or `s3://bucket/key`. They are metadata, not public URLs or a
-promise that your workstation can open them. Credentials, staging keys and
-unfinished attempt outputs are excluded. Expired metadata remains inspectable;
-missing storage content is reported as unavailable.
-
-JSON preview defaults to 64 KiB and is capped at 1 MiB, with explicit truncation
-and invalid-JSON state. It is rendered as escaped text. Downloads are attachments.
-Datasets expose their manifest, totals and paginated published part index. Admin
-lists default to 50 rows and cap at 200, with cursors bound to filters/order.
-Visible pages poll every five seconds with error backoff; hidden or unauthorized
-pages stop polling. Terminal request details stop periodic refresh.
-
-The UI needs the internal operational read model but does not require metric
-export, Prometheus, Grafana, or either monitoring operator. Grafana links are
-optional. Build with `make build`; Go-only builds can run with UI disabled, but
-UI startup fails clearly if embedded frontend assets were not built. See
-[observability](observability.md) and [validation](admin-observability-validation.md)
-for migration and acceptance evidence.
+For an isolated development fixture, `security.enabled: false` with
+`ui.enabled: true` gives anonymous operator access. It provides no user isolation.

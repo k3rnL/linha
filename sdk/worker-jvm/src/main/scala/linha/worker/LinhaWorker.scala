@@ -34,7 +34,10 @@ final class LinhaWorker[E](
   require(capacity > 0 && capacity <= 128)
   private val transport = new Transport(
     baseUrl,
-    credentials.getOrElse(CredentialProvider(() => credential.token)),
+    credentials.getOrElse(
+      if (credential.token.isEmpty) CredentialProvider.none
+      else CredentialProvider.static(credential.token)
+    ),
     Map(
       "X-Linha-Context-Id" -> credential.identity.contextId,
       "X-Linha-Worker-Id" -> credential.identity.id,

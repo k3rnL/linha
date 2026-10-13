@@ -21,7 +21,7 @@ class PodTemplateTest {
   }
   @Test def yamlAndHelpersUseRawContract(): Unit = {
     val loaded = PodTemplate.fromYaml("""metadata:
-  labels: {app: sample-app}
+  labels: {app: analytics}
 spec:
   containers:
     - name: main

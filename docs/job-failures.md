@@ -1,8 +1,13 @@
-# Debugging job failures
+# Diagnose failed jobs and authentication
 
-`GET /v1/jobs/{jobId}` returns a `failure` with the original message and, for
-updated JVM workers, diagnostic fields. This is an illustrative example, not a
-reconstruction of a previously stored error:
+Use the saved job ID to inspect status and every persisted attempt. These records
+survive server and worker restarts. A final job summary may differ from an earlier
+failed attempt when retries or deadlines are involved.
+
+## Inspect the failure
+
+Fetch `GET /v1/jobs/{job}` and `GET /v1/jobs/{job}/attempts`, or call
+`handle.status()` and `handle.attempts()`. An illustrative JVM failure is:
 
 ```json
 {
@@ -11,58 +16,53 @@ reconstruction of a previously stored error:
   "retryable": false,
   "exceptionType": "java.lang.OutOfMemoryError",
   "phase": "handler",
-  "stackTrace": "java.lang.OutOfMemoryError: Java heap space\n\tat example.TrackJob.execute(TrackJob.scala:42)\n...",
+  "stackTrace": "java.lang.OutOfMemoryError: Java heap space\n\tat example.ReportJob.execute(ReportJob.scala:42)\n...",
   "stackTraceTruncated": false
 }
 ```
 
-`exceptionType` is the exception actually caught by the worker. `stackTrace`
-includes standard JVM `Caused by:` and `Suppressed:` sections. A wrapper such as
-SparkException keeps its own type and trace, with its underlying exception in
-the cause chain. An observed OutOfMemoryError in that chain uses the code
-`OUT_OF_MEMORY`; memory exhaustion is not inferred from message text alone.
+`exceptionType` is the caught exception. The trace includes ordinary `Caused by`
+and `Suppressed` sections; a Spark wrapper retains its underlying cause chain.
+Phases are `initialization`, `engine`, `handler`, `result` and `completion`.
+The code `OUT_OF_MEMORY` is based on an observed error type, not message matching.
 
-`phase` identifies `initialization`, `engine`, `handler`, `result`, or
-`completion`. The handler phase includes result helpers called directly inside
-business code; result/completion cover SDK processing after the handler returns.
-Linha HTTP error codes remain intact. Generic initialization, engine, result and
-publication failures get corresponding codes rather than all being handler errors.
+## Find the worker evidence
 
-Use `GET /v1/jobs/{jobId}/attempts` for **each attempt's** exception, especially
-when a request retries or its final job summary reports a deadline. Job and
-attempt diagnostics remain in PostgreSQL across server/worker restarts and
-backend shutdown. Existing ownership checks apply to both endpoints. Stale
-workers cannot overwrite newer attempts.
+Search worker logs by job ID. Error headers include job, attempt, worker,
+handler/version and phase; the full exception follows. Failure-reporting and
+cleanup errors are correlated separately and do not replace the original failure.
 
-Worker stderr also prints the complete exception with `jobId`, `attemptId`,
-`workerId`, handler/version and phase. Search by job ID to find it. Errors during
-failure reporting or cleanup are logged with the same IDs; they do not replace
-the original report. User payloads are not added to those log headers.
+If a Pod was killed, inspect its termination state and executor logs. Kubernetes
+OOM kills and JVM crashes may prevent any trace from being sent. The attempt still
+follows lease-loss recovery. Verify JVM heap plus overhead in
+[Spark resource settings](configuration.md#spark-settings) rather than setting
+container memory equal to the heap.
 
-Wire limits are 8192 UTF-8 bytes for the message, 1024 for exceptionType and 65536
-for stackTrace. The JVM SDK stops trace capture at 16384 UTF-16 code units to
-bound allocation and wire size, sets `stackTraceTruncated: true`, and includes a
-truncation marker. Full exception output remains in worker logs. Exceptions that
-disable stack capture retain their original diagnostic text; Linha does not
-invent missing original frames.
+## Decide whether to retry
 
-## Upgrade and limitations
+Execution retries default to one total attempt. Set `maxAttempts` when submitting
+only if repeating the business operation is safe. A driver replacement does not
+by itself opt a request into retry. Cancellation takes precedence when its intent
+is committed before completion. Idempotency protects duplicate acceptance, not
+all external business effects.
 
-Upgrade the server first, then rebuild worker images with the updated
-`com.k3rnl:linha-worker_2.12:0.1.2-SNAPSHOT` SDK (including through
-`linha-spark_2.12`). This change needs no database migration. Old workers and
-old failures containing only code/message/retryable remain supported by the new
-server. Old strict servers reject the new worker's additional fields.
+## Diagnose OAuth and access failures
 
-A server-only upgrade cannot recover stack traces that the old worker discarded.
-Rerun the job with the rebuilt worker to capture its exception. The supplied
-`Java heap space` message indicates a heap-allocation failure, but its old record
-cannot identify the failing line or distinguish the original exception from a
-wrapper. This change improves evidence; it does not change heap configuration or
-fix the underlying allocation.
+| Symptom | Check |
+| --- | --- |
+| SDK credential acquisition fails | Exact token endpoint, client authentication/service account enabled, current client secret |
+| `401` from Linha | JWT signature, issuer, audience `linha`, expiry and nonempty subject |
+| `403` on admin routes | Browser group/role claim and `security.admin` rules; API service credentials do not grant admin |
+| TLS failure | Provider CA trust for the SDK and server independently |
+| Status/result disappears after identity change | Same issuer and subject as the original owner |
 
-Reporting is best-effort if the JVM has exhausted memory. A process killed by
-Kubernetes or an unrecoverable JVM crash cannot send a trace; its attempt still
-follows existing lease-loss recovery. Inspect Pod termination details and retained
-worker/executor logs for those cases. Retry policy and cancellation authority
-remain unchanged; a captured error does not imply exactly-once business effects.
+The OAuth SDK reports operation/status without provider bodies or credentials.
+Keep the original cause in application logs only when it is already sanitized;
+do not log tokens, client secrets or full system-property dumps.
+
+## Diagnostic limits
+
+The wire bounds messages to 8192 UTF-8 bytes, exception types to 1024 and stack
+traces to 65536. The JVM captures at most 16384 UTF-16 code units and marks
+truncation. Full traces remain in worker stderr when available. Older stored
+failures without diagnostic fields cannot be reconstructed retroactively.

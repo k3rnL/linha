@@ -1,0 +1,44 @@
+## MODIFIED Requirements
+
+### Requirement: Explicit OIDC TLS configuration
+The Helm chart SHALL expose `security.oidc.tls.insecureSkipVerify` as a boolean defaulting to false. The server SHALL accept the equivalent `LINHA_OIDC_TLS_INSECURE_SKIP_VERIFY` environment variable, defaulting to false, and reject invalid boolean values when browser OIDC and the UI are enabled. Disabled security, UI or OIDC SHALL ignore the OIDC TLS setting and SHALL NOT contact the provider.
+
+#### Scenario: Secure default
+- **WHEN** the option is omitted or false and the provider presents an untrusted HTTPS certificate
+- **THEN** OIDC initialization fails certificate validation
+
+#### Scenario: Explicit opt-in
+- **WHEN** the option is true and the provider presents an untrusted certificate or a certificate for another hostname
+- **THEN** Linha skips certificate-chain and hostname verification for that OIDC provider's HTTPS connections
+
+#### Scenario: Invalid option
+- **WHEN** an active OIDC configuration contains a non-boolean TLS option
+- **THEN** server configuration or Helm validation rejects it
+
+#### Scenario: Disabled identity provider
+- **WHEN** security or OIDC is disabled with a leftover OIDC TLS setting
+- **THEN** the server ignores that setting and makes no provider connection
+
+
+### Requirement: Consistent OIDC transport policy
+The OIDC TLS setting SHALL apply to browser discovery, signing-key retrieval and refresh, and browser OAuth token exchange. API JWT discovery and key retrieval SHALL use their independently configured TLS policy. TLS verification SHALL remain enabled for unrelated HTTP clients, Kubernetes API and worker identity verification, database connections, and result storage. Initializing one replica SHALL NOT mutate transport defaults used by other clients.
+
+#### Scenario: Browser key retrieval after initialization
+- **WHEN** Linha initializes with the option enabled and later receives a signed browser JWT requiring a browser provider signing-key fetch
+- **THEN** the signing keys are fetched using the configured OIDC TLS policy even after initialization has finished
+
+#### Scenario: Browser callback on another replica
+- **WHEN** browser login starts on one replica and completes on a second replica configured with the same OIDC TLS option
+- **THEN** the second replica uses that policy for its token exchange and signing-key retrieval while retaining durable one-use login state
+
+#### Scenario: Other clients remain strict
+- **WHEN** an OIDC client is configured to skip verification and an unrelated client or Kubernetes worker-key verifier contacts an untrusted HTTPS server
+- **THEN** the unrelated connection still rejects its certificate
+
+#### Scenario: Restart restores the same policy
+- **WHEN** a server restarts with the same OIDC TLS configuration
+- **THEN** its recreated provider clients apply the same policy without changing persisted job ownership or session records
+
+#### Scenario: Independent API TLS bypass
+- **WHEN** only one of API JWT or browser OIDC enables a verification bypass
+- **THEN** the other provider retains its independently configured certificate verification

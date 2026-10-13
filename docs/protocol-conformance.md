@@ -1,33 +1,34 @@
 # Protocol identity and conformance
 
-The base request is handler, positive version and JSON payload. Scala codecs
-serialize arguments into that envelope; workers reconstruct only registered
-classes already in the image. No closure or executable bytecode is transmitted.
+The request identity is a handler name, positive handler version and JSON payload.
+Typed codecs serialize parameters into that envelope. Workers execute only
+registered classes already installed in the image.
 
-`api/fixtures/canonical-protocol.json` is exercised by the Go domain and JVM
-protocol suites. It covers equivalent raw/typed request envelopes, descriptors,
-Unicode/HTML-sensitive strings, ordered object serialization, pinned image
-identity and persisted local/S3 policies. PostgreSQL tests establish actual
-logical-name/idempotency-key conflict and replay behavior.
+## Context version encoding
 
-The server is authoritative for backend versions: it normalizes engine defaults,
-resource settings, durations, resolved image digest, result destination identity
-and effective templates, encodes recursively sorted JSON object keys using Go's
-JSON string escaping, then hashes those UTF-8 bytes with SHA-256. Arrays retain
-order. This is the documented Linha encoding, not a claim of RFC 8785/JCS numeric
-normalization. Clients need not compute the version themselves. Request replay
-uses PostgreSQL JSONB equality and the accepted result policy; request IDs are
-opaque generated identifiers, not content hashes.
+The server normalizes defaults, resources, durations, result destination identity,
+merged Pod templates and the resolved main-image digest. It recursively sorts JSON
+object keys, preserves array order, encodes with Go JSON escaping and hashes the
+UTF-8 bytes with SHA-256. Clients do not compute this version themselves.
 
-`api/fixtures/path-templates.json` covers UTC date expansion across +14/-12 hour
-zones, leap days and millisecond fields. Go/JVM validators also reject missing
-identity segments, traversal (including encoded forms), reserved names and invalid
-formats. PostgreSQL allocations preserve the original submitted timestamp across
-retry, persist paths before returning them, replay lost responses, and reject
-conflicting names/overlaps and stale attempts.
+This is Linha's documented encoding; it is not a claim of RFC 8785 numeric
+canonicalization. Submission replay uses PostgreSQL JSONB equality and the
+accepted result policy. Public request IDs are opaque identifiers, not hashes.
 
-Results carry kind/schema/version descriptors. A restored typed handle rejects a
-mismatch before decoding. Files and dataset parts are streamed, with their SHA-256
-and byte count recorded. Dataset pages are ordered by relative part path with an
-opaque next cursor; clients must use returned paths rather than constructing S3
-keys. All public retrieval is authorized by owner, independent of engine lifetime.
+## Result identity
+
+Results carry `kind`, `schema` and `version`. A typed restored handle rejects a
+descriptor mismatch before decoding. Files and parts include size and SHA-256.
+Dataset pages are ordered by relative path with opaque cursors; callers use those
+returned paths rather than deriving object keys.
+
+Path templates expand the original acceptance time in UTC and require separate
+request and attempt identity segments. Persisted allocations make lost-response
+replay safe and reject overlapping or stale-attempt output.
+
+## Executable contract fixtures
+
+The repository's [API fixtures](https://github.com/k3rnL/linha/tree/main/api/fixtures)
+cover raw/typed equivalence, Unicode escaping, configuration hashing, Pod merging,
+path/date expansion, descriptors and cross-language limits. Go/JVM suites consume
+these fixtures; PostgreSQL tests exercise actual idempotency and allocation state.

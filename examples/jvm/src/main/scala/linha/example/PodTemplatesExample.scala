@@ -4,12 +4,12 @@ import linha.client._
 import io.circe.Json
 import io.circe.syntax._
 
-/** Use this specification with client.ensureBackend("sample-app", backendSpec). */
+/** Use this specification with client.ensureBackend("analytics", backendSpec). */
 object PodTemplatesExample {
   val common: PodTemplate = PodTemplate.empty
-    .withConfigMap("app-config", "sample-app-config-v1", "/etc/sample-app")
-    .withSecretEnv("APP_PASSWORD", "sample-app-app", "password")
-    .withImagePullSecret("sample-app-registry")
+    .withConfigMap("app-config", "analytics-config-v1", "/etc/analytics")
+    .withSecretEnv("APP_PASSWORD", "analytics-app", "password")
+    .withImagePullSecret("analytics-registry")
 
   val settings: Json = SparkPodTemplates(
     driver = common.withEnv("APP_ROLE", "driver"),
@@ -25,7 +25,7 @@ object PodTemplatesExample {
     )
   )
   val backendSpec: Json = Json.obj(
-    "image" -> "registry.example/sample-app/worker:1".asJson,
+    "image" -> "registry.example/analytics/worker:1".asJson,
     "engine" -> Json
       .obj("type" -> "spark".asJson, "version" -> "3.5.6".asJson, "settings" -> settings),
     "results" -> ResultStorage.Local("/var/lib/linha/results")

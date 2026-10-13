@@ -1,285 +1,191 @@
-# Running Linha
+# Deploy Linha on Kubernetes
 
-The API returns a public job ID only after committing acceptance to PostgreSQL.
-Engine startup does not delay acceptance. A successful response does not mean the
-job started or will succeed. Retrying the same owner/logical-name/idempotency key and
-request returns the original ID; changing the request returns a conflict.
+This guide installs an HA API service with managed Spark backends. It assumes you
+already operate Kubernetes, Helm, PostgreSQL and either S3 or a shared persistent
+filesystem.
 
-Deploy at least two server replicas using `deploy/helm/linha`. Supply an external
-HA PostgreSQL service and durable result storage. The chart does not make a
-single database instance or a single-node disk highly available. The Kind test
-uses one node and is a failure-recovery test, not proof of infrastructure HA.
+## 1. Prepare the dependencies
 
-Configure PostgreSQL connection details separately from credentials. The chart reads
-only the two selected keys from a caller-managed Secret in the release namespace:
+Create a namespace for Linha and its workers. Install Kubeflow Spark Operator 2.4.0
+separately, with `sparkoperator.k8s.io/v1beta2` SparkApplication support and the
+operator watching this namespace. Linha's chart does not install the operator or
+its CRDs. Namespace-only Linha RBAC does not change the operator's own permissions.
+
+Provision a durable PostgreSQL service and result storage. All server replicas
+must use the same database. For local results, every server, driver and executor
+must see the same persistent filesystem at the configured root.
+
+## 2. Create database and storage Secrets
+
+Provide a Secret in the release namespace with separate `username` and `password`
+keys. Set its name through `database.postgres.secretRef`. Credentials are URI-encoded
+by the server; do not manually escape characters in the Secret values.
+
+For S3, provide a Secret key containing destination JSON:
+
+```json
+{
+  "analytics": {
+    "bucket": "example-results",
+    "prefix": "linha",
+    "region": "eu-west-1"
+  }
+}
+```
+
+Optional `endpoint` and `pathStyle: true` support S3-compatible stores. Server
+credentials use the AWS default credential chain. Callers select a destination
+alias and path policy; storage credentials do not travel in job JSON.
+
+## 3. Select a matching image
+
+Use the server image matching your chart and documentation version.
+
+<!-- development-only:start -->
+The current OAuth/API-browser configuration is unreleased. Build and push a server
+from this checkout; the chart default image `0.1.2` does not contain it:
+
+```sh
+make build
+docker build -f server/Dockerfile -t registry.example/linha/server:development .
+docker push registry.example/linha/server:development
+```
+
+Use that explicit image in the values below. For a published version, use its
+matching image/chart and documentation instead.
+<!-- development-only:end -->
+
+## 4. Create a values file
 
 ```yaml
+replicaCount: 2
+image:
+  repository: registry.example/linha/server
+  tag: development
 database:
   postgres:
     host: postgres.example.internal
-    port: 5432
     database: linha
     sslMode: verify-full
-    secretRef: my-postgres-credentials
+    secretRef: linha-postgres
     usernameKey: username
     passwordKey: password
 security:
   enabled: true
-  oidc:
+  api:
     enabled: true
-    issuer: https://identity.example/realms/my-realm
-    audience: linha
+    jwt:
+      issuer: https://identity.example/realms/jobs
+      audience: linha
+  oidc:
+    enabled: false
 rbac:
   namespaceOnly: true
+allowedImages:
+  - registry.example/workers
+s3:
+  enabled: true
+  secretRef: linha-results
+  destinationsKey: destinations
 ```
 
-Passwords and usernames are URI-encoded by the server, so special characters do
-not need manual escaping in Secret values. `sslMode` defaults to `verify-full`;
-use `sslRootCert` for a CA file mounted with `extraVolumes`/`extraVolumeMounts`.
-For a local PostgreSQL fixture without TLS, explicitly choose `sslMode: disable`.
-Linha does not create the database, Secret, or certificate mount.
+`allowedImages` must include each permitted worker repository prefix. Use a broad
+allow-list only when all callers and images share the deployment's trust boundary.
+Configure private registry Secret references through
+[Pod templates](pod-templates.md).
 
-`security.enabled` is the master authentication switch. With `false`, public and
-worker authentication are disabled, no OIDC provider is contacted, and no Linha
-worker token is projected. Every client uses the stable owner `anonymous`.
-The worker SDK sends context/worker/incarnation routing headers; these are not
-credentials. Durable claims, lease fencing, and result publication still apply.
-This setting provides no isolation between clients or protection against worker
-impersonation. Kubernetes authentication remains necessary for provisioning
-Pods and for Spark's executor management.
+The chart derives the internal worker server URL from its Service. Applications
+use the Service address or a separately exposed API route. The UI ingress exposes
+only UI/admin routes and is not a public job API ingress.
 
-With `security.enabled: true` and `security.oidc.enabled: false`, only the public
-API is anonymous; workers must still authenticate. With both switches `true`,
-owner identity is a stable hash of validated OIDC issuer and subject; request JSON
-cannot choose ownership. Missing issuer/audience fails chart rendering and server
-startup. Tokens must be signed JWTs from the issuer's discovery/JWKS endpoint,
-with the configured audience. Opaque OAuth access tokens are unsupported.
+## 5. Install and verify
 
-For an OIDC provider with a self-signed or privately signed HTTPS certificate,
-`security.oidc.tls.insecureSkipVerify` explicitly disables certificate-chain and
-hostname verification:
-
-```yaml
-security:
-  oidc:
-    tls:
-      insecureSkipVerify: true
-```
-
-The equivalent server setting is `LINHA_OIDC_TLS_INSECURE_SKIP_VERIFY=true`.
-The default is `false`. This setting applies to server-side OIDC discovery,
-signing-key retrieval/refresh, and the admin UI's OAuth token exchange. JWT
-signature, issuer, audience, expiry, browser nonce and administrator membership
-checks remain enabled. Other connections (including Kubernetes worker identities,
-database and result storage) retain their own TLS verification. Disabled security
-or OIDC ignores the server setting. Active bypass logs a startup warning.
-
-Use the `0.1.1` server image and chart or newer;
-the `0.1.0` image does not support the new option. It requires no SDK
-upgrade or database migration. Set the option back to `false` to restore normal
-verification. It does not change certificate trust in users' browsers; browsers
-must still trust the identity provider and UI certificates.
-
-Skipping verification allows a network attacker to impersonate the provider,
-including its signing-key endpoint. Trusting the provider CA keeps verification
-enabled and is preferable for production. Create a ConfigMap containing that CA
-(use the actual server certificate if it is genuinely self-signed):
+From the source checkout:
 
 ```sh
-kubectl -n YOUR_NAMESPACE create configmap linha-oidc-ca \
-  --from-file=ca.crt=/path/to/provider-ca.crt
+helm upgrade --install linha deploy/helm/linha   --namespace linha --create-namespace --values values.yaml
+kubectl -n linha rollout status deployment/linha-linha
+kubectl -n linha get pods
+kubectl -n linha port-forward service/linha-linha 8080:8080
 ```
 
-Append these entries to any existing extra environment variables, volumes and
-mounts in your Helm values:
+In another terminal, check readiness:
+
+```sh
+curl --fail http://localhost:8080/readyz
+```
+
+Readiness checks PostgreSQL and configured local storage. Liveness checks the
+process. Inspect server logs if readiness or startup fails.
+
+## 6. Configure clients and Spark
+
+Use [OAuth client credentials](client-authentication.md) for application clients.
+Ensure a backend with your worker image and
+[Spark application settings](versioned-spark-applications.md). Put handler code,
+matching SDKs and any required connectors in that image.
+
+Add [the administrator console](admin-ui.md) and
+[Prometheus/Grafana integration](observability.md) when needed.
+
+## Private certificates
+
+For PostgreSQL, mount its CA and set `database.postgres.sslRootCert`.
+For the identity provider, mount a CA directory and extend the system trust path:
 
 ```yaml
 extraEnv:
   - name: SSL_CERT_DIR
-    value: /etc/ssl/certs:/etc/linha/oidc-ca
+    value: /etc/ssl/certs:/etc/linha/identity-ca
 extraVolumes:
-  - name: oidc-ca
+  - name: identity-ca
     configMap:
-      name: linha-oidc-ca
+      name: linha-identity-ca
 extraVolumeMounts:
-  - name: oidc-ca
-    mountPath: /etc/linha/oidc-ca
+  - name: identity-ca
+    mountPath: /etc/linha/identity-ca
     readOnly: true
 ```
 
-The Linux server image includes the system CA bundle. Keep the standard directory
-in `SSL_CERT_DIR` so its CA certificates remain available. This system-trust
-configuration also applies to other Go clients using system roots; clients with
-explicit CA configuration (such as Kubernetes) keep their own roots. Roll server
-Pods after subsequent CA updates so cached root pools are reloaded.
+The ConfigMap must contain PEM certificate files. Roll the server after changing
+its CA files. Keep `/etc/ssl/certs` in the path to retain public roots.
 
-Administrator subject and claim mappings under `security.admin.viewer` and
-`security.admin.operator` inherit `security.oidc.issuer`. Only subject or claim
-path/values are needed. Existing explicit issuers remain valid when they match
-the configured issuer; conflicting issuers are rejected. See the
-[admin UI example](admin-ui.md#enable-with-oidc).
+The explicit `security.api.jwt.tls.insecureSkipVerify` and
+`security.oidc.tls.insecureSkipVerify` switches bypass provider certificate and
+hostname verification independently. They retain JWT checks but permit provider
+impersonation; trusting the CA preserves the full verification boundary. Browser
+certificate trust is independent of these server options.
 
-The Scala client can use `CredentialProvider.none` for an anonymous API. Managed
-workers keep using `LinhaWorker.projectedIdentity()` and `projectedCredentials()`;
-the updated SDK handles the master switch automatically. Rebuild worker images
-with this SDK before using fully disabled security. Switching authentication
-configuration does not rewrite ownership of existing contexts/jobs: anonymous
-and previously authenticated identities keep separate records.
+## Namespace-only worker permissions
 
-All driver and executor operations target the Helm release namespace.
-`rbac.namespaceOnly: true` (default) creates **no ClusterRole or ClusterRoleBinding**.
-Workers' projected JWTs are checked against Kubernetes signing keys, issuer,
-audience and expiry. Each call also checks the live Pod UID, service-account UID,
-labels, deletion state, and persisted instance assignment. Signing keys are fetched
-from the trusted API server and cached/refreshed by the JWT library; Pod and
-service-account identity checks are not cached. Rotating token files are reread.
-The namespaced server Role grants `get` on service accounts in addition to Pod/Service
-management. Signing-key discovery uses Kubernetes' default service-account issuer
-discovery access. Clusters that removed that default access must restore it for
-Linha or select TokenReview; Linha never silently disables verification.
-See [Kubernetes service-account discovery](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#service-account-issuer-discovery)
-and [bound token validation](https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/#schema-for-service-account-private-claims).
+The default `rbac.namespaceOnly: true` creates Roles and RoleBindings, with no
+ClusterRole. Workers authenticate through Kubernetes issuer discovery and signing
+keys plus live Pod/service-account checks. A cluster that removed the default
+service-account discovery access must restore it or choose
+`rbac.namespaceOnly: false` to use TokenReview. Resource management stays in the
+release namespace in both cases.
 
-Setting `rbac.namespaceOnly: false` adds only the cluster-scoped TokenReview grant
-and uses TokenReview for workers; resource management remains namespace-scoped.
-If `security.enabled: false`, no cluster-scoped RBAC is rendered in either case.
-
-Spark's worker Role includes `deletecollection` on Pods and ConfigMaps in the
-release namespace. Kubernetes treats collection DELETEs (including label-selector
-cleanup) as a [separate permission from single-object delete](https://kubernetes.io/docs/reference/access-authn-authz/authorization/#resource-requests).
-A `cannot deletecollection resource "pods"` or `"configmaps"` error from the worker
-service account indicates that the installed Role lacks this permission. Upgrade
-the existing Helm release using your normal values file and target context; no
-image rebuild or forced driver restart is required for this RBAC correction.
-The server Role and collection-deletion permissions for other resources are unchanged.
-
-To verify the installation, substitute your release namespace and worker account:
+Spark cleanup needs `deletecollection` on Pods and ConfigMaps. Verify the worker
+Role if Spark reports a collection-delete permission error:
 
 ```sh
-kubectl --context YOUR_CONTEXT -n YOUR_NAMESPACE auth can-i deletecollection pods \
-  --as=system:serviceaccount:YOUR_NAMESPACE:YOUR_WORKER_SERVICE_ACCOUNT
-kubectl --context YOUR_CONTEXT -n YOUR_NAMESPACE auth can-i deletecollection configmaps \
-  --as=system:serviceaccount:YOUR_NAMESPACE:YOUR_WORKER_SERVICE_ACCOUNT
+kubectl -n linha auth can-i deletecollection pods   --as=system:serviceaccount:linha:linha-linha-worker
+kubectl -n linha auth can-i deletecollection configmaps   --as=system:serviceaccount:linha:linha-linha-worker
 ```
 
-Both should report `yes`. Running these checks as another identity requires
-permission to impersonate that service account. For the reported `lihna` release
-in `jobs`, the worker account is `lihna-linha-worker`.
+Both should return `yes`; the caller needs permission to impersonate the account.
 
-Registry tags are resolved during each ensure; the effective config and digest identify
-a version under a stable context name. Replacements reuse that version's digest. Select namespaced registry
-Secrets through the driver/executor Pod templates; permit them using Helm
-`registrySecrets.allowedNames` or top-level `imagePullSecrets`. Linha uses these
-credentials for digest lookup and Kubernetes uses the refs for image pulling.
-See [Pod customization](pod-templates.md) for the Scala/JSON interface, defaults,
-scoped RBAC and protected fields. The [SparkApplication migration guide](versioned-spark-applications.md)
-covers the operator dependency, context leases and required client renewal (dataset output additionally upgrades schema to v6).
+## Upgrade and recover
 
-Worker images and this namespace are an administrator-controlled trust boundary.
-Spark drivers need Kubernetes permissions to create executor pods. Do not offer
-arbitrary untrusted container images in this namespace. Public API ownership
-checks do not sandbox business code with shared filesystem or Kubernetes access.
-Separate trust domains using separate namespaces/deployments and admission policy.
+Back up PostgreSQL before an upgrade. Deploy a matching server, chart and SDK set
+when configuration or protocol changes require it. Database migrations are
+serialized. Older binaries can reject a newer schema; do not start an older
+binary against it without a compatible rollback procedure.
 
-For local results, set `local.enabled`, `local.root`, and `local.existingClaim`.
-Use a caller-owned persistent volume with access from every serving replica and
-participating worker/executor. An ephemeral `emptyDir` is unsuitable for retained
-results. `workerVolumes` and `workerMounts` configure administrator-owned driver
-mounts. PVC mounts are also propagated to native Spark executors. Other driver volume types
-are not automatically propagated.
-The default shared group is 10001; pre-provision compatible ownership and access.
+Retain the same result destination locations when upgrading. Changing a bucket,
+prefix or endpoint under an existing destination alias can invalidate its stored
+fingerprint; use a new alias for a new location. Credentials can rotate separately.
 
-For S3, select its own configuration Secret and key:
-
-```yaml
-s3:
-  enabled: true
-  secretRef: my-result-storage
-  destinationsKey: destinations
-```
-
-That key contains destination JSON, for example:
-
-```json
-{"analytics":{"bucket":"my-results","prefix":"linha","region":"eu-west-1"}}
-```
-
-An optional `endpoint` and `pathStyle: true` support S3-compatible services.
-Credentials come from the AWS default provider chain in the server (for example,
-a scoped workload role); destination credentials never travel in job JSON.
-The role needs object read/write/head under its configured prefix. Current file
-and JSON uploads are proxied through the server and published conditionally.
-No database result-payload fallback is used when the destination is unavailable.
-Bucket, prefix and endpoint identity are snapshotted in newly ensured S3 policies.
-Changing that location under an existing destination name returns
-`DESTINATION_CHANGED` for retained data. Keep destination names bound to stable
-locations; register a new name when moving output to another bucket or prefix.
-Credentials can rotate without changing the destination fingerprint. Contexts
-created by earlier development snapshots without a fingerprint require their
-original destination configuration to remain unchanged.
-
-Paths are templates, not executable callbacks. For example:
-
-```scala
-ResultStorage.S3("analytics", ResultPath.template(
-  "exports/{submittedAt:yyyy/MM/dd}/{requestId}/{attemptId}/{file}"
-))
-```
-
-The bucket and authorized base prefix come from the destination configuration.
-`submittedAt` is the original database acceptance timestamp, always expanded in
-UTC. `{requestId}` and `{attemptId}` are mandatory complete segments; `{file}`
-appears once at the end. `contextId` is optional. Supported date fields are
-`yyyy MM dd HH mm ss SSS`, with `/ - _ T Z` literals. Traversal, encoded traversal,
-absolute paths, schemes, reserved `_linha` names, and overlapping allocations
-are rejected. Retrying output allocation returns the persisted allocation.
-
-Defaults are 30-second attempt leases, one execution attempt, 64 MiB total result
-bytes, and seven-day result availability. Callers can request bounded retries
-(up to ten attempts), backoff, deadlines, result size, and retention.
-The maximum configured result size is 5 GiB; server staging needs enough disk for
-concurrent uploads, independently of per-job limits. Stream helpers enforce a
-byte limit while writing. Seekable file callbacks are checked before upload;
-use pod ephemeral-storage quotas to bound arbitrary callback disk use.
-
-Expiry returns `RESULT_EXPIRED` while preserving job status and completion
-metadata. Physical deletion is opt-in through `results.cleanup.enabled` (standalone:
-`LINHA_CLEANUP_ENABLED`). It removes only persisted allocations from terminal
-attempts, protecting retained results and unexpired delegated writers, with ten
-minutes of grace. S3 cleanup aborts abandoned multipart uploads under the exact
-allocated prefix. Job metadata, receipts and idempotency records remain indefinitely.
-See [dataset setup and cleanup](dataset-results.md) for quota and delegation limits.
-Provider object-version retention and backups remain the administrator's policy.
-
-
-A lost lease fences further progress, allocation, and completion. The worker
-cancels local execution when its monotonic lease budget expires, independently
-of network calls. Controller replacement does not itself retry a request:
-`maxAttempts` governs retry after interruption. User cancellation takes precedence
-if committed before completion. Exactly-once business side effects are not
-promised; make external writes idempotent when enabling retries.
-
-`/livez` reports process liveness; `/readyz` checks PostgreSQL and the configured
-local root. `/metrics` exports bounded job-state, queue age, lease, worker-slot,
-backend-condition, and result gauges. Keep operational endpoints private.
-Request correlation headers are returned; request tracing uses debug log level.
-Storage failures and provisioning errors remain visible in API/backend conditions.
-
-## Configuration migration
-
-The old Helm `existingSecret`, top-level `oidc`, and `mode`/`deploymentMode` keys
-are removed; rendering with them fails with a migration message. Split the old
-`database-url` into `database.postgres` connection settings and the selected
-username/password Secret keys. Move OIDC under `security.oidc`. Move S3 configuration
-to `s3.secretRef`/`s3.destinationsKey` (these may point at the existing S3 key).
-The chart has no deployment mode and no development-token requirement.
-
-For standalone server use, `LINHA_DATABASE_URL` remains supported, mutually
-exclusive with `LINHA_DATABASE_HOST`, `PORT`, `NAME`, `USERNAME`, `PASSWORD`,
-`SSL_MODE`, and `SSL_ROOT_CERT` (each with the `LINHA_DATABASE_` prefix).
-Configure `LINHA_SECURITY_ENABLED`, `LINHA_OIDC_ENABLED`, `LINHA_OIDC_ISSUER`, and
-`LINHA_OIDC_AUDIENCE`. `LINHA_WORKER_AUTH` selects `projected-token` (default) or
-`token-review` when security is enabled. `LINHA_MODE` is rejected and
-`LINHA_DEV_TOKEN` is no longer used. The fake engine is an independent test-only
-opt-in: `LINHA_ENABLE_FAKE_ENGINE=true`. The local `/dev-workers` helper is available
-only with security disabled and returns routing identity with an empty token.
+Process restarts preserve metadata, but recovery still depends on the durability
+of PostgreSQL and result storage. See [architecture](architecture.md) and
+[validation scope](validation.md) for the tested boundaries.

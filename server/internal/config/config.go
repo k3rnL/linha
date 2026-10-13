@@ -9,10 +9,13 @@ import (
 )
 
 type Security struct {
-	Enabled                      bool
-	OIDCEnabled                  bool
-	OIDCInsecureSkipVerify       bool
-	Issuer, Audience, WorkerAuth string
+	Enabled                bool
+	APIEnabled             bool
+	APIInsecureSkipVerify  bool
+	APIIssuer, APIAudience string
+	OIDCEnabled            bool
+	OIDCInsecureSkipVerify bool
+	Issuer, WorkerAuth     string
 }
 
 func Bool(get func(string) string, key string, fallback bool) (bool, error) {
@@ -38,18 +41,39 @@ func ReadSecurity(get func(string) string) (s Security, err error) {
 	if !s.Enabled {
 		return
 	}
+	if get("LINHA_OIDC_AUDIENCE") != "" {
+		return s, fmt.Errorf("LINHA_OIDC_AUDIENCE was removed; configure LINHA_API_JWT_ISSUER and LINHA_API_JWT_AUDIENCE independently of browser OIDC")
+	}
+	s.APIEnabled, err = Bool(get, "LINHA_API_AUTH_ENABLED", true)
+	if err != nil {
+		return
+	}
+	if s.APIEnabled {
+		s.APIIssuer, s.APIAudience = get("LINHA_API_JWT_ISSUER"), get("LINHA_API_JWT_AUDIENCE")
+		if s.APIAudience == "" {
+			s.APIAudience = "linha"
+		}
+		if s.APIIssuer == "" {
+			return s, fmt.Errorf("API JWT authentication requires LINHA_API_JWT_ISSUER")
+		}
+		s.APIInsecureSkipVerify, err = Bool(get, "LINHA_API_JWT_TLS_INSECURE_SKIP_VERIFY", false)
+		if err != nil {
+			return
+		}
+	}
 	s.OIDCEnabled, err = Bool(get, "LINHA_OIDC_ENABLED", true)
 	if err != nil {
 		return
 	}
-	s.Issuer, s.Audience = get("LINHA_OIDC_ISSUER"), get("LINHA_OIDC_AUDIENCE")
-	if s.OIDCEnabled && (s.Issuer == "" || s.Audience == "") {
-		return s, fmt.Errorf("OIDC requires LINHA_OIDC_ISSUER and LINHA_OIDC_AUDIENCE")
+	s.Issuer = get("LINHA_OIDC_ISSUER")
+	uiEnabled, err := Bool(get, "LINHA_UI_ENABLED", false)
+	if err != nil {
+		return s, err
 	}
-	if s.OIDCEnabled {
+	if s.OIDCEnabled && uiEnabled {
 		s.OIDCInsecureSkipVerify, err = Bool(get, "LINHA_OIDC_TLS_INSECURE_SKIP_VERIFY", false)
 		if err != nil {
-			return
+			return s, err
 		}
 	}
 	s.WorkerAuth = get("LINHA_WORKER_AUTH")

@@ -48,11 +48,13 @@ jobs:
           python-version: '3.12'
       - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
       - run: pip install PyYAML==6.0.3 && python3 scripts/test-helm.py
+      - name: Check public repository content
+        run: python3 scripts/check-public-content.py
       - name: Check formatting
         run: |
           pip install -r requirements-format.txt
           python scripts/format-data.py --check
-          black --check scripts
+          black --check scripts docs/hooks.py
           sqlfluff lint --rules layout server/internal/postgres/*.sql
           mvn -B spotless:check
       - name: Check and build embedded admin console
@@ -78,6 +80,8 @@ jobs:
           python3 scripts/check-release-artifacts.py
           go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
       - run: mvn -B package
+      - name: Verify OAuth client credentials with a real identity provider
+        run: python3 scripts/test-oauth-auth.py
       - run: make build && python3 scripts/e2e.py
       - run: pip install openapi-spec-validator==0.7.2 && python -m openapi_spec_validator api/openapi.json
       - run: npx --yes @fission-ai/openspec@1.7.0 validate --all --strict

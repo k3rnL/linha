@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/coreos/go-oidc/v3/oidc"
 	"linha/server/internal/auth"
 	"linha/server/internal/config"
 	"linha/server/internal/controller"
@@ -54,6 +53,10 @@ func run() error {
 		return err
 	}
 	oidcCtx := auth.OIDCContext(ctx, security.OIDCInsecureSkipVerify)
+	apiIdentityCtx := auth.OIDCContext(ctx, security.APIInsecureSkipVerify)
+	if security.APIInsecureSkipVerify {
+		slog.Warn("API JWT HTTPS certificate and hostname verification is disabled", "setting", "LINHA_API_JWT_TLS_INSECURE_SKIP_VERIFY")
+	}
 	if security.OIDCInsecureSkipVerify {
 		slog.Warn("OIDC HTTPS certificate and hostname verification is disabled", "setting", "LINHA_OIDC_TLS_INSECURE_SKIP_VERIFY")
 	}
@@ -136,8 +139,8 @@ func run() error {
 				return err
 			}
 		}
-		if security.OIDCEnabled {
-			managed.Verifier, err = auth.NewOIDCVerifier(oidcCtx, security.Issuer, security.Audience)
+		if security.APIEnabled {
+			managed.Verifier, err = auth.NewOIDCVerifier(apiIdentityCtx, security.APIIssuer, security.APIAudience)
 			if err != nil {
 				return err
 			}
@@ -171,11 +174,7 @@ func run() error {
 		if err != nil {
 			return err
 		}
-		var apiVerifier *oidc.IDTokenVerifier
-		if managed != nil {
-			apiVerifier = managed.Verifier
-		}
-		api.Admin, err = auth.NewAdmin(oidcCtx, uiConfig, repo, apiVerifier)
+		api.Admin, err = auth.NewAdmin(oidcCtx, uiConfig, repo)
 		if err != nil {
 			return err
 		}

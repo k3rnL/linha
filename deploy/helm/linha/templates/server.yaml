@@ -89,6 +89,8 @@ spec:
               value: {{ .Values.ui.sessionSeconds | quote }}
             - name: LINHA_UI_OIDC_CLIENT_ID
               value: {{ .Values.ui.oidc.clientId | quote }}
+            - name: LINHA_UI_OIDC_SCOPES
+              value: {{ toJson .Values.ui.oidc.scopes | quote }}
             - name: LINHA_UI_GRAFANA_URL
               value: {{ .Values.ui.grafanaURL | quote }}
             - name: LINHA_ADMIN_MAPPINGS
@@ -119,8 +121,14 @@ spec:
               value: {{ join "," .Values.allowedImages | quote }}
             - name: LINHA_OIDC_ISSUER
               value: {{ .Values.security.oidc.issuer | quote }}
-            - name: LINHA_OIDC_AUDIENCE
-              value: {{ .Values.security.oidc.audience | quote }}
+            - name: LINHA_API_AUTH_ENABLED
+              value: {{ .Values.security.api.enabled | quote }}
+            - name: LINHA_API_JWT_ISSUER
+              value: {{ .Values.security.api.jwt.issuer | quote }}
+            - name: LINHA_API_JWT_AUDIENCE
+              value: {{ .Values.security.api.jwt.audience | quote }}
+            - name: LINHA_API_JWT_TLS_INSECURE_SKIP_VERIFY
+              value: {{ .Values.security.api.jwt.tls.insecureSkipVerify | quote }}
             - name: LINHA_OIDC_TLS_INSECURE_SKIP_VERIFY
               value: {{ .Values.security.oidc.tls.insecureSkipVerify | quote }}
             - name: LINHA_DATABASE_HOST

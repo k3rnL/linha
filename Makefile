@@ -1,4 +1,4 @@
-.PHONY: check build clean format format-check frontend frontend-check observability-check
+.PHONY: check build clean format format-check frontend frontend-check observability-check docs-check
 
 VERSION ?= dev
 REVISION ?= unknown
@@ -29,7 +29,7 @@ format:
 	gofmt -w server
 	mvn -B spotless:apply
 	$(FORMAT_PYTHON) python scripts/format-data.py
-	$(FORMAT_PYTHON) black scripts
+	$(FORMAT_PYTHON) black scripts docs/hooks.py
 	$(FORMAT_PYTHON) sqlfluff format server/internal/postgres/*.sql
 
 format-check:
@@ -37,7 +37,7 @@ format-check:
 	@test -z "$$(gofmt -l server)" || (gofmt -l server; exit 1)
 	mvn -B spotless:check
 	$(FORMAT_PYTHON) python scripts/format-data.py --check
-	$(FORMAT_PYTHON) black --check scripts
+	$(FORMAT_PYTHON) black --check scripts docs/hooks.py
 	$(FORMAT_PYTHON) sqlfluff lint --rules layout server/internal/postgres/*.sql
 
 clean:
@@ -45,3 +45,11 @@ clean:
 
 observability-check:
 	$(FORMAT_PYTHON) python scripts/check-observability.py
+
+# Install isolated documentation tools and validate builds, versions and public output.
+DOCS_PYTHON = uv run --no-project --with-requirements docs/requirements.txt
+
+docs-check:
+	$(DOCS_PYTHON) mkdocs build --strict
+	$(DOCS_PYTHON) python scripts/check-docs.py
+	python3 scripts/check-public-content.py --directory site

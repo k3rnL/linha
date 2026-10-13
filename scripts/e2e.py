@@ -106,9 +106,13 @@ def main():
                 LINHA_SECURITY_ENABLED="false",
                 LINHA_ENABLE_FAKE_ENGINE="true",
                 LINHA_LISTEN=f"127.0.0.1:{api_port}",
-                LINHA_CLIENT_TOKEN="",
             )
-            for key in ("LINHA_MODE", "LINHA_DATABASE_URL", "LINHA_NAMESPACE"):
+            for key in (
+                "LINHA_MODE",
+                "LINHA_DATABASE_URL",
+                "LINHA_NAMESPACE",
+                "LINHA_CLIENT_TOKEN",
+            ):
                 env.pop(key, None)
             wait_for(
                 lambda: subprocess.run(

@@ -1,6 +1,8 @@
 package linha.example
 import linha._
 import linha.client._
+import linha.client.auth.CredentialProviders
+import java.nio.file.Paths
 import io.circe.Json
 import io.circe.syntax._
 import linha.json._
@@ -10,10 +12,16 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object ClientMain {
   def main(args: Array[String]): Unit = {
     require(args.length == 3, "usage: ClientMain submit|result <url> <root-or-job-id>")
-    val client = new LinhaClient(
-      args(1),
-      CredentialProvider(() => sys.env.getOrElse("LINHA_CLIENT_TOKEN", ""))
-    )
+    val credentials = sys.env.get("LINHA_OAUTH_TOKEN_ENDPOINT") match {
+      case Some(endpoint) =>
+        CredentialProviders.oauthClientCredentials(
+          endpoint,
+          sys.env("LINHA_OAUTH_CLIENT_ID"),
+          CredentialProvider.fileSecret(Paths.get(sys.env("LINHA_OAUTH_CLIENT_SECRET_FILE")))
+        )
+      case None => CredentialProvider.none // Anonymous local example and restart smoke test.
+    }
+    val client = new LinhaClient(args(1), credentials)
     if (args(0) == "submit") {
       val accepted = for {
         ctx <- client.ensureBackend(

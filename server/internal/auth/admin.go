@@ -12,6 +12,7 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
 	"linha/server/internal/domain"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -41,6 +42,7 @@ type AdminConfig struct {
 	Enabled, SecurityEnabled                  bool
 	Issuer, PublicURL, ClientID, ClientSecret string
 	SessionSeconds                            int
+	Scopes                                    []string
 	Mappings                                  AdminMappings
 }
 type AdminIdentity struct {
@@ -50,13 +52,47 @@ type AdminIdentity struct {
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 }
 type Admin struct {
-	Config                AdminConfig
-	Repo                  domain.BrowserRepository
-	OAuth                 oauth2.Config
-	Verifier, APIVerifier *oidc.IDTokenVerifier
-	Origin                string
-	Secure                bool
-	oidcHTTPClient        *http.Client
+	Config         AdminConfig
+	Repo           domain.BrowserRepository
+	OAuth          oauth2.Config
+	Verifier       *oidc.IDTokenVerifier
+	Origin         string
+	Secure         bool
+	oidcHTTPClient *http.Client
+}
+
+// DefaultBrowserOIDCScopes returns the browser scopes used when no list is configured.
+func DefaultBrowserOIDCScopes() []string {
+	return []string{oidc.ScopeOpenID, "profile", "email"}
+}
+
+func validateBrowserOIDCScopes(scopes []string) error {
+	if scopes == nil {
+		return nil // Construction without an explicit list uses the defaults.
+	}
+	if len(scopes) == 0 {
+		return fmt.Errorf("browser OIDC scopes must be a nonempty list including openid")
+	}
+	seen := make(map[string]bool, len(scopes))
+	for _, scope := range scopes {
+		if scope == "" {
+			return fmt.Errorf("browser OIDC scopes must contain nonempty scope tokens")
+		}
+		for _, c := range scope {
+			// RFC 6749 scope-token: printable ASCII except quote and backslash.
+			if c < 0x21 || c > 0x7e || c == '"' || c == '\\' {
+				return fmt.Errorf("browser OIDC scopes must contain valid OAuth scope tokens")
+			}
+		}
+		if seen[scope] {
+			return fmt.Errorf("browser OIDC scopes must not contain duplicates")
+		}
+		seen[scope] = true
+	}
+	if !seen[oidc.ScopeOpenID] {
+		return fmt.Errorf("browser OIDC scopes must include openid")
+	}
+	return nil
 }
 
 func ValidateAdminConfig(c AdminConfig) error {
@@ -75,6 +111,9 @@ func ValidateAdminConfig(c AdminConfig) error {
 	}
 	if c.Issuer == "" || c.ClientID == "" {
 		return fmt.Errorf("enabled UI requires OIDC issuer and browser client ID when security is enabled")
+	}
+	if err := validateBrowserOIDCScopes(c.Scopes); err != nil {
+		return err
 	}
 	for _, rules := range []RoleRules{c.Mappings.Viewer, c.Mappings.Operator} {
 		for _, s := range rules.Subjects {
@@ -95,12 +134,15 @@ func ValidateAdminConfig(c AdminConfig) error {
 	}
 	return nil
 }
-func NewAdmin(ctx context.Context, c AdminConfig, repo domain.BrowserRepository, apiVerifier *oidc.IDTokenVerifier) (*Admin, error) {
+func NewAdmin(ctx context.Context, c AdminConfig, repo domain.BrowserRepository) (*Admin, error) {
+	if c.Scopes == nil {
+		c.Scopes = DefaultBrowserOIDCScopes()
+	}
 	if err := ValidateAdminConfig(c); err != nil {
 		return nil, err
 	}
 	u, _ := url.Parse(c.PublicURL)
-	a := &Admin{Config: c, Repo: repo, Origin: u.Scheme + "://" + u.Host, Secure: u.Scheme == "https", APIVerifier: apiVerifier}
+	a := &Admin{Config: c, Repo: repo, Origin: u.Scheme + "://" + u.Host, Secure: u.Scheme == "https"}
 	if !c.SecurityEnabled {
 		return a, nil
 	}
@@ -113,7 +155,7 @@ func NewAdmin(ctx context.Context, c AdminConfig, repo domain.BrowserRepository,
 	if e != nil {
 		return nil, e
 	}
-	a.OAuth = oauth2.Config{ClientID: c.ClientID, ClientSecret: c.ClientSecret, Endpoint: provider.Endpoint(), RedirectURL: strings.TrimSuffix(c.PublicURL, "/") + "/oidc/callback", Scopes: []string{oidc.ScopeOpenID, "profile", "email"}}
+	a.OAuth = oauth2.Config{ClientID: c.ClientID, ClientSecret: c.ClientSecret, Endpoint: provider.Endpoint(), RedirectURL: strings.TrimSuffix(c.PublicURL, "/") + "/oidc/callback", Scopes: append([]string(nil), c.Scopes...)}
 	a.Verifier = provider.Verifier(&oidc.Config{ClientID: c.ClientID})
 	return a, nil
 }
@@ -135,6 +177,123 @@ func cookie(r *http.Request, name string) string {
 func (a *Admin) setCookie(w http.ResponseWriter, name, value string, max int) {
 	http.SetCookie(w, &http.Cookie{Name: name, Value: value, Path: "/", HttpOnly: true, Secure: a.Secure, SameSite: http.SameSiteLaxMode, MaxAge: max})
 }
+func lookupAdminClaim(claims map[string]any, path []string) (any, bool) {
+	var value any = claims
+	for _, part := range path {
+		object, ok := value.(map[string]any)
+		if !ok {
+			return nil, false
+		}
+		value, ok = object[part]
+		if !ok {
+			return nil, false
+		}
+	}
+	return value, true
+}
+
+func adminClaimValues(value any) []string {
+	var values []string
+	switch x := value.(type) {
+	case string:
+		values = append(values, x)
+	case []any:
+		for _, item := range x {
+			if str, ok := item.(string); ok {
+				values = append(values, str)
+			}
+		}
+	}
+	return values
+}
+
+func matchesAdminValues(values, allowed []string) bool {
+	for _, got := range values {
+		for _, want := range allowed {
+			if got == want {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func adminClaimKind(value any, present bool) string {
+	if !present {
+		return "missing"
+	}
+	switch value.(type) {
+	case nil:
+		return "null"
+	case string:
+		return "string"
+	case []any:
+		return "array"
+	case map[string]any:
+		return "object"
+	case bool:
+		return "boolean"
+	case float64:
+		return "number"
+	default:
+		return "unsupported"
+	}
+}
+
+type adminClaimCheck struct {
+	Role        string   `json:"role"`
+	Path        []string `json:"path"`
+	Present     bool     `json:"present"`
+	Kind        string   `json:"kind"`
+	StringCount int      `json:"string_count"`
+	Matched     bool     `json:"matched"`
+}
+
+func (a *Admin) logMembershipDenied(ctx context.Context, claims map[string]any) {
+	viewer := a.Config.Mappings.Viewer
+	operator := a.Config.Mappings.Operator
+	viewerCount := len(viewer.Subjects) + len(viewer.Claims)
+	operatorCount := len(operator.Subjects) + len(operator.Claims)
+	issuer, _ := claims["iss"].(string)
+	subject, _ := claims["sub"].(string)
+	checks := make([]adminClaimCheck, 0)
+	present, stringsPresent := false, false
+	for _, role := range []struct {
+		name  string
+		rules RoleRules
+	}{{"operator", operator}, {"viewer", viewer}} {
+		for _, rule := range role.rules.Claims {
+			value, found := lookupAdminClaim(claims, rule.Path)
+			values := adminClaimValues(value)
+			present = present || found
+			stringsPresent = stringsPresent || len(values) > 0
+			matched := issuer == a.Config.Issuer && subject != "" && (rule.Issuer == "" || rule.Issuer == issuer) && matchesAdminValues(values, rule.Values)
+			if len(checks) < 32 {
+				checks = append(checks, adminClaimCheck{Role: role.name, Path: rule.Path, Present: found, Kind: adminClaimKind(value, found), StringCount: len(values), Matched: matched})
+			}
+		}
+	}
+	reason := "claim_values_do_not_match"
+	switch {
+	case issuer != a.Config.Issuer:
+		reason = "issuer_mismatch"
+	case subject == "":
+		reason = "subject_missing"
+	case viewerCount+operatorCount == 0:
+		reason = "no_admin_rules"
+	case len(viewer.Claims)+len(operator.Claims) == 0:
+		reason = "subject_rules_do_not_match"
+	case !present:
+		reason = "claim_missing"
+	case !stringsPresent:
+		reason = "claim_type_or_values_unsupported"
+	}
+	slog.WarnContext(ctx, "browser administrator membership denied",
+		"reason", reason, "scopes", a.OAuth.Scopes,
+		"viewer_rule_count", viewerCount, "operator_rule_count", operatorCount,
+		"claim_checks", checks, "checks_truncated", len(viewer.Claims)+len(operator.Claims) > len(checks))
+}
+
 func (a *Admin) role(claims map[string]any) string {
 	issuer, _ := claims["iss"].(string)
 	subject, _ := claims["sub"].(string)
@@ -151,32 +310,9 @@ func (a *Admin) role(claims map[string]any) string {
 			if r.Issuer != "" && issuer != r.Issuer {
 				continue
 			}
-			var v any = claims
-			for _, p := range r.Path {
-				m, ok := v.(map[string]any)
-				if !ok {
-					v = nil
-					break
-				}
-				v = m[p]
-			}
-			values := []string{}
-			switch x := v.(type) {
-			case string:
-				values = append(values, x)
-			case []any:
-				for _, el := range x {
-					if str, ok := el.(string); ok {
-						values = append(values, str)
-					}
-				}
-			}
-			for _, got := range values {
-				for _, want := range r.Values {
-					if got == want {
-						return true
-					}
-				}
+			v, _ := lookupAdminClaim(claims, r.Path)
+			if matchesAdminValues(adminClaimValues(v), r.Values) {
+				return true
 			}
 		}
 		return false
@@ -195,10 +331,10 @@ func (a *Admin) Identity(ctx context.Context, r *http.Request, mutate bool) (id 
 	}
 	var claims map[string]any
 	if token := Bearer(r); token != "" {
-		if a.APIVerifier == nil {
+		if a.Verifier == nil {
 			return id, Unauthorized
 		}
-		t, e := a.APIVerifier.Verify(ctx, token)
+		t, e := a.Verifier.Verify(ctx, token)
 		if e != nil {
 			return id, Unauthorized
 		}
@@ -287,6 +423,7 @@ func (a *Admin) Callback(w http.ResponseWriter, r *http.Request) error {
 		return Unauthorized
 	}
 	if a.role(claims) == "" {
+		a.logMembershipDenied(r.Context(), claims)
 		return Forbidden
 	}
 	expiry := time.Now().Add(time.Duration(a.Config.SessionSeconds) * time.Second)

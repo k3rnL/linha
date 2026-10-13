@@ -1,212 +1,119 @@
-# SparkApplication backends and client leases
+# Manage Spark applications
 
-New managed Spark backends require **Kubeflow Spark Operator 2.4.0**, with the
-`sparkoperator.k8s.io/v1beta2` CRD and controller watching Linha's namespace.
-Install the operator separately. Native templates were verified with its mutating
-webhook disabled; configure `spark.jobNamespaces` to include the Linha namespace. Linha's chart grants its server namespaced
-SparkApplication access; it does not install CRDs or the operator. Linha's own
-namespace-only RBAC mode still needs no ClusterRole. The operator has its own
-installation permissions.
+Configure driver capacity, executor allocation and Spark resources in the backend
+spec passed to `ensureBackend`. Linha creates one SparkApplication per managed
+driver. Kubeflow Spark Operator submits it, and Spark creates driver/executor Pods.
 
-## Spark launch and resources
+This guide assumes the operator watches the Linha namespace and your worker image
+contains the declared JVM main class and JAR. See [deployment](operations.md).
+
+## Set the application and resources
 
 ```json
 {
-  "name": "sample-app-extract",
-  "clientId": "unique-api-process-uuid",
-  "spec": {
-    "image": "registry.example/sample-app/worker:latest",
-    "engine": {
-      "type": "spark",
-      "version": "3.5.6",
-      "settings": {
-        "application": {
-          "mainClass": "example.linha.WorkerMain",
-          "mainApplicationFile": "local:///opt/linha/sample-app-linha-worker.jar"
-        },
-        "ui": {"enabled": true, "port": 4040},
-        "drivers": {
-          "minDrivers": 1, "maxDrivers": 3,
-          "maxConcurrentRequestsPerDriver": 2,
-          "cores": 2, "coreRequest": "1", "coreLimit": "2",
-          "memory": "10g", "memoryOverhead": "2g",
-          "javaOptions": "-Dconfig.file=/etc/sample-app/application.conf"
-        },
-        "executors": {
-          "cores": 2, "coreRequest": "1", "coreLimit": "2",
-          "memory": "4g", "memoryOverhead": "1g",
-          "dynamicAllocation": true,
-          "executorIdleTimeout": "60s",
-          "cachedExecutorIdleTimeout": "120s",
-          "shuffleTrackingTimeout": "120s",
-          "minExecutors": 0, "initialExecutors": 1, "maxExecutors": 8,
-          "javaOptions": "-Dconfig.file=/etc/sample-app/application.conf"
-        }
-      }
-    },
-    "results": {"type": "s3", "destination": "sample-app-results"}
-  }
+  "image": "registry.example/workers/reporting:1",
+  "engine": {
+    "type": "spark",
+    "version": "3.5.6",
+    "settings": {
+      "application": {
+        "mainClass": "example.WorkerMain",
+        "mainApplicationFile": "local:///opt/linha/worker.jar"
+      },
+      "drivers": {
+        "minDrivers": 1,
+        "maxDrivers": 3,
+        "maxConcurrentRequestsPerDriver": 2,
+        "cores": 2,
+        "coreRequest": "1",
+        "coreLimit": "2",
+        "memory": "10g",
+        "memoryOverhead": "2g"
+      },
+      "executors": {
+        "cores": 2,
+        "memory": "4g",
+        "memoryOverhead": "1g",
+        "dynamicAllocation": true,
+        "minExecutors": 0,
+        "initialExecutors": 1,
+        "maxExecutors": 8,
+        "executorIdleTimeout": "60s",
+        "cachedExecutorIdleTimeout": "120s",
+        "shuffleTrackingTimeout": "120s"
+      },
+      "ui": {"enabled": true, "port": 4040}
+    }
+  },
+  "results": {"type": "s3", "destination": "analytics"}
 }
 ```
 
-Mount `/etc/sample-app/application.conf` in both driver and executor Pod templates
-using the existing ConfigMap/Secret helpers. `application.arguments` supplies
-main-class arguments. The worker image must retain Spark's driver/executor
-entrypoint and contain the declared JAR. The old `/opt/linha/bin/worker` launch
-script is **not invoked** for SparkApplications; move its Java options, mounts
-and arguments into the settings above. The main method should use `new SparkConf()`
-so it inherits Spark submission configuration. `LINHA_SPARK_CONF` is `{}` in
-operator mode; SDK identity and capacity environment variables remain available.
+`memory` is the JVM heap, with `memoryOverhead` added to the container request
+and limit. A 10g heap plus 2g overhead gives the driver 12Gi. CPU requests and
+limits default to `cores`; override them separately when needed. Do not put `-Xmx`
+in `javaOptions` or override these resources through the main-container template.
+Defaults and bounds are in [configuration reference](configuration.md#spark-settings).
 
-`memory` means JVM heap. `memoryOverhead` adds container headroom, for both driver
-and executor. For example, 10g + 2g produces a 10g heap and 12Gi memory request
-and limit. Omitted overhead defaults to max(384 MiB, 10% of heap). `cores` controls
-Spark parallelism; CPU request and limit default to it and can be set separately.
-Deprecated `memoryMi` is a heap alias and cannot be combined with `memory`.
-Use Spark units `m` or `g`. Heap overrides in `javaOptions` are rejected.
+The worker main method should use `new SparkConf()` to inherit submission
+configuration. Preserve Spark's driver/executor image entrypoint. Use
+`application.arguments` and `javaOptions` for application configuration, with
+[Pod templates](pod-templates.md) for files and environment variables.
 
-Linha submits one SparkApplication per driver, with `restartPolicy: Never`.
-Linha controls pool size and replacement; the operator submits each application
-and Spark creates its Pods. Pod-template container name `main` remains the public
-SDK convention; Linha translates it to `spark-kubernetes-driver` or
-`spark-kubernetes-executor`. Native Pod customizations remain available.
+## Tune the driver pool
 
-## Spark UI and executor idle retention
+Set `minDrivers` and `maxDrivers` for capacity bounds. Use
+`maxConcurrentRequestsPerDriver` to bound requests sharing one SparkContext.
+`queueThreshold`, `waitSeconds` and `cooldownSeconds` control driver growth;
+`idleSeconds` allows idle drivers above the minimum to retire.
 
-Configure these under `spec.engine.settings` when calling `ensureBackend`.
-They are context settings, not Linha Helm values. The JVM client already accepts
-these JSON fields; a new SDK is not required. For example, merge this into your
-existing settings (preserving application, driver and executor resource fields):
+Lost required drivers are replaced. With no live clients, the context version
+finishes accepted work and then stops all drivers, even when its minimum is
+positive. This lifetime behavior is described in [architecture](architecture.md#context-names-and-versions).
 
-```scala
-val updatedSettings = settings.deepMerge(Json.obj(
-  "ui" -> Json.obj("enabled" -> true.asJson, "port" -> 4040.asJson),
-  "executors" -> Json.obj(
-    "dynamicAllocation" -> true.asJson,
-    "minExecutors" -> 0.asJson,
-    "executorIdleTimeout" -> "60s".asJson,
-    "cachedExecutorIdleTimeout" -> "120s".asJson,
-    "shuffleTrackingTimeout" -> "120s".asJson
-  )
-))
-```
+## Let idle executors retire
 
-Use `io.circe.Json` and `io.circe.syntax._`, and place `updatedSettings` in
-`spec.engine.settings` before ensuring your backend.
+Enable dynamic allocation and set `minExecutors: 0` if an idle application may
+have no executors. `initialExecutors` applies at startup; it is not a permanent
+minimum. Set finite cache and shuffle timeouts when their retained data should
+not keep executors indefinitely.
 
-| Setting | Default | Meaning |
-| --- | --- | --- |
-| `ui.enabled` | `false` | Start the driver's Spark UI. |
-| `ui.port` | `4040` | Driver UI port; integer 1024–65535. |
-| `executors.executorIdleTimeout` | `60s` | Idle removal without retained data. |
-| `executors.cachedExecutorIdleTimeout` | `infinity` | Idle removal with cached blocks. |
-| `executors.shuffleTrackingTimeout` | `infinity` | Timeout for executors retained by shuffle tracking. |
+Default cache and shuffle timeouts are `infinity`. That is why an application
+can retain executors even after its visible jobs finish. Active tasks, cached
+blocks, shuffle tracking and the minimum count can delay executor removal.
+Finite retention can cause recomputation. Use `ctx.cache` and `ctx.broadcast`
+for request-owned resources; avoid globally clearing caches while other jobs run.
 
-Timeouts accept positive integers with `s`, `m`, `h`, or `d`, up to 2147483647
-seconds. Cache and shuffle timeouts also accept `infinity`; omit a field or use
-an empty string for its default. Durations normalize to seconds (`2m` and `120s`
-share a configuration version). Explicit defaults are equivalent to omission.
+## Open a driver UI
 
-These timeouts apply only with dynamic allocation enabled. Spark controls actual
-executor removal and respects `minExecutors`; use zero to allow scale-down to
-zero executors. The initial count is a startup setting, not a permanent minimum.
-Removal timing is not a hard deadline, and active work or retained data can delay
-it. Finite cache/shuffle retention can cause recomputation. Release job-owned
-caches with `unpersist()` when finished; avoid globally clearing shared caches
-while other requests run. Driver pool lifetime still follows Linha client leases
-and the separate driver scaling settings.
-
-After enabling the UI, choose the relevant driver and forward its configured port:
+Set `ui.enabled: true`, then choose a current driver:
 
 ```sh
-kubectl -n jobs get pods -l spark-role=driver
-kubectl -n jobs port-forward pod/<driver-pod-name> 4040:4040
+kubectl -n linha get pods -l spark-role=driver
+kubectl -n linha port-forward pod/<driver-pod-name> 4040:4040
 ```
 
-Open `http://localhost:4040`. For a custom driver port of 4050, use `4040:4050`.
-Each driver has its own UI, available while that application lives. Linha creates
-no public Ingress or authentication proxy for it; Linha's OIDC does not protect
-Spark's separate HTTP UI. Persistent event logs and a Spark History Server are
-separate configuration for browsing executions after drivers stop.
+Open `http://localhost:4040`. For `ui.port: 4050`, forward `4040:4050` instead.
+Each driver has its own UI and it disappears when that application stops.
 
-Upgrade every Linha server replica before submitting these fields; older servers
-reject them. Ensure the same logical context name with the new settings to create
-a new version. Existing drivers are not patched: old versions drain according to
-their client leases. Remove hardcoded UI/timeout overrides in worker bootstrap
-code if you added them earlier, since programmatic SparkConf overrides submitted
-configuration. Otherwise no worker-image rebuild is necessary. Omitted settings
-preserve previous defaults and normalized context identities. Before rolling back
-to an older server, drain versions that contain these new fields.
+The administrator console uses an ingress URL exposed by the SparkApplication
+when available. Linha creates no public Spark UI ingress or authentication proxy.
+The Spark UI is a separate service; configure its access policy separately.
+Use Spark event logs and a History Server for completed applications.
 
-See [Spark configuration](https://spark.apache.org/docs/3.5.6/configuration.html#dynamic-allocation)
-and [Spark monitoring](https://spark.apache.org/docs/3.5.6/monitoring.html).
+## Roll out a changed backend
 
-## Stable names, versions and lifetime
+Keep a logical name such as `reporting`. Ensure with the new image/settings and
+retain the returned context for the application process lifetime. Linha derives
+an immutable configuration version. Existing clients keep their version and
+accepted requests; new replicas attach to the new version. Close old contexts on
+graceful shutdown, or let their heartbeat expire after an unexpected exit.
 
-Keep a name such as `sample-app-extract` across releases. The server hashes the
-normalized effective settings, merged deployment defaults, result policy and
-resolved primary worker-image digest. Identical owner/name/configuration shares
-a context ID; changed settings or a changed image tag target creates another
-version under that name. Image resolution occurs during ensure, before the
-context response; job submission still acknowledges immediately after DB commit.
-Use immutable versioned ConfigMaps/Secrets when their contents are part of the
-release: referenced object contents are not included in the hash.
+Referenced ConfigMap and Secret contents do not enter the configuration hash.
+Use immutable names when a change must produce a new reproducible version.
+Only the primary worker image is resolved to a digest automatically; specify
+sidecar/init image digests yourself when required.
 
-Each API process owns a lease on every version it uses. Leases last 90 seconds,
-using PostgreSQL time. The Scala client renews them every 30 seconds. Keep the
-client and context alive for the API process lifetime; close them during graceful
-shutdown. Handles for the same version within a client share one lease. Closing
-the final handle releases it. A killed process loses its lease through expiry.
-
-```scala
-val client = new LinhaClient(serverUrl, credentials)
-val context = Await.result(client.ensureBackend("sample-app-extract", spec), 30.seconds)
-// Keep context in your API service. Submission serializes business parameters.
-val job = Await.result(context.submit(Extract(parameters), requestKey), 10.seconds)
-// On API shutdown, after stopping acceptance of new API requests:
-context.close()
-client.close()
-```
-
-During rolling updates, versions coexist while their API replicas are alive.
-With no live clients a version becomes `DRAINING`: it finishes accepted queued,
-running and retrying work, replacing lost drivers if needed. Once all accepted
-jobs are terminal, Linha stops all instances even when `minDrivers` is positive.
-It becomes `STOPPED` and retains job IDs, status and results. Jobs with no deadline
-that never finish can keep a draining backend alive; cancellation is explicit.
-Reattaching by context ID reactivates that version without changing its history.
-
-Do not call ensure to poll a job: that acquires a backend lease. Use
-`client.rawJob(jobId)` or `client.job(jobId, codec)` for independent retrieval.
-Idempotency keys are scoped by owner/logical name/key across versions; retries
-with the same request and result policy return the original job ID. A changed
-request or result policy with the same key is a conflict.
-
-## Raw JSON lifecycle
-
-- `POST /v1/contexts:ensure` returns `id`, `version`, and `clientLease`.
-- `POST /v1/contexts/{id}/clients` with `{"clientId":"process-uuid"}` attaches
-  to an existing immutable version and returns the same response shape.
-- `POST /v1/contexts/{id}/clients/{lease}/renew` renews a live lease. Expired
-  tokens return `CLIENT_LEASE_EXPIRED`; attach again to get a fresh token.
-- `DELETE /v1/contexts/{id}/clients/{lease}` releases a lease idempotently.
-- Submit new jobs with the `X-Linha-Client-Lease` header set to its lease ID.
-
-All endpoints retain owner isolation. Polling context/job state does not renew a
-lease. Leases are persisted; restarting any or all server replicas does not
-reset their expiry. The JVM SDK reacquires expired leases by immutable context ID.
-
-## Upgrade
-
-Schema v5 preserves existing context/job IDs and grants old contexts a 90-second
-migration lease. Persisted legacy contexts retain their old Pod launch path for
-draining. Upgrade server, Helm chart and client SDK together with coordinated
-server shutdown/startup; mixed schema-v4/v5 server writers are unsupported.
-New ensures require application settings and lease-capable clients. Existing
-clients without heartbeats do not keep a backend alive indefinitely. Production
-worker images may need adjustment for the Spark entrypoint described above.
-Database migrations do not delete result bytes or job history.
-
-References: [Spark memory configuration](https://spark.apache.org/docs/3.5.6/configuration.html),
-[SparkApplication guide](https://spark.kubeflow.org/en/latest/user-guide/writing-sparkapplication.html),
-[operator v2.4.0 API](https://github.com/kubeflow/spark-operator/blob/v2.4.0/api/v1beta2/sparkapplication_types.go).
+Read the upstream [Spark configuration](https://spark.apache.org/docs/3.5.6/configuration.html)
+and [SparkApplication guide](https://spark.kubeflow.org/en/latest/user-guide/writing-sparkapplication.html)
+for the engine-side behavior.

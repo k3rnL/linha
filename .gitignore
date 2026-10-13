@@ -27,3 +27,7 @@ __pycache__/
 /web/test-results/
 /server/internal/webui/assets/*
 !/server/internal/webui/assets/.keep
+
+# Documentation output and caches
+/site/
+/.cache/

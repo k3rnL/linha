@@ -10,13 +10,6 @@ import java.io.{IOException, InputStream}
 
 final case class LinhaException(status: Int, code: String, detail: String)
     extends RuntimeException(code + ": " + detail)
-trait CredentialProvider { def bearerToken(): String }
-object CredentialProvider {
-  val none: CredentialProvider = apply(() => "");
-  def apply(get: () => String): CredentialProvider = new CredentialProvider {
-    def bearerToken(): String = get()
-  }
-}
 final class Transport(
     val baseUrl: String,
     credentials: CredentialProvider,

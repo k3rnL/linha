@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/rand"
@@ -8,9 +9,11 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"linha/server/internal/domain"
 	"linha/server/internal/postgres"
+	"log/slog"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -114,21 +117,39 @@ func TestAdminIssuerBoundNestedMappingsAndCookies(t *testing.T) {
 	}
 }
 func TestOIDCPKCECallbackAcrossReplicasAndTokenValidation(t *testing.T) {
-	oidcReplicaFlow(t, false, false)
+	oidcReplicaFlow(t, false, false, "")
 }
-func TestOIDCPKCECallbackWithIndependentDatabasePools(t *testing.T) { oidcReplicaFlow(t, true, false) }
-func TestOIDCTLSPKCECallbackAcrossReplicas(t *testing.T)            { oidcReplicaFlow(t, false, true) }
+func TestOIDCPKCECallbackWithIndependentDatabasePools(t *testing.T) {
+	oidcReplicaFlow(t, true, false, "")
+}
+func TestOIDCTLSPKCECallbackAcrossReplicas(t *testing.T) { oidcReplicaFlow(t, false, true, "") }
 func TestOIDCTLSPKCECallbackWithIndependentDatabasePools(t *testing.T) {
-	oidcReplicaFlow(t, true, true)
+	oidcReplicaFlow(t, true, true, "")
 }
-func oidcReplicaFlow(t *testing.T, persistent, useTLS bool) {
+func TestOIDCGroupScopesAcrossReplicas(t *testing.T) {
+	for _, role := range []string{"viewer", "operator"} {
+		for _, useTLS := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/TLS=%v", role, useTLS), func(t *testing.T) {
+				oidcReplicaFlow(t, false, useTLS, role)
+			})
+		}
+	}
+}
+
+func TestOIDCGroupScopesWithIndependentDatabasePools(t *testing.T) {
+	for _, role := range []string{"viewer", "operator"} {
+		t.Run(role, func(t *testing.T) { oidcReplicaFlow(t, true, false, role) })
+	}
+}
+
+func oidcReplicaFlow(t *testing.T, persistent, useTLS bool, groupRole string) {
 	key, e := rsa.GenerateKey(rand.Reader, 2048)
 	if e != nil {
 		t.Fatal(e)
 	}
 	enc := base64.RawURLEncoding.EncodeToString
 	issuer := ""
-	nonce, challenge := "", ""
+	nonce, challenge, requestedScopes := "", "", ""
 	invalid := ""
 	sign := func(claims map[string]any) string {
 		header := enc(domain.JSON(map[string]string{"alg": "RS256", "kid": "test"}))
@@ -154,6 +175,10 @@ func oidcReplicaFlow(t *testing.T, persistent, useTLS bool) {
 				t.Error("PKCE verifier mismatch")
 			}
 			claims := map[string]any{"iss": issuer, "sub": "admin", "aud": "browser", "exp": time.Now().Add(time.Minute).Unix(), "nonce": nonce}
+			// Simulate a provider that emits custom claims only for requested scopes.
+			if groupRole != "" && strings.Contains(" "+requestedScopes+" ", " groups ") && invalid != "missing-groups" {
+				claims["groups"] = []string{"unrelated", "linha-" + groupRole + "s"}
+			}
 			if invalid == "nonce" {
 				claims["nonce"] = "wrong"
 			}
@@ -171,6 +196,7 @@ func oidcReplicaFlow(t *testing.T, persistent, useTLS bool) {
 			}
 			if invalid == "role" {
 				claims["sub"] = "ordinary-user"
+				claims["groups"] = []string{"unrelated"}
 			}
 			raw := sign(claims)
 			if invalid == "signature" {
@@ -230,17 +256,29 @@ func oidcReplicaFlow(t *testing.T, persistent, useTLS bool) {
 		membership.Issuer = issuer
 	} // Retain the legacy explicit-issuer flow too.
 	config := AdminConfig{Enabled: true, SecurityEnabled: true, Issuer: issuer, PublicURL: "https://linha.example/ui/", ClientID: "browser", SessionSeconds: 3600, Mappings: AdminMappings{Operator: RoleRules{Subjects: []SubjectRule{membership}}}}
+	expectedRole := "operator"
+	if groupRole != "" {
+		expectedRole = groupRole
+		config.Scopes = []string{"openid", "groups"}
+		config.Mappings = AdminMappings{}
+		rules := RoleRules{Claims: []ClaimRule{{Path: []string{"groups"}, Values: []string{"linha-" + groupRole + "s"}}}}
+		if groupRole == "operator" {
+			config.Mappings.Operator = rules
+		} else {
+			config.Mappings.Viewer = rules
+		}
+	}
 	newReplica := func(repository domain.BrowserRepository) *Admin {
 		initialization, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		a, err := NewAdmin(OIDCContext(initialization, useTLS), config, repository, nil)
+		a, err := NewAdmin(OIDCContext(initialization, useTLS), config, repository)
 		if err != nil {
 			t.Fatal(err)
 		}
 		return a
 	}
 	if useTLS {
-		if _, err := NewAdmin(context.Background(), config, repo, nil); err == nil {
+		if _, err := NewAdmin(context.Background(), config, repo); err == nil {
 			t.Fatal("browser provider accepted untrusted certificate without opt-in")
 		}
 	}
@@ -255,6 +293,14 @@ func oidcReplicaFlow(t *testing.T, persistent, useTLS bool) {
 		u, e := url.Parse(out.Header().Get("Location"))
 		if e != nil {
 			t.Fatal(e)
+		}
+		requestedScopes = u.Query().Get("scope")
+		wantedScopes := config.Scopes
+		if wantedScopes == nil {
+			wantedScopes = DefaultBrowserOIDCScopes()
+		}
+		if requestedScopes != strings.Join(wantedScopes, " ") {
+			t.Fatalf("requested scopes=%q want=%v", requestedScopes, wantedScopes)
 		}
 		nonce = u.Query().Get("nonce")
 		challenge = u.Query().Get("code_challenge")
@@ -287,28 +333,59 @@ func oidcReplicaFlow(t *testing.T, persistent, useTLS bool) {
 	request := httptest.NewRequest("GET", "https://linha.example/v1/admin/session", nil)
 	request.AddCookie(sessionCookie)
 	id, e := a.Identity(request.Context(), request, false)
-	if e != nil || id.Role != "operator" || time.Until(*id.ExpiresAt) > time.Minute {
+	if e != nil || id.Role != expectedRole || time.Until(*id.ExpiresAt) > time.Minute {
 		t.Fatalf("cross replica session: %+v %v", id, e)
 	}
 	if e = b.Callback(httptest.NewRecorder(), callback); e == nil {
 		t.Fatal("callback replay accepted")
 	}
-	for _, mode := range []string{"nonce", "audience", "expiry", "issuer", "subject", "signature", "role"} {
+	invalidModes := []string{"nonce", "audience", "expiry", "issuer", "subject", "signature", "role"}
+	if groupRole != "" {
+		invalidModes = append(invalidModes, "missing-groups")
+	}
+	for _, mode := range invalidModes {
 		invalid = mode
 		callback, out = login()
-		if e = b.Callback(out, callback); e == nil {
-			t.Fatal("invalid token accepted:", mode)
+		wantedError := Unauthorized
+		if mode == "role" || mode == "missing-groups" {
+			wantedError = Forbidden
+		}
+		var log bytes.Buffer
+		originalLogger := slog.Default()
+		slog.SetDefault(slog.New(slog.NewJSONHandler(&log, nil)))
+		e = b.Callback(out, callback)
+		slog.SetDefault(originalLogger)
+		if e != wantedError {
+			t.Fatalf("invalid token mode=%s error=%v want=%v", mode, e, wantedError)
+		}
+		if wantedError == Forbidden {
+			var entry map[string]any
+			if err := json.Unmarshal(log.Bytes(), &entry); err != nil || entry["msg"] != "browser administrator membership denied" {
+				t.Fatalf("missing callback membership diagnostic: %s %v", log.String(), err)
+			}
+			if mode == "missing-groups" && entry["reason"] != "claim_missing" {
+				t.Fatalf("missing-group diagnostic=%v", entry)
+			}
+		} else if log.Len() != 0 {
+			t.Fatal("unverified token generated membership diagnostics", log.String())
+		}
+		for _, cookie := range out.Result().Cookies() {
+			if cookie.Name == "linha_session" {
+				t.Fatal("denied callback created a session:", mode)
+			}
 		}
 	}
 	invalid = ""
 	callback, out = login()
-	config.Mappings.Operator.Subjects[0].Issuer = "" // Upgrade legacy rules without invalidating retained identity.
-	b = newReplica(second)                           // Recreate the callback service with durable login/session state.
+	if len(config.Mappings.Operator.Subjects) > 0 {
+		config.Mappings.Operator.Subjects[0].Issuer = "" // Upgrade legacy rules without invalidating retained identity.
+	}
+	b = newReplica(second) // Recreate the callback service with durable login/session state.
 	if e = b.Callback(out, callback); e != nil {
 		t.Fatalf("callback after restart: %v", e)
 	}
-	if _, e = b.Identity(request.Context(), request, false); e != nil {
-		t.Fatalf("session after restart: %v", e)
+	if id, e = b.Identity(request.Context(), request, false); e != nil || id.Role != expectedRole {
+		t.Fatalf("session after restart: %+v %v", id, e)
 	}
 	callback, _ = login()
 	callback.Header.Del("Cookie")
@@ -373,5 +450,72 @@ func TestAdminMappingsInheritConfiguredIssuer(t *testing.T) {
 				})
 			}
 		}
+	}
+}
+
+func TestInvalidBrowserScopesFailBeforeDiscovery(t *testing.T) {
+	requests := 0
+	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		http.Error(w, "unexpected discovery", http.StatusInternalServerError)
+	}))
+	defer provider.Close()
+	for _, scopes := range [][]string{{}, {"groups"}, {"openid", "group name"}, {"openid", "groups", "groups"}} {
+		config := AdminConfig{Enabled: true, SecurityEnabled: true, Issuer: provider.URL, PublicURL: "https://linha.example/ui/", ClientID: "browser", SessionSeconds: 3600, Scopes: scopes}
+		if _, err := NewAdmin(context.Background(), config, newBrowserMemory()); err == nil || !strings.Contains(strings.ToLower(err.Error()), "scope") {
+			t.Fatalf("invalid scopes=%v err=%v", scopes, err)
+		}
+	}
+	if requests != 0 {
+		t.Fatal("invalid scopes triggered discovery")
+	}
+}
+
+func TestMembershipDiagnosticRedaction(t *testing.T) {
+	rule := ClaimRule{Path: []string{"groups"}, Values: []string{"allowed-group-value"}}
+	for _, tt := range []struct {
+		name, reason string
+		mappings     AdminMappings
+		group        any
+		include      bool
+	}{
+		{"empty rules", "no_admin_rules", AdminMappings{}, nil, false},
+		{"missing", "claim_missing", AdminMappings{Operator: RoleRules{Claims: []ClaimRule{rule}}}, nil, false},
+		{"wrong type", "claim_type_or_values_unsupported", AdminMappings{Operator: RoleRules{Claims: []ClaimRule{rule}}}, map[string]any{"secret": "nested-secret-value"}, true},
+		{"empty array", "claim_type_or_values_unsupported", AdminMappings{Operator: RoleRules{Claims: []ClaimRule{rule}}}, []any{}, true},
+		{"unrelated", "claim_values_do_not_match", AdminMappings{Operator: RoleRules{Claims: []ClaimRule{rule}}}, []any{"received-group-value"}, true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			claims := map[string]any{"iss": "https://issuer.example", "sub": "private-subject-id", "nonce": "private-nonce", "access_token": "private-access-token", "email": "private-email"}
+			if tt.include {
+				claims["groups"] = tt.group
+			}
+			a := &Admin{Config: AdminConfig{SecurityEnabled: true, Issuer: "https://issuer.example", ClientSecret: "private-client-secret", Mappings: tt.mappings}}
+			a.OAuth.Scopes = []string{"openid", "groups"}
+			if a.role(claims) != "" {
+				t.Fatal("test identity unexpectedly authorized")
+			}
+			var log bytes.Buffer
+			originalLogger := slog.Default()
+			defer slog.SetDefault(originalLogger)
+			slog.SetDefault(slog.New(slog.NewJSONHandler(&log, nil)))
+			a.logMembershipDenied(context.Background(), claims)
+			var entry map[string]any
+			if err := json.Unmarshal(log.Bytes(), &entry); err != nil || entry["reason"] != tt.reason {
+				t.Fatalf("entry=%v error=%v", entry, err)
+			}
+			for _, forbidden := range []string{"private-", "received-group-value", "allowed-group-value", "nested-secret-value"} {
+				if strings.Contains(log.String(), forbidden) {
+					t.Fatalf("sensitive value leaked: %s", log.String())
+				}
+			}
+			if tt.mappings.Operator.Claims != nil {
+				checks := entry["claim_checks"].([]any)
+				check := checks[0].(map[string]any)
+				if check["present"] != tt.include || check["matched"] != false {
+					t.Fatalf("wrong claim check %v", check)
+				}
+			}
+		})
 	}
 }

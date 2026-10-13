@@ -1,0 +1,88 @@
+site_name: Linha
+site_description: Durable jobs, managed Spark engines, and Scala/JVM SDKs
+site_url: https://k3rnl.github.io/linha/
+repo_url: https://github.com/k3rnL/linha
+repo_name: k3rnL/linha
+edit_uri: ''
+remote_branch: docs-pages
+strict: true
+hooks:
+  - docs/hooks.py
+theme:
+  name: material
+  language: en
+  palette:
+    scheme: default
+    primary: teal
+    accent: teal
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+plugins:
+  - search
+  - mike:
+      alias_type: redirect
+      version_selector: true
+extra:
+  version:
+    provider: mike
+    alias: true
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: warn
+    anchors: warn
+    unrecognized_links: warn
+exclude_docs: |
+  requirements.txt
+  **/*.log
+  **/*.py
+  validation/*.json
+nav:
+  - Home: index.md
+  - Tutorials:
+      - Run your first job: quickstart.md
+      - Build a Scala client and worker: walkthrough.md
+  - How-to guides:
+      - Deploy on Kubernetes: operations.md
+      - Configure OAuth 2.0: client-authentication.md
+      - Manage Spark applications: versioned-spark-applications.md
+      - Customize Pods: pod-templates.md
+      - Return files and datasets: dataset-results.md
+      - Enable the admin console: admin-ui.md
+      - Monitor queries and resources: observability.md
+      - Diagnose failures: job-failures.md
+      - Run Kubernetes validation: kubernetes-validation.md
+      - Publish a release: releases.md
+      - Maintain documentation: docs-contributing.md
+  - Reference:
+      - Configuration: configuration.md
+      - Scala/JVM SDK: sdk-reference.md
+      - HTTP API: http-api.md
+      - Prometheus metrics: metrics.md
+      - Compatibility: compatibility.md
+      - Validation scope: validation.md
+      - Platform acceptance: acceptance.md
+      - Admin and observability validation: admin-observability-validation.md
+      - Fixture measurements: validation/README.md
+      - Release notes:
+          - releases/index.md
+          - Linha 0.1.2: releases/v0.1.2.md
+          - Linha 0.1.1: releases/v0.1.1.md
+  - Explanation:
+      - How Linha works: architecture.md
+      - Result retention: retention-proposal.md
+      - Protocol conformance: protocol-conformance.md

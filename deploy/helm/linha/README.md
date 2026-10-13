@@ -1,50 +1,31 @@
 # Linha Helm chart
 
-Deploys the Go server with two replicas by default, namespaced worker management,
-services, health probes and disruption controls. PostgreSQL and result storage
-are external persistent dependencies. See [operations](../../../docs/operations.md)
-for database Secret keys, security/OIDC and namespace-only RBAC.
+Deploys the Go server with two replicas by default, a Service, probes,
+namespace-scoped engine management and worker permissions. PostgreSQL, result
+storage, the Spark Operator and optional monitoring operators are external.
 
-`security.oidc.tls.insecureSkipVerify` defaults to `false`. Set it to `true` to
-skip certificate and hostname verification only for server-side OIDC discovery,
-signing keys and browser token exchange. Deploy a server image containing this
-option alongside chart `0.1.1` or newer; image `0.1.0` does not contain it.
-See [operations](../../../docs/operations.md) for usage and the alternative of
-mounting the provider CA while keeping verification enabled.
+```sh
+helm upgrade --install linha deploy/helm/linha   --namespace linha --create-namespace --values values.yaml
+```
 
-Use `workerPodTemplates.driverPodTemplate` and `executorPodTemplate` for native
-Pod defaults. Client ensure requests can customize both; effective templates are
-persisted for replacement. `registrySecrets.allowedNames` grants the server get
-access to only selected registry Secrets. Top-level `imagePullSecrets` apply to
-server Pods and become worker defaults. See the
-[template guide](../../../docs/pod-templates.md) for examples and merge rules.
+Create credential Secrets before installation. Database settings use
+`database.postgres.secretRef`, `usernameKey` and `passwordKey`; S3 uses
+`s3.secretRef` and `destinationsKey`. Configure permitted worker repositories.
 
-`workerVolumes`/`workerMounts` remain supported as legacy defaults. The new chart
-adds namespaced ConfigMap get/create permissions for Spark executor templates;
-upgrade the chart alongside the server. No ClusterRole is required when
-`rbac.namespaceOnly: true`.
+`security.api.jwt` validates application access tokens. `security.oidc` and
+`ui.oidc` configure browser login; `security.admin` maps verified groups to
+viewer/operator access. `security.enabled: false` disables all authentication.
 
-Spark cleanup also requires namespaced `deletecollection` on Pods and ConfigMaps.
-The chart grants it only to the worker Role. Update the Helm release to correct
-older installations; no server/worker image rebuild is needed. See
-[operations](../../../docs/operations.md) for verification commands.
+`rbac.namespaceOnly: true` is the default and requires no Linha ClusterRole.
+Driver/executor resources and custom mounts belong in backend Spark settings
+and Pod templates. The UI, its ingress, ServiceMonitor and GrafanaDashboard are
+independently optional.
 
-The image embeds the [admin console](../../../docs/admin-ui.md); `ui.enabled`
-defaults to false. Configure `ui.publicURL`, a browser OIDC client and explicit
-viewer/operator mappings before enabling it. Subject and claim mappings inherit
-`security.oidc.issuer`; omit repeated issuer fields after upgrading the server. Database and browser credentials
-use caller-managed `secretRef` plus selected key names.
+- [Deploy Linha](../../../docs/operations.md)
+- [Configuration reference](../../../docs/configuration.md)
+- [Pod templates](../../../docs/pod-templates.md)
+- [Administrator console](../../../docs/admin-ui.md)
+- [Prometheus and Grafana](../../../docs/observability.md)
 
-Enable `ui.ingress.enabled` for chart-managed UI/admin routing. Its host is derived
-from `ui.publicURL`; configure `ui.ingress.className`, `annotations` and optional
-`tls.enabled`/`tls.secretName`. TLS at the ingress requires an HTTPS public URL
-and a Secret in the release namespace. The fixed `/ui` and `/v1/admin` Prefix
-routes use the existing Service without path rewriting. See the
-[HTTPS values example](../../../docs/admin-ui.md#enable-with-oidc). This adds no
-RBAC permissions, controller installation or Spark UI ingress.
-
-[Observability](../../../docs/observability.md) documents `/metrics`, the packaged
-Grafana dashboard and `metrics.serviceMonitor`/`metrics.grafanaDashboard`. Both
-operator resources default to disabled and can be enabled independently. They
-require their respective installed CRDs and add no Linha ClusterRole. UI and
-metric export can be disabled independently.
+Use a server image built from the same source revision for unreleased configuration;
+the chart's published image default remains 0.1.2 until the next release.

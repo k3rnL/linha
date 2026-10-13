@@ -27,6 +27,16 @@ func ReadUI(get func(string) string, security Security) (c auth.AdminConfig, err
 	if security.Enabled && !security.OIDCEnabled {
 		return c, fmt.Errorf("enabled UI requires OIDC when security is enabled")
 	}
+	if security.Enabled {
+		c.Scopes = auth.DefaultBrowserOIDCScopes()
+		if raw := get("LINHA_UI_OIDC_SCOPES"); raw != "" {
+			var scopes []string
+			if err = json.Unmarshal([]byte(raw), &scopes); err != nil || scopes == nil {
+				return c, fmt.Errorf("LINHA_UI_OIDC_SCOPES must be a JSON array of scope strings")
+			}
+			c.Scopes = scopes
+		}
+	}
 	if raw := get("LINHA_ADMIN_MAPPINGS"); raw != "" {
 		if err = json.Unmarshal([]byte(raw), &c.Mappings); err != nil {
 			return c, fmt.Errorf("invalid admin mappings: %w", err)

@@ -18,11 +18,18 @@ database:
 security:
   # false disables public and worker authentication. All clients share one owner.
   enabled: true
+  api:
+    # false makes only the SDK API anonymous; browser/worker authentication stay independent.
+    enabled: true
+    jwt:
+      issuer: ""
+      audience: linha
+      tls:
+        insecureSkipVerify: false
   oidc:
-    # false makes only the public API anonymous; worker authentication stays on.
+    # Browser administrator login only; the API has its own issuer and audience.
     enabled: true
     issuer: ""
-    audience: ""
     tls:
       # Only OIDC HTTPS; skips certificate-chain and hostname verification.
       insecureSkipVerify: false
@@ -92,6 +99,11 @@ ui:
   grafanaURL: ""
   oidc:
     clientId: ""
+    # Replaces the defaults; openid is required. Add groups for group claims.
+    scopes:
+      - openid
+      - profile
+      - email
     secretRef: ""
     clientSecretKey: client-secret
 metrics:

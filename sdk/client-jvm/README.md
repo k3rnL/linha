@@ -1,7 +1,16 @@
-# Linha client SDK (Scala/JVM)
+# Linha client SDK
 
-Planned module. Provides `LinhaContext`, typed entrypoints and result handles,
-idempotent backend ensure, job submission, owner-scoped listing, status, cancellation,
-and result retrieval. See the `typed-client-sdk` capability in the active OpenSpec
-change. User-defined entrypoints are encoded as versioned data; executable code is
-supplied in the worker image.
+The Scala/JVM client submits JSON or typed entrypoints, attaches to managed
+contexts, renews client leases and restores job handles by durable ID. Business
+code is installed in the worker image.
+
+Use OAuth 2.0 client credentials to obtain and replace API access tokens. Mount
+only the OAuth client secret; no pre-generated JWT file is required.
+
+- [Client and worker tutorial](../../docs/walkthrough.md)
+- [OAuth configuration](../../docs/client-authentication.md)
+- [SDK reference](../../docs/sdk-reference.md)
+
+The current source artifacts are `com.k3rnl:linha-client_2.12:0.1.2-SNAPSHOT`.
+Install with Java 17 `mvn -B install` from the repository root; matching sources
+are installed too. The OAuth API in this checkout is not in released 0.1.2.

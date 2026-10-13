@@ -1,127 +1,17 @@
-# Observability
+# Monitor queries and resources
 
-Use `/livez` for process liveness, `/readyz` for database/schema and configured
-local mount readiness, and `/metrics` for Prometheus. There is no `/health`
-metrics endpoint. `metrics.enabled` defaults to true; disabling it removes metric
-export but preserves operational observations, server heartbeats and admin views.
+Use Prometheus for trends and Grafana for the operational dashboard. Use the
+administrator console for exact requests, exceptions and instance details.
+Linha exports `/metrics`; `/livez` and `/readyz` are separate probes.
 
-The [metric catalogue](metrics.md) defines all families, types, scopes, fixed
-labels, reasons and histogram boundaries. Go/process collectors are included.
-Request IDs, version hashes, owners, arbitrary paths, selectors, exception text
-and result URIs are never metric labels.
+## 1. Enable per-replica scraping
 
-## Collection and failure behavior
-
-One background loop collects a coherent, read-only database snapshot every ten
-seconds, with a two-second timeout. Scrapes only read the cached snapshot and
-process collectors. They do not call PostgreSQL, Kubernetes or result stores.
-Scrapes allow at most eight concurrent requests and have a five-second timeout.
-A failed database collection omits shared families while serving local metrics
-with HTTP 200 and collector success=0. Cold collectors have last-success=0;
-unknown data is never substituted with a healthy zero.
-
-Server heartbeats are informational, not scheduling authority. They record
-process/pod/version, readiness and background-loop summaries every ten seconds,
-become stale after thirty seconds, and are removed after twenty-four hours.
-Graceful shutdown records stopping. Kubernetes observations are stored under
-controller epoch/application UID/pod incarnation fencing. Spark totals include
-only current owned executor pods. Missing resource quantities mark the snapshot
-incomplete; stale/missing observations mask Spark totals on the dashboard.
-
-Job acceptance, terminal transitions, first assignment, attempts, retries,
-cancellation, client lease generations and instance readiness/replacement are
-accounted in the same winning database transaction. Duplicate HTTP callbacks,
-idempotent submissions and reconciliation polls do not create duplicate events.
-Counters/histograms survive all-server restart. Migration records an accounting
-baseline; existing history seeds current gauges, without fabricated timings.
-
-HTTP metrics normalize routes and methods. Pool errors distinguish timeout,
-cancel and error; loop and Kubernetes labels use fixed sets. Storage metrics
-cover server-observed upload/download streams and publish/delete/delegation/probe
-operations. Transfer bytes count those upload/download streams, excluding internal
-provider copies/verification reads and direct worker/Spark I/O. Dataset logical
-published bytes come from the sealed manifest, independent of transport traffic.
-Staging reservations and cleanup backlog/attempts are separate. Cleanup remains
-opt-in; scrape/export settings do not enable deletion.
-
-## Kubernetes resource cleanup
-
-Active Spark contexts keep the one-second capacity reconciliation cadence.
-Stopped contexts and DEAD instance history do not trigger individual Kubernetes
-resource probes. Each server inventories existing Linha-managed Pods, Services
-and SparkApplications in its namespace once per minute, including on startup.
-Pagination adds requests only for currently existing resources. With no resources,
-this is three collection GETs per minute per replica, independent of history size.
-
-A resource is removed only if its context, immutable instance ID and kind match a
-persisted DEAD intent and the controller can claim that context's reconciliation
-lease. Deletion uses the UID from inventory. This recovers late creates after
-failover and leftover legacy driver Services without deleting context/job/result
-history. SparkApplication children continue to use Kubernetes garbage collection.
-Reattaching to a stopped context promptly restores normal capacity reconciliation.
-
-Inventory and deletion failures retry on the minute cadence, are reported through
-reconciliation warning logs/loop metrics, and do not set a healthy context's
-provisioning condition. A cleanup sweep has a twenty-second deadline. A 404
-while deleting a resource that disappeared since inventory is harmless; repeated
-per-name 404s while the deployment is idle indicate an older server still running.
-All replicas must be updated to remove that old polling behavior. A legacy cluster
-without the SparkApplication CRD can still clean Pods and Services; its collection
-404 is treated as an unavailable resource type.
-
-To inspect API traffic, sum these process-local counters across replicas (with
-your usual deployment filters):
-
-```promql
-sum by (resource, verb, outcome) (
-  rate(linha_kubernetes_api_requests_total[5m])
-)
-```
-
-This engine-resource cleanup is automatic and separate from opt-in result-file
-retention cleanup.
-
-## Context labels and HA PromQL
-
-A persisted registry admits 100 logical owner/name dimensions by default, stable
-across configuration versions and restart. Further names aggregate as
-`context="__other__"`. Assignment is lifetime-bounded rather than reused after
-shutdown. `metrics.maxContexts` accepts 0–10,000; increasing it admits future
-names and does not relabel previously enrolled overflow names. Optional
-`metrics.contextAliases` entries contain owner, name and alias; configure them
-before first enrollment. Assigned aliases cannot be renamed. The admin API
-exposes `metricContext` for drill-through. Keep cap/overrides identical on replicas.
-
-Shared state (**S**) and observations (**O**) appear on every server. Deduplicate
-by deployment and all business dimensions *before* summing or taking rates:
-
-```promql
-sum(max by (cluster, namespace, linha_deployment, engine, context, state)
-  (linha_job_records{state="RUNNING"}))
-
-sum(rate((max by (cluster, namespace, linha_deployment, engine, context, source)
-  (linha_job_submissions_total))[5m:15s]))
-
-sum(rate(linha_api_requests_total[5m]))
-```
-
-The last query is local (**L**): calculate rates for each process series first,
-then sum. Histograms follow the same rule, including `le` in shared bucket
-deduplication. Never sum shared server copies, average counts, or deduplicate
-local counters. Scope deployments when using these examples.
-
-## Helm integrations
-
-Neither monitoring resource is enabled by default. Both are independently
-optional and add no Linha ClusterRole. A ServiceMonitor selects the release's
-labelled Service and named HTTP port, discovering each pod independently,
-including unready pods while their metrics endpoint is reachable.
+The metrics route is enabled by default. With Prometheus Operator installed:
 
 ```yaml
 metrics:
   enabled: true
   cluster: production
-  maxContexts: 100
   serviceMonitor:
     enabled: true
     labels:
@@ -129,6 +19,26 @@ metrics:
     interval: 30s
     scrapeTimeout: 10s
     sampleLimit: 100000
+```
+
+Set labels that match your Prometheus ServiceMonitor selector. The resource
+selects the release Service's named HTTP port and discovers each server Pod
+independently. It adds no Linha ClusterRole. Keep scrape access inside your
+operational network; the metrics route does not use application OAuth or admin
+sessions.
+
+Without the operator, configure Prometheus to scrape each Pod rather than one
+load-balanced Service address. Cluster, namespace, deployment and Pod labels
+come from scrape discovery.
+
+## 2. Install the dashboard
+
+Import [the dashboard JSON](https://github.com/k3rnL/linha/blob/main/deploy/helm/linha/dashboards/linha-operations.json)
+into Grafana and choose its Prometheus datasource. Alternatively, with Grafana
+Operator installed:
+
+```yaml
+metrics:
   grafanaDashboard:
     enabled: true
     instanceSelector:
@@ -137,87 +47,102 @@ metrics:
     folder: Linha
     datasourceUID: prometheus
     allowCrossNamespaceImport: false
-    resyncPeriod: 10m
 ```
 
-Use a Prometheus selector that matches your ServiceMonitor labels and namespace;
-its service account needs discovery access in the release namespace. Stable
-scrape labels are namespace/service/pod/instance/linha_deployment, plus cluster
-when configured. Supported options include relabelings, metricRelabelings,
-scheme, tlsConfig and authorization. CRD transport fields are passed through;
-configure a proxy/service mesh if your deployment terminates HTTPS externally.
-The server metrics route itself has no SDK/admin authentication. Restrict scrape
-network access using your existing network policy or proxy.
+ServiceMonitor and GrafanaDashboard are independently optional. Enabling either
+requires its installed CRD. For offline Helm rendering, pass the corresponding
+`--api-versions` flag. Set `ui.grafanaURL` to link from the console.
 
-Install Prometheus Operator (`monitoring.coreos.com/v1`) before enabling
-ServiceMonitor, and Grafana Operator (`grafana.integreatly.org/v1beta1`) before
-enabling GrafanaDashboard. Missing APIs produce a clear Helm rendering error.
-For offline rendering supply `--api-versions monitoring.coreos.com/v1/ServiceMonitor`
-and/or `--api-versions grafana.integreatly.org/v1beta1/GrafanaDashboard`.
-Timeout must not exceed interval; chart values use positive integer seconds.
-Reserved selector labels cannot be overridden by user monitoring labels.
+## 3. Read the dashboard
 
-## Dashboard import
+| Question | Relevant panels |
+| --- | --- |
+| Is work moving? | Running, queued, succeeded and failed queries; completion rate and success rate |
+| Where is time spent? | Queue wait, attempt processing, end-to-end duration and oldest queued request |
+| Do we have capacity? | Connected clients, active versions, ready workers and occupied/available slots |
+| What resources are allocated? | Running drivers/executors; CPU and memory requests/limits |
+| Are measurements trustworthy? | Ready servers, collector age, API/dependency failures and observation completeness |
 
-The standalone dashboard is
-[linha-operations.json](../deploy/helm/linha/dashboards/linha-operations.json).
-Import it through Grafana's dashboard import page and select your Prometheus
-datasource. Alternatively enable GrafanaDashboard with an instance selector and
-datasource UID. The chart adds console links only when the UI is enabled.
+Filter by cluster, namespace, deployment, engine and context. Completed outcomes
+refer to the selected time range, not the lifetime count of retained job records.
+Success rate excludes cancellation. Processing time measures completed attempts;
+retries count separately. End-to-end time includes queueing and retries.
 
-The default view has 17 panels arranged around three questions:
+CPU/memory panels show **allocations**, not live usage. Use your existing container
+metrics source for usage. Retired instances are excluded; missing or stale engine
+observations make the total unavailable rather than showing a partial healthy sum.
 
-- **Queries:** running and queued now, succeeded and failed during the selected
-  time range, success rate, ready servers, activity over time and completions/minute.
-- **Time spent waiting and processing:** average and p95 execution time, median
-  and p95 queue wait, end-to-end request time, and the oldest queued request.
-- **Capacity and resources:** client connections and context versions, ready
-  workers and execution slots, running Spark drivers/executors, CPU requests/limits
-  and memory requests/limits.
+## 4. Write correct HA queries
 
-Four diagnostic panels remain in a collapsed row: server readiness, monitoring
-data age, API failures and dependency errors. All exported metrics remain available
-for custom dashboards; simplifying the default view does not remove instrumentation.
+All server replicas export the same durable business state. Deduplicate those
+copies before summing or taking rates. Local HTTP/runtime counters belong to each
+process; calculate each process rate and then sum.
 
-Cascading variables filter cluster, namespace, deployment, engine and context.
-Server health is deployment-wide, as its caption explains. The server-pod variable
-is hidden and applies only to diagnostics. Chart-managed console links open the
-Overview, Contexts and Requests pages. Aggregated series do not carry a single
-context identity, so they do not link to an arbitrary context.
+Running requests across the selected deployment:
 
-Outcome totals are scrape-based estimates for the selected dashboard period,
-not lifetime totals. Success rate excludes cancellations. Processing time measures
-finished attempts (retries count separately); end-to-end time includes queueing
-and retries. No completed executions means no duration/percentage. Oldest queue
-age uses the maximum across contexts. Shared queries deduplicate all business
-dimensions before aggregation/rate; local event rates are calculated per replica.
+```promql
+sum(max by (cluster, namespace, linha_deployment, engine, context, state) (
+  linha_job_records{state="RUNNING"}
+))
+```
 
-Pod requests/limits are **allocations, not actual resource usage**. Measuring usage
-requires an external container metrics source. Retired instances do not contribute.
-If any required observation in the selected scope is stale or incomplete, the
-resource total is unavailable rather than a sum of just the healthy instances.
+Ready and backoff work in the queue:
 
-Regenerate using `python3 scripts/generate-dashboard.py`. Validate layout, all
-40 expressions and HA/reset/outage fixtures, including the actual generated range
-and allocation queries, with `python3 scripts/check-observability.py` (Docker and
-Prometheus 3.7.1). Dashboard UID `linha-operations` is preserved; this layout is
-dashboard version 2.
+```promql
+sum by (eligibility) (
+  max by (cluster, namespace, linha_deployment, engine, context, eligibility) (
+    linha_queue_jobs
+  )
+)
+```
 
-## Compatibility
+Failed jobs over five minutes:
 
-For one release the old names/shapes remain: unlabeled
-`linha_http_requests_total`, `linha_http_errors_total`, and shared
-`linha_jobs{state}`, `linha_queue_oldest_seconds`, `linha_running_attempts`,
-`linha_expired_leases`, `linha_ready_workers`, `linha_worker_slots`,
-`linha_backend_conditions`, `linha_retained_results`. The running-attempt alias
-includes expired attempts; expired leases are its subset. Prefer typed families
-for new dashboards. These aliases are shared too and require HA deduplication.
+```promql
+sum(increase((
+  max by (cluster, namespace, linha_deployment, engine, context, outcome) (
+    linha_job_completions_total{outcome="FAILED"}
+  )
+)[5m:15s]))
+```
 
-Migrations 7–9 add the read model, metric accounting and admin sessions/audit.
-Migration 10 adds client hostnames and indexes for the admin Overview.
-Back up PostgreSQL and deploy the matching server/chart. Migration is serialized
-and preserves existing ownership, IDs, policy snapshots and result paths.
-Exposure rollback means disabling the UI/monitoring; do not automatically
-downgrade schema or start an older binary that rejects schema 10. These changes
-have bounded fixture evidence, not a production capacity guarantee. See
-[validation](admin-observability-validation.md).
+p95 processing duration of completed attempts:
+
+```promql
+histogram_quantile(0.95, sum by (le) (rate((
+  max by (cluster, namespace, linha_deployment, engine, context, le) (
+    linha_attempt_duration_seconds_bucket
+  )
+)[5m:15s])))
+```
+
+Local API error rate:
+
+```promql
+sum(rate(linha_api_requests_total{status_code=~"5.."}[5m]))
+```
+
+Apply the same deployment filters to every expression when several deployments
+share Prometheus. Shared histogram deduplication must include `le`. The complete
+[metric reference](metrics.md) identifies each family's scope and labels.
+
+## Diagnose missing data or excess API traffic
+
+Database snapshots refresh every ten seconds with a two-second timeout. Scrapes
+read a cache and do not call PostgreSQL, Kubernetes or storage. A failed collection
+omits shared families and still returns local metrics with HTTP 200; it does not
+pretend the queue is empty. Check collector success and last-success timestamps.
+
+Context labels are lifetime-bounded: the first `metrics.maxContexts` owner/name
+dimensions get stable labels, and further names aggregate as `__other__`.
+No job ID, exception text, owner, result URI or version hash becomes a metric label.
+
+Active capacity reconciles frequently. Retired engine resources are inventoried
+once per minute per replica, independent of dead history size. In an empty namespace
+this costs three collection requests per minute per replica. Repeated individual
+GET/DELETE 404s from an idle deployment can indicate an older replica still running.
+Inspect the process-local `linha_kubernetes_api_requests_total` rate by
+`resource`, `verb` and `outcome`.
+
+Engine cleanup is automatic; result-file cleanup is a separate opt-in setting.
+See [result retention](retention-proposal.md) and [validation](admin-observability-validation.md).

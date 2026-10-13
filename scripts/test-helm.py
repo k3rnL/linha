@@ -13,12 +13,14 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 CHART = ROOT / "deploy/helm/linha"
 
 
-def render(*settings, succeeds=True, api_versions=()):
+def render(*settings, succeeds=True, api_versions=(), json_settings=()):
     command = ["helm", "template", "test", str(CHART), "--namespace", "isolated"]
     for version in api_versions:
         command += ["--api-versions", version]
     for setting in settings:
         command += ["--set", setting]
+    for setting in json_settings:
+        command += ["--set-json", setting]
     with tempfile.TemporaryDirectory(prefix="linha-helm-plugins-") as plugins:
         result = subprocess.run(
             command,
@@ -145,6 +147,7 @@ class ChartConfiguration(unittest.TestCase):
             "ui.enabled=true",
             "ui.publicURL=https://linha.example/ui/",
             "security.oidc.enabled=false",
+            "security.api.enabled=false",
             succeeds=False,
         )
         render("security.enabled=false", "ui.enabled=true", succeeds=False)
@@ -158,7 +161,7 @@ class ChartConfiguration(unittest.TestCase):
             "ui.enabled=true",
             "ui.publicURL=https://linha.example/ui/",
             "security.oidc.issuer=https://issuer.example",
-            "security.oidc.audience=sdk",
+            "security.api.jwt.issuer=https://api.example",
             "ui.oidc.clientId=browser",
             "ui.oidc.secretRef=browser-secret",
             "ui.oidc.clientSecretKey=secret",
@@ -172,6 +175,104 @@ class ChartConfiguration(unittest.TestCase):
         self.assertEqual(
             environment(docs)["LINHA_UI_OIDC_CLIENT_ID"]["value"], "browser"
         )
+
+    def test_admin_mappings_reject_misplaced_oidc_nesting(self):
+        settings = (
+            "ui.enabled=true",
+            "ui.publicURL=https://linha.example/ui/",
+            "security.oidc.issuer=https://issuer.example",
+            "security.api.jwt.issuer=https://api.example",
+            "ui.oidc.clientId=browser",
+        )
+        rules = {"claims": [{"path": ["groups"], "values": ["linha-group"]}]}
+        mappings = {"viewer": rules, "operator": rules}
+        self.assertIn(
+            "admin",
+            render(
+                *settings,
+                json_settings=("security.oidc.admin=" + json.dumps(mappings),),
+                succeeds=False,
+            ),
+        )
+        docs = render(
+            *settings, json_settings=("security.admin=" + json.dumps(mappings),)
+        )
+        rendered = json.loads(environment(docs)["LINHA_ADMIN_MAPPINGS"]["value"])
+        for role in ("viewer", "operator"):
+            self.assertEqual(rendered[role]["claims"], rules["claims"])
+            self.assertEqual(rendered[role]["subjects"], [])
+
+    def test_browser_oidc_scopes_defaults_and_custom_lists(self):
+        disabled = environment(render("security.enabled=false"))
+        self.assertNotIn("LINHA_UI_OIDC_SCOPES", disabled)
+        settings = (
+            "ui.enabled=true",
+            "ui.publicURL=https://linha.example/ui/",
+            "security.oidc.issuer=https://issuer.example",
+            "security.api.jwt.issuer=https://api.example",
+            "ui.oidc.clientId=browser",
+        )
+        self.assertEqual(
+            json.loads(environment(render(*settings))["LINHA_UI_OIDC_SCOPES"]["value"]),
+            ["openid", "profile", "email"],
+        )
+        for scopes in (
+            ["openid"],
+            ["openid", "groups"],
+            ["openid", "profile", "email", "groups"],
+            ["api://linha/read", "openid", "groups"],
+        ):
+            with self.subTest(scopes=scopes):
+                docs = render(
+                    *settings, json_settings=("ui.oidc.scopes=" + json.dumps(scopes),)
+                )
+                self.assertEqual(
+                    json.loads(environment(docs)["LINHA_UI_OIDC_SCOPES"]["value"]),
+                    scopes,
+                )
+        anonymous = render(
+            "security.enabled=false",
+            "ui.enabled=true",
+            "ui.publicURL=http://linha.example/ui/",
+        )
+        self.assertEqual(
+            json.loads(environment(anonymous)["LINHA_UI_OIDC_SCOPES"]["value"]),
+            ["openid", "profile", "email"],
+        )
+
+    def test_browser_oidc_scopes_reject_invalid_lists(self):
+        settings = (
+            "ui.enabled=true",
+            "ui.publicURL=https://linha.example/ui/",
+            "security.oidc.issuer=https://issuer.example",
+            "security.api.jwt.issuer=https://api.example",
+            "ui.oidc.clientId=browser",
+        )
+        for scopes in (
+            None,
+            [],
+            "openid groups",
+            {},
+            ["groups"],
+            ["openid", ""],
+            ["openid", "group name"],
+            ["openid", "group\nname"],
+            ["openid", 'group"name'],
+            ["openid", "group\\name"],
+            ["openid", "grüppe"],
+            ["openid", "groups", "groups"],
+            ["openid", 123],
+            ["openid", None],
+        ):
+            with self.subTest(scopes=scopes):
+                self.assertIn(
+                    "scopes",
+                    render(
+                        *settings,
+                        json_settings=("ui.oidc.scopes=" + json.dumps(scopes),),
+                        succeeds=False,
+                    ),
+                )
 
     def test_ui_ingress_disabled_preserves_external_routing(self):
         for settings in (
@@ -232,7 +333,7 @@ class ChartConfiguration(unittest.TestCase):
             "ui.enabled=true",
             "ui.publicURL=https://linha.example/ui/",
             "security.oidc.issuer=https://issuer.example",
-            "security.oidc.audience=sdk",
+            "security.api.jwt.issuer=https://api.example",
             "ui.oidc.clientId=browser",
             "ui.ingress.enabled=true",
             "ui.ingress.className=nginx",
@@ -345,7 +446,7 @@ class ChartConfiguration(unittest.TestCase):
                     f"security.oidc.enabled={str(oidc).lower()}",
                     f"rbac.namespaceOnly={str(namespace).lower()}",
                     "security.oidc.issuer=https://issuer.example",
-                    "security.oidc.audience=linha",
+                    "security.api.jwt.issuer=https://api.example",
                 )
                 cluster = [d["kind"] for d in docs if d["kind"].startswith("Cluster")]
                 self.assertEqual(
@@ -403,7 +504,7 @@ class ChartConfiguration(unittest.TestCase):
                     f"security.enabled={str(enabled).lower()}",
                     f"rbac.namespaceOnly={str(namespace).lower()}",
                     "security.oidc.issuer=https://issuer.example",
-                    "security.oidc.audience=linha",
+                    "security.api.jwt.issuer=https://api.example",
                 )
                 worker = next(
                     d
@@ -464,6 +565,7 @@ class ChartConfiguration(unittest.TestCase):
     def test_secret_keys_and_disabled_oidc(self):
         docs = render(
             "security.oidc.enabled=false",
+            "security.api.enabled=false",
             "database.postgres.secretRef=my-db",
             "database.postgres.usernameKey=db-user",
             "database.postgres.passwordKey=db-password",
@@ -551,7 +653,7 @@ class ChartConfiguration(unittest.TestCase):
                     f"security.oidc.enabled={str(oidc).lower()}",
                     f"security.oidc.tls.insecureSkipVerify={str(skip).lower()}",
                     "security.oidc.issuer=https://issuer.example",
-                    "security.oidc.audience=linha",
+                    "security.api.jwt.issuer=https://api.example",
                 )
                 env = environment(docs)
                 self.assertEqual(env[key]["value"], str(skip).lower())
@@ -582,7 +684,7 @@ class ChartConfiguration(unittest.TestCase):
                 for legacy in (False, True):
                     docs = render(
                         "security.oidc.issuer=https://issuer.example",
-                        "security.oidc.audience=sdk",
+                        "security.api.jwt.issuer=https://api.example",
                         "ui.enabled=true",
                         "ui.publicURL=https://linha.example/ui/",
                         "ui.oidc.clientId=browser",
@@ -602,11 +704,50 @@ class ChartConfiguration(unittest.TestCase):
                     else:
                         self.assertNotIn("issuer", rule)
 
+    def test_independent_api_and_browser_authentication(self):
+        settings = (
+            "security.api.jwt.issuer=https://api.example",
+            "security.oidc.issuer=https://browser.example",
+            "ui.enabled=true",
+            "ui.publicURL=https://linha.example/ui/",
+            "ui.oidc.clientId=browser",
+        )
+        env = environment(render(*settings))
+        self.assertEqual(env["LINHA_API_JWT_ISSUER"]["value"], "https://api.example")
+        self.assertEqual(env["LINHA_OIDC_ISSUER"]["value"], "https://browser.example")
+        self.assertEqual(env["LINHA_API_JWT_AUDIENCE"]["value"], "linha")
+        self.assertNotIn("LINHA_OIDC_AUDIENCE", env)
+        for api, browser in itertools.product((False, True), repeat=2):
+            env = environment(
+                render(
+                    *settings,
+                    f"security.api.jwt.tls.insecureSkipVerify={str(api).lower()}",
+                    f"security.oidc.tls.insecureSkipVerify={str(browser).lower()}",
+                )
+            )
+            self.assertEqual(
+                env["LINHA_API_JWT_TLS_INSECURE_SKIP_VERIFY"]["value"], str(api).lower()
+            )
+            self.assertEqual(
+                env["LINHA_OIDC_TLS_INSECURE_SKIP_VERIFY"]["value"],
+                str(browser).lower(),
+            )
+        render(*settings, "security.oidc.audience=old", succeeds=False)
+        render(
+            *settings, "security.api.jwt.tls.insecureSkipVerify=typo", succeeds=False
+        )
+        env = environment(render(*settings, "security.api.enabled=false"))
+        self.assertEqual(env["LINHA_API_AUTH_ENABLED"]["value"], "false")
+
     def test_invalid_configuration(self):
-        self.assertIn("security.oidc.issuer", render(succeeds=False))
+        self.assertIn("security.api.jwt.issuer", render(succeeds=False))
         self.assertIn(
-            "security.oidc.audience",
-            render("security.oidc.issuer=https://issuer.example", succeeds=False),
+            "security.api.jwt.audience",
+            render(
+                "security.api.jwt.issuer=https://issuer.example",
+                "security.api.jwt.audience=",
+                succeeds=False,
+            ),
         )
         for setting in (
             "existingSecret=old",

@@ -4,9 +4,12 @@
 {{- if or (hasKey .Values "mode") (hasKey .Values "deploymentMode") (hasKey .Values "existingSecret") (hasKey .Values "oidc") -}}
 {{- fail "Legacy mode/deploymentMode/existingSecret/oidc values were removed: use database.postgres, security, and s3.secretRef; see docs/operations.md" -}}
 {{- end -}}
-{{- if and .Values.security.enabled .Values.security.oidc.enabled -}}
+{{- if and .Values.security.enabled .Values.security.api.enabled -}}
+{{- $_ := required "security.api.jwt.issuer is required when API authentication is enabled" .Values.security.api.jwt.issuer -}}
+{{- $_ := required "security.api.jwt.audience is required when API authentication is enabled" .Values.security.api.jwt.audience -}}
+{{- end -}}
+{{- if and .Values.security.enabled .Values.ui.enabled .Values.security.oidc.enabled -}}
 {{- $_ := required "security.oidc.issuer is required when OIDC is enabled" .Values.security.oidc.issuer -}}
-{{- $_ := required "security.oidc.audience is required when OIDC is enabled" .Values.security.oidc.audience -}}
 {{- end -}}
 {{- range $key := list "host" "database" "secretRef" "usernameKey" "passwordKey" -}}
 {{- $_ := required (printf "database.postgres.%s is required" $key) (index $.Values.database.postgres $key) -}}

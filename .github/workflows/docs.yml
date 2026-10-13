@@ -1,0 +1,87 @@
+name: documentation
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: documentation-${{ github.event_name == 'pull_request' && github.ref || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: docs/requirements.txt
+      - run: python -m pip install -r docs/requirements.txt
+      - name: Check standalone public content
+        run: python scripts/check-public-content.py
+      - name: Build with strict navigation and link validation
+        run: mkdocs build --strict
+      - name: Verify frozen versions and private artifact exclusion
+        run: python scripts/check-docs.py
+  publish:
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref,
+      'refs/tags/v'))
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: docs/requirements.txt
+      - run: python -m pip install -r docs/requirements.txt
+      - name: Load previously published snapshots
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git ls-remote --exit-code --heads origin docs-pages >/dev/null; then
+            git fetch origin docs-pages:docs-pages
+          fi
+      - name: Build this documentation version
+        env:
+          SOURCE_REF: ${{ github.sha }}
+          RELEASE_REF: ${{ github.ref_name }}
+          IS_TAG: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          version=dev
+          if [ "$IS_TAG" = true ]; then version="${RELEASE_REF#v}"; fi
+          python scripts/build-docs-site.py --version "$version" \
+            --source-ref "$SOURCE_REF" --output /tmp/linha-documentation-site
+      - name: Check rendered public content
+        run: python scripts/check-public-content.py --directory /tmp/linha-documentation-site
+      - name: Preserve version snapshots
+        run: git push origin docs-pages:docs-pages
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v4
+        with:
+          path: /tmp/linha-documentation-site
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v4
