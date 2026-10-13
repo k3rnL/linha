@@ -22,3 +22,7 @@ Verified locally on 2026-10-13. Built-in application credential acquisition uses
 ## Scope limits
 
 API JWT and browser OIDC settings are deliberately independent. Matching new chart/server/SDK builds are required; older deployed applications that read client JWT files must be rebuilt. Internal Spark worker projected credentials remain unchanged. No owner migration, legacy configuration fallback or immutable artifact replacement is implemented. Disposable identity/database fixtures were removed after checks.
+
+## Published checks
+
+The complete GitHub source CI passed before the final public-content guard cleanup, including the real identity-provider exchange, signed release bundle and process-restart checks: https://github.com/k3rnL/linha/actions/runs/38419946168. This is source verification, not a new Maven Central release or live application rollout.

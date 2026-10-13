@@ -1,44 +1,83 @@
 #!/usr/bin/env python3
-"""Reject known private identifiers and personal workspace paths in public files.
+"""Check public files for workspace paths and externally configured identifiers.
 
-Identifiers are represented by one-way digests so this check does not itself
-publish them. It reports locations without echoing source text or secrets.
+The optional LINHA_PUBLIC_CONTENT_DENYLIST is a JSON array supplied by the caller.
+No organization-specific policy is embedded here. Diagnostics report locations
+without echoing source text or configured identifiers.
 """
 
 import argparse
-import hashlib
+import json
+import os
 import pathlib
 import re
 import subprocess
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-PRIVATE_DIGESTS = set()
+DENYLIST_ENV = "LINHA_PUBLIC_CONTENT_DENYLIST"
+IDENTIFIER = re.compile(r"[A-Za-z][A-Za-z0-9_.-]*\Z")
 PERSONAL_PATH = re.compile(
     rb"/(?:home|Users)/[^/\s]+/(?:IdeaProjects|GoLandProjects|\.codex)(?:/|\b)"
 )
 
 
-def contains_private_identifier(line):
+def parse_denylist(raw, required=False):
+    if not raw:
+        if required:
+            raise ValueError(
+                DENYLIST_ENV + " must contain a nonempty JSON array of identifiers"
+            )
+        return frozenset()
+    try:
+        identifiers = json.loads(raw)
+    except (TypeError, ValueError):
+        raise ValueError(
+            DENYLIST_ENV + " must be a JSON array of identifiers"
+        ) from None
+    if not isinstance(identifiers, list) or any(
+        not isinstance(value, str) or not IDENTIFIER.fullmatch(value)
+        for value in identifiers
+    ):
+        raise ValueError(DENYLIST_ENV + " must be a JSON array of nonempty identifiers")
+    if required and not identifiers:
+        raise ValueError(
+            DENYLIST_ENV + " must contain a nonempty JSON array of identifiers"
+        )
+    return frozenset(value.lower().strip(".-").encode("ascii") for value in identifiers)
+
+
+def configured_denylist(required=False):
+    return parse_denylist(os.environ.get(DENYLIST_ENV), required)
+
+
+def contains_private_identifier(line, denylist=None):
+    if denylist is None:
+        denylist = configured_denylist()
+    if not denylist:
+        return False
     for token in re.findall(rb"[a-zA-Z][a-zA-Z0-9_.-]*", line):
         token = token.lower().strip(b".-")
         candidates = {token}
         candidates.update(re.split(rb"[_.-]", token))
         parts = token.split(b".")
+        candidates.update(parts)
         candidates.update(b".".join(parts[i:]) for i in range(len(parts)))
-        if any(
-            hashlib.sha256(value).hexdigest() in PRIVATE_DIGESTS for value in candidates
-        ):
+        # A corporate package prefix can be inside a longer dotted class name.
+        candidates.update(b".".join(parts[i : i + 2]) for i in range(len(parts) - 1))
+        if candidates & denylist:
             return True
     return False
 
 
-def inspect(path, content):
+def inspect(path, content, denylist=None):
+    if denylist is None:
+        denylist = configured_denylist()
     if b"\0" in content:
         return []
     return [
-        f"{path}:{number}: private identifier or personal workspace path"
+        f"{path}:{number}: restricted identifier or personal workspace path"
         for number, line in enumerate(content.splitlines(), 1)
-        if contains_private_identifier(line) or PERSONAL_PATH.search(line)
+        if contains_private_identifier(line, denylist) or PERSONAL_PATH.search(line)
     ]
 
 
@@ -56,7 +95,16 @@ def main():
         type=pathlib.Path,
         help="Audit a generated directory instead of source files",
     )
+    parser.add_argument(
+        "--require-denylist",
+        action="store_true",
+        help="Fail when the external identifier denylist is missing or empty",
+    )
     args = parser.parse_args()
+    try:
+        denylist = configured_denylist(args.require_denylist)
+    except ValueError as error:
+        parser.error(str(error))
     violations = []
     if args.directory:
         directory = args.directory.resolve(strict=True)
@@ -65,7 +113,9 @@ def main():
         for path in directory.rglob("*"):
             if path.is_file() and ".git" not in path.relative_to(directory).parts:
                 violations.extend(
-                    inspect(str(path.relative_to(directory)), path.read_bytes())
+                    inspect(
+                        str(path.relative_to(directory)), path.read_bytes(), denylist
+                    )
                 )
     else:
         files = git(
@@ -77,7 +127,7 @@ def main():
             path = ROOT / value.decode()
             if path.is_file():
                 violations.extend(
-                    inspect(str(path.relative_to(ROOT)), path.read_bytes())
+                    inspect(str(path.relative_to(ROOT)), path.read_bytes(), denylist)
                 )
     commits = 0
     if args.history:
@@ -86,7 +136,9 @@ def main():
             commits += 1
             violations.extend(
                 inspect(
-                    f"commit {commit[:12]}", git("show", "-s", "--format=%B", commit)
+                    f"commit {commit[:12]}",
+                    git("show", "-s", "--format=%B", commit),
+                    denylist,
                 )
             )
             for entry in git("ls-tree", "-r", "-z", commit).split(b"\0"):
@@ -101,6 +153,7 @@ def main():
                     inspect(
                         f"{commit[:12]}:{path.decode()}",
                         git("cat-file", "blob", oid.decode()),
+                        denylist,
                     )
                 )
     if violations:

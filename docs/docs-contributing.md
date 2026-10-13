@@ -28,6 +28,42 @@ not write to GitHub or alter branches in your checkout.
 Generated `site/` output is ignored. Local validation logs and JSON evidence are
 excluded from the site even when they exist under `docs/validation/`.
 
+## Audit public content
+
+CI runs the generic workspace-path check and its synthetic fixture tests. It does
+not contain organization-specific names, identifier hashes or a private denylist.
+Fork pull requests run the same generic checks without receiving private policy.
+
+Maintainers can perform an additional **local-only** identifier audit. Supply
+`LINHA_PUBLIC_CONTENT_DENYLIST` as a JSON array of identifiers. For example, a
+policy for an invented integration could contain:
+
+```json
+["internal-workload", "corp.example", "io.example"]
+```
+
+Keep the real policy outside the checkout and generated site. Load it from a
+private local file and require it before inspecting source, history or output:
+
+```sh
+export LINHA_PUBLIC_CONTENT_DENYLIST="$(cat /tmp/linha-private-denylist.json)"
+python3 scripts/check-public-content.py --require-denylist
+python3 scripts/check-public-content.py --history --require-denylist
+python3 scripts/check-public-content.py --directory site --require-denylist
+unset LINHA_PUBLIC_CONTENT_DENYLIST
+```
+
+`--require-denylist` fails when the policy is absent, empty or invalid. Omitting
+it permits the generic path check when no policy is configured; a supplied
+malformed policy still fails. Identifier matching is case-insensitive and checks
+whole names, separator components, domain suffixes and adjacent dotted pairs,
+including package prefixes within longer class names. Diagnostics report only
+file/line locations and never matched source text or policy values.
+
+Do not commit the policy, embed hashes of its values or send it to CI. The local
+identifier audit complements the generic CI check; CI success does not establish
+that an organization-specific audit has run.
+
 ## Choose one page purpose
 
 | Reader need | Page type | Writing pattern |
