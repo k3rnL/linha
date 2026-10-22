@@ -52,6 +52,18 @@ class ReleasePreparation(unittest.TestCase):
     def validate(self, tag=None, repository="fixture/linha"):
         return release.validate(self.root, tag or self.tag, repository)
 
+    def test_publication_manifest_includes_every_sdk_module(self):
+        project = ET.parse(release.ROOT / "pom.xml").getroot()
+        sdk_modules = {
+            node.text
+            for node in project.findall(
+                "./{" + release.NS + "}modules/{" + release.NS + "}module"
+            )
+            if node.text.startswith("sdk/")
+        }
+        self.assertEqual(set(release.SDK_MODULES), sdk_modules)
+        self.assertEqual(len(release.SDK_MODULES), len(sdk_modules))
+
     def test_release_and_prerelease_versions(self):
         for version in [self.version, self.version + "-rc.1"]:
             with self.subTest(version=version):

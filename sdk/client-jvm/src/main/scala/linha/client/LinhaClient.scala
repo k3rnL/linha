@@ -82,6 +82,21 @@ final class LinhaClient(baseUrl: String, credentials: CredentialProvider)(implic
       try send()
       catch { case e: LinhaException if e.code == "CLIENT_LEASE_EXPIRED" => acquire(); send() }
     }
+    def storage(destination: String): StorageSession = synchronized {
+      require(!stopped, "LinhaContext is closed")
+      def send(): Json = transport.call(
+        "POST",
+        path + "/storage-sessions",
+        Json.obj("destination" -> destination.asJson, "clientLease" -> lease.asJson)
+      )
+      val json =
+        try send()
+        catch {
+          case e: LinhaException if e.code == "STALE_ATTEMPT" || e.code == "CLIENT_LEASE_EXPIRED" =>
+            acquire(); send()
+        }
+      StorageSession.fromJson(baseUrl, json)
+    }
     def stop(): Unit = synchronized {
       if (!stopped) {
         stopped = true; renewal.cancel(false)
@@ -167,6 +182,10 @@ final class LinhaContext private[client] (
   def status(): Future[Json] = Future(
     blocking(client.transport.call("GET", "/v1/contexts/" + client.segment(id)))
   )
+  def storage(destination: String): Future[StorageSession] = Future(blocking {
+    require(!closed.get(), "LinhaContext is closed")
+    attachment.storage(destination)
+  })
   def submitRaw(
       request: RawRequest,
       idempotencyKey: String = UUID.randomUUID().toString,
@@ -237,21 +256,27 @@ final class JobHandle[R](
       if (actual != expected)
         throw LinhaException(409, "SCHEMA_MISMATCH", "stored result does not match this handle")
       val files = metadata.hcursor.get[Vector[ResultFile]]("files").fold(throw _, identity)
-      val json = if (expected.kind == "json") {
-        require(files.size == 1, "JSON result must have one file")
-        val input =
-          client.transport.open(path + "/files/" + client.segment(files.head.allocationId))
-        try {
-          val bytes = input.readNBytes(64 * 1024 * 1024 + 1)
-          if (bytes.length > 64 * 1024 * 1024)
-            throw LinhaException(413, "RESULT_TOO_LARGE", "use streaming download for large values")
-          io.circe.parser.parse(new String(bytes, StandardCharsets.UTF_8)).fold(throw _, identity)
-        } finally input.close()
-      } else
-        Json.obj(
-          "files" -> files.asJson,
-          "dataset" -> metadata.hcursor.get[Json]("dataset").getOrElse(Json.Null)
-        )
+      val json =
+        if (expected.kind == "status") Json.Null
+        else if (expected.kind == "json") {
+          require(files.size == 1, "JSON result must have one file")
+          val input =
+            client.transport.open(path + "/files/" + client.segment(files.head.allocationId))
+          try {
+            val bytes = input.readNBytes(64 * 1024 * 1024 + 1)
+            if (bytes.length > 64 * 1024 * 1024)
+              throw LinhaException(
+                413,
+                "RESULT_TOO_LARGE",
+                "use streaming download for large values"
+              )
+            io.circe.parser.parse(new String(bytes, StandardCharsets.UTF_8)).fold(throw _, identity)
+          } finally input.close()
+        } else
+          Json.obj(
+            "files" -> files.asJson,
+            "dataset" -> metadata.hcursor.get[Json]("dataset").getOrElse(Json.Null)
+          )
       decoder.decodeJson(json).fold(throw _, identity)
     }
   }

@@ -58,6 +58,7 @@ type Admin struct {
 	Verifier       *oidc.IDTokenVerifier
 	Origin         string
 	Secure         bool
+	provider       *oidc.Provider
 	oidcHTTPClient *http.Client
 }
 
@@ -155,6 +156,7 @@ func NewAdmin(ctx context.Context, c AdminConfig, repo domain.BrowserRepository)
 	if e != nil {
 		return nil, e
 	}
+	a.provider = provider
 	a.OAuth = oauth2.Config{ClientID: c.ClientID, ClientSecret: c.ClientSecret, Endpoint: provider.Endpoint(), RedirectURL: strings.TrimSuffix(c.PublicURL, "/") + "/oidc/callback", Scopes: append([]string(nil), c.Scopes...)}
 	a.Verifier = provider.Verifier(&oidc.Config{ClientID: c.ClientID})
 	return a, nil
@@ -354,9 +356,23 @@ func (a *Admin) Identity(ctx context.Context, r *http.Request, mutate bool) (id 
 			}
 			return id, e
 		}
+		if mutate && (r.Header.Get("Origin") != a.Origin || subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Linha-CSRF")), []byte(session.CSRF)) != 1) {
+			return id, &domain.Error{Code: "CSRF_REJECTED", Message: "same-origin CSRF token required", Status: 403}
+		}
+		session, e = a.renewBrowserSession(ctx, value, session)
+		if e != nil {
+			return id, e
+		}
 		if e = json.Unmarshal(session.Claims, &claims); e != nil {
 			return id, Unauthorized
 		}
+		if claims["iss"] != a.Config.Issuer {
+			return id, Unauthorized
+		}
+		if a.Config.ClientID != "" && !matchesAdminValues(adminClaimValues(claims["aud"]), []string{a.Config.ClientID}) {
+			return id, Unauthorized
+		}
+
 		id.CSRF = session.CSRF
 		id.ExpiresAt = &session.ExpiresAt
 		if mutate && (r.Header.Get("Origin") != a.Origin || subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Linha-CSRF")), []byte(session.CSRF)) != 1) {
@@ -427,14 +443,24 @@ func (a *Admin) Callback(w http.ResponseWriter, r *http.Request) error {
 		return Forbidden
 	}
 	expiry := time.Now().Add(time.Duration(a.Config.SessionSeconds) * time.Second)
-	if id.Expiry.Before(expiry) {
-		expiry = id.Expiry
-	}
-	if !expiry.After(time.Now()) {
+	authExpiry := authenticationExpiry(id.Expiry, token, expiry)
+	if !authExpiry.After(time.Now()) {
 		return Unauthorized
 	}
+	if id.AccessTokenHash != "" && id.VerifyAccessToken(token.AccessToken) != nil {
+		return Unauthorized
+	}
+	if token.RefreshToken == "" {
+		expiry = authExpiry
+	}
 	value := randomSecret()
-	session := domain.BrowserSession{Hash: secretHash(value), Claims: domain.JSON(claims), CSRF: randomSecret(), ExpiresAt: expiry}
+	session := domain.BrowserSession{Hash: secretHash(value), Claims: domain.JSON(claims), CSRF: randomSecret(), ExpiresAt: expiry, AuthExpiresAt: &authExpiry}
+	if token.RefreshToken != "" {
+		session.RefreshCipher, e = encryptBrowserTokens(value, browserTokens{Token: *token, Nonce: l.Nonce, ClientID: a.Config.ClientID})
+		if e != nil {
+			return e
+		}
+	}
 	if e = a.Repo.SaveSession(call, session); e != nil {
 		return e
 	}

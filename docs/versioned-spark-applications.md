@@ -7,6 +7,14 @@ driver. Kubeflow Spark Operator submits it, and Spark creates driver/executor Po
 This guide assumes the operator watches the Linha namespace and your worker image
 contains the declared JVM main class and JAR. See [deployment](operations.md).
 
+New driver Pods use `<context-name>-<instance-id>-driver`, for example
+`reporting-0123456789abcdef0123456789abcdef-driver`. Linha lowercases the context
+prefix, replaces unsupported characters with hyphens and limits that prefix to
+23 characters, keeping the complete unique instance ID within Kubernetes' 63-character
+name limit. A name with no supported characters uses `context` as its prefix.
+Existing applications retain their current driver names until a new instance is
+provisioned. No client configuration change is needed.
+
 ## Set the application and resources
 
 ```json

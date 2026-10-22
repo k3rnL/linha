@@ -13,6 +13,8 @@ trait LinhaJobContext[E] {
   def progress(fraction: Double, message: String): Unit
   def isCancelled: Boolean
   def checkCancelled(): Unit
+  def storage(destination: String): StorageSession =
+    throw new UnsupportedOperationException("application storage is unavailable")
   def results: ResultWriter
   def onCleanup(action: () => Unit): Unit
 }
@@ -53,6 +55,7 @@ final case class ResultDescriptor(kind: String, schema: String, version: Int)
 final case class Capability(handler: String, version: Int, result: ResultDescriptor)
 final case class RawRequest(handler: String, version: Int, payload: Json)
 sealed trait ProducedResult
+case object StatusResult extends ProducedResult
 final case class JsonResult(value: Json) extends ProducedResult
 final case class ArtifactResult(files: Vector[ResultFile]) extends ProducedResult
 final case class DatasetProduced(value: DatasetResult) extends ProducedResult
@@ -67,11 +70,13 @@ final case class EntrypointCodec[J, R](
     resultDecoder: Decoder[R]
 ) {
   def capability: Capability = Capability(id, version, descriptor)
-  def encodeResult(value: R): ProducedResult = value match {
-    case file: FileResult       => ArtifactResult(file.files)
-    case dataset: DatasetResult => DatasetProduced(dataset)
-    case _                      => JsonResult(resultEncoder(value))
-  }
+  def encodeResult(value: R): ProducedResult = if (descriptor.kind == "status") StatusResult
+  else
+    value match {
+      case file: FileResult       => ArtifactResult(file.files)
+      case dataset: DatasetResult => DatasetProduced(dataset)
+      case _                      => JsonResult(resultEncoder(value))
+    }
 }
 object EntrypointCodec {
   def derived[J: Encoder: Decoder, R: Encoder: Decoder: ClassTag](
@@ -80,7 +85,9 @@ object EntrypointCodec {
   ): EntrypointCodec[J, R] = {
     val resultClass = implicitly[ClassTag[R]].runtimeClass
     val kind =
-      if (resultClass == classOf[FileResult]) "file"
+      if (resultClass == java.lang.Void.TYPE || resultClass == classOf[scala.runtime.BoxedUnit])
+        "status"
+      else if (resultClass == classOf[FileResult]) "file"
       else if (resultClass == classOf[DatasetResult]) "dataset"
       else "json"
     EntrypointCodec(

@@ -36,3 +36,7 @@ and `git diff --cached --stat`. Use your own deployment values and credentials
 outside the tracked chart defaults.
 
 Release automation and publisher setup are documented in [releases](docs/releases.md).
+
+Queue-recovery and browser-renewal integration tests use `LINHA_TEST_DATABASE`
+with disposable schemas. The signed HTTPS OIDC fixture is local to the tests and
+needs no provider account. Frontend batch-action tests run with `npm --prefix web test`.

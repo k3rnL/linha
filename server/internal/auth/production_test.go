@@ -182,3 +182,84 @@ func TestOperatorDriverRequiresApplicationOwner(t *testing.T) {
 		t.Fatal("operator driver without ownership accepted")
 	}
 }
+
+func TestContextNamedDriverIdentityFencing(t *testing.T) {
+	const instanceID = "0123456789abcdef0123456789abcdef"
+	name := kube.DriverPodName("reporting", instanceID)
+	for _, scenario := range []string{
+		"valid", "missing owner", "wrong owner", "wrong owner UID", "wrong role", "wrong Pod UID",
+		"wrong service account", "deleting Pod", "wrong context", "wrong instance", "stale incarnation",
+		"unconfigured child", "deleting application", "wrong application context", "application unavailable",
+	} {
+		t.Run(scenario, func(t *testing.T) {
+			labels := map[string]string{"linha.io/context": "context", "linha.io/instance": instanceID, "spark-role": "driver"}
+			owner := map[string]string{"apiVersion": "sparkoperator.k8s.io/v1beta2", "kind": "SparkApplication", "name": "linha-" + instanceID, "uid": "app-uid"}
+			metadata := map[string]any{"uid": "uid", "labels": labels, "ownerReferences": []map[string]string{owner}}
+			serviceAccount := "worker"
+			appLabels := map[string]string{"app.kubernetes.io/managed-by": "linha", "linha.io/context": "context", "linha.io/instance": instanceID}
+			appMetadata := map[string]any{"uid": "app-uid", "labels": appLabels}
+			configuredName := name
+			switch scenario {
+			case "missing owner":
+				metadata["ownerReferences"] = []map[string]string{}
+			case "wrong owner":
+				owner["name"] = "different-application"
+			case "wrong owner UID":
+				owner["uid"] = "stale-app-uid"
+			case "wrong role":
+				labels["spark-role"] = "executor"
+			case "wrong Pod UID":
+				metadata["uid"] = "another-uid"
+			case "wrong service account":
+				serviceAccount = "different-worker"
+			case "deleting Pod":
+				metadata["deletionTimestamp"] = "2026-01-01T00:00:00Z"
+			case "wrong context":
+				labels["linha.io/context"] = "different-context"
+			case "wrong instance":
+				labels["linha.io/instance"] = "fedcba9876543210fedcba9876543210"
+			case "unconfigured child":
+				configuredName = kube.DriverPodName("different", instanceID)
+			case "deleting application":
+				appMetadata["deletionTimestamp"] = "2026-01-01T00:00:00Z"
+			case "wrong application context":
+				appLabels["linha.io/context"] = "different-context"
+			}
+			api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/api/v1/namespaces/test/pods/" + name:
+					json.NewEncoder(w).Encode(map[string]any{"metadata": metadata, "spec": map[string]string{"serviceAccountName": serviceAccount}})
+				case "/apis/sparkoperator.k8s.io/v1beta2/namespaces/test/sparkapplications/linha-" + instanceID:
+					if scenario == "application unavailable" {
+						w.WriteHeader(http.StatusNotFound)
+						return
+					}
+					json.NewEncoder(w).Encode(map[string]any{"metadata": appMetadata, "spec": map[string]any{"driver": map[string]string{"podName": configuredName}}})
+				default:
+					t.Error("unexpected resource", r.URL.Path)
+					w.WriteHeader(http.StatusNotFound)
+				}
+			}))
+			defer api.Close()
+			authorized := false
+			authentication := &Kubernetes{
+				Kube: &kube.Client{URL: api.URL, Namespace: "test", HTTP: api.Client()}, ServiceAccount: "worker",
+				AuthorizeInstance: func(_ context.Context, contextID, id, uid string) error {
+					authorized = true
+					if contextID != "context" || id != instanceID || uid != "uid" || scenario == "stale incarnation" {
+						return Unauthorized
+					}
+					return nil
+				},
+			}
+			identity, err := authentication.authorizePod(context.Background(), name, "uid")
+			if scenario == "valid" {
+				if err != nil || !authorized || identity.ContextID != "context" || identity.ID != "uid" {
+					t.Fatal(identity, authorized, err)
+				}
+			} else if err == nil {
+				t.Fatal("unbound named driver accepted", scenario, identity)
+			}
+		})
+	}
+}

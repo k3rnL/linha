@@ -82,6 +82,7 @@ func TestAdminOpenAPIResponseFixtures(t *testing.T) {
 		call("GET", "/v1/admin/jobs/"+job+"/"+path, "/v1/admin/jobs/{job}/"+path, nil, 200)
 	}
 	call("POST", "/v1/admin/jobs/"+job+"/cancel", "/v1/admin/jobs/{job}/cancel", map[string]any{}, 200)
+	call("POST", "/v1/admin/jobs/batch", "/v1/admin/jobs/batch", domain.AdminBatchRequest{Action: "cancel", Jobs: []domain.AdminJobSelection{{ID: job, ContextID: c.ID}, {ID: "missing", ContextID: c.ID}}}, 200)
 	if path := os.Getenv("LINHA_ADMIN_FIXTURE_OUTPUT"); path != "" {
 		b, e := json.MarshalIndent(fixtures, "", "  ")
 		if e != nil {

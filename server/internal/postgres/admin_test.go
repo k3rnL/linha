@@ -144,3 +144,37 @@ func jsonEqual(a, b json.RawMessage) bool {
 	_ = json.Unmarshal(b, &y)
 	return string(domain.JSON(x)) == string(domain.JSON(y))
 }
+
+func TestBrowserLogoutCannotResurrectConcurrentRefresh(t *testing.T) {
+	s := testStore(t)
+	ctx := context.Background()
+	value := domain.BrowserSession{Hash: "session-race", CSRF: "csrf", Claims: json.RawMessage(`{"iss":"issuer","sub":"subject"}`), ExpiresAt: time.Now().Add(time.Hour)}
+	if err := s.SaveSession(ctx, value); err != nil {
+		t.Fatal(err)
+	}
+	locked, release := make(chan struct{}), make(chan struct{})
+	finished := make(chan error, 2)
+	go func() {
+		_, err := s.RefreshSession(ctx, value.Hash, func(current domain.BrowserSession) (domain.BrowserSession, error) {
+			close(locked)
+			<-release
+			current.RefreshCipher = []byte("rotated")
+			return current, nil
+		})
+		finished <- err
+	}()
+	<-locked
+	go func() { finished <- s.DeleteSession(ctx, value.Hash) }()
+	close(release)
+	for i := 0; i < 2; i++ {
+		if err := <-finished; err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := s.Session(ctx, value.Hash); err != domain.NotFound {
+		t.Fatal("logout session resurrected", err)
+	}
+	if _, err := s.RefreshSession(ctx, value.Hash, func(current domain.BrowserSession) (domain.BrowserSession, error) { return current, nil }); err != domain.NotFound {
+		t.Fatal("missing session refreshed", err)
+	}
+}

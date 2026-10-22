@@ -32,6 +32,7 @@ export interface Context {
     image: string;
     engine: { type: string; version: string; settings: unknown };
     results: unknown;
+    storage?: { destinations: string[]; fingerprints?: Record<string, string> };
   };
 }
 export interface Client {
@@ -122,6 +123,8 @@ export interface Attempt {
   failure?: Failure;
 }
 export interface Audit {
+  contextId: string;
+  sourceContextId?: string;
   id: string;
   actor: string;
   action: string;
@@ -212,4 +215,14 @@ export interface OverviewData {
     message: string;
     updatedAt: string;
   }[];
+}
+
+export interface BatchItem {
+  id: string;
+  outcome: "moved" | "cancelled" | "cancelling" | "unchanged" | "failed";
+  job?: Pick<Job, "id" | "contextId" | "state" | "attemptCount" | "updatedAt">;
+  error?: { code: string; message: string };
+}
+export interface BatchResult {
+  items: BatchItem[];
 }

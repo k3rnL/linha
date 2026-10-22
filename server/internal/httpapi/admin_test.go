@@ -124,6 +124,11 @@ func TestAdminHTTPAuthorizationOwnerIsolationAndReplay(t *testing.T) {
 	if len(audit["items"].([]any)) != 2 {
 		t.Fatal("accepted audit missing")
 	}
+	batchInput := domain.AdminBatchRequest{Action: "cancel", Jobs: []domain.AdminJobSelection{{ID: id, ContextID: c.ID}}}
+	call("viewer", "POST", "/v1/admin/jobs/batch", batchInput, "https://console.example", "csrf", 403)
+	call("operator", "POST", "/v1/admin/jobs/batch", batchInput, "https://other.example", "csrf", 403)
+	call("operator", "POST", "/v1/admin/jobs/batch", batchInput, "https://console.example", "bad", 403)
+	call("operator", "POST", "/v1/admin/jobs/batch", batchInput, "https://console.example", "csrf", 200)
 	call("viewer", "POST", "/v1/admin/logout", nil, "https://console.example", "csrf", 204)
 	call("viewer", "GET", "/v1/admin/session", nil, "", "", 401)
 	disabled := (&Server{Repo: repo, Auth: principals{}, Engines: engine.Registry{}}).Handler()

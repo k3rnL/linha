@@ -1,7 +1,7 @@
 replicaCount: 2
 image:
   repository: ghcr.io/k3rnl/linha/server
-  tag: 0.1.2
+  tag: 0.1.3
   pullPolicy: IfNotPresent
 imagePullSecrets: []
 database:
@@ -95,6 +95,7 @@ ui:
     tls:
       enabled: false
       secretName: ""
+  # Absolute browser lifetime; provider refresh renews authentication within this limit.
   sessionSeconds: 3600
   grafanaURL: ""
   oidc:

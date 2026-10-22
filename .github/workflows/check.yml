@@ -85,5 +85,14 @@ jobs:
       - name: Verify OAuth client credentials with a real identity provider
         run: python3 scripts/test-oauth-auth.py
       - run: make build && python3 scripts/e2e.py
+      - name: Verify server container runtime
+        run: |
+          docker build -f server/Dockerfile -t linha/server:ci-check .
+          docker run --rm linha/server:ci-check --version
+      - name: Verify Spark driver startup with container UIDs
+        run: |
+          bash scripts/prepare-spark-connectors.sh
+          docker build -f examples/spark/Dockerfile -t linha/spark-example:ci-check .
+          LINHA_TEST_SPARK_IMAGE=linha/spark-example:ci-check go test -count=1 -v ./server/internal/engine -run TestSparkSubmitContainerUsers
       - run: pip install openapi-spec-validator==0.7.2 && python -m openapi_spec_validator api/openapi.json
       - run: npx --yes @fission-ai/openspec@1.7.0 validate --all --strict

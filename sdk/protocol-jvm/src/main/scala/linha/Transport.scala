@@ -85,8 +85,17 @@ final class Transport(
     )
     decode(response.statusCode(), response.body())
   }
-  def open(path: String): InputStream = {
-    val response = http.send(request(path).GET().build(), HttpResponse.BodyHandlers.ofInputStream())
+  def put(path: String, file: Path, extraHeaders: Map[String, String] = Map.empty): Json = retry {
+    val builder = request(path).PUT(HttpRequest.BodyPublishers.ofFile(file))
+    extraHeaders.foreach { case (name, value) => builder.header(name, value) }
+    val response = http.send(builder.build(), HttpResponse.BodyHandlers.ofString())
+    decode(response.statusCode(), response.body())
+  }
+  def open(path: String): InputStream = open(path, Map.empty)
+  def open(path: String, extraHeaders: Map[String, String]): InputStream = {
+    val builder = request(path).GET()
+    extraHeaders.foreach { case (name, value) => builder.header(name, value) }
+    val response = http.send(builder.build(), HttpResponse.BodyHandlers.ofInputStream())
     if (response.statusCode() >= 400) {
       val stream = response.body()
       try

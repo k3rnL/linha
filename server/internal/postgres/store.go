@@ -18,6 +18,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+//go:embed admin_recovery.sql
+var adminRecoverySchema string
+
+//go:embed workload.sql
+var workloadSchema string
+
 //go:embed schema.sql
 var schema string
 
@@ -69,7 +75,7 @@ func (s *Store) Ping(ctx context.Context) error {
 	if err := s.Pool.QueryRow(ctx, "SELECT COALESCE(max(version),0) FROM linha_schema").Scan(&version); err != nil {
 		return err
 	}
-	if version != 10 {
+	if version != 12 {
 		return fmt.Errorf("database schema %d is incompatible with this server", version)
 	}
 	return nil
@@ -86,10 +92,10 @@ func (s *Store) migrate(ctx context.Context) error {
 		if err := tx.QueryRow(ctx, "SELECT COALESCE(max(version),0) FROM linha_schema").Scan(&version); err != nil {
 			return err
 		}
-		if version > 10 {
+		if version > 12 {
 			return fmt.Errorf("unsupported database schema %d", version)
 		}
-		if version == 10 {
+		if version == 12 {
 			return nil
 		}
 		if version == 0 {
@@ -146,7 +152,17 @@ func (s *Store) migrate(ctx context.Context) error {
 				return err
 			}
 		}
-		_, err := tx.Exec(ctx, overviewSchema)
+		if version < 10 {
+			if _, err := tx.Exec(ctx, overviewSchema); err != nil {
+				return err
+			}
+		}
+		if version < 11 {
+			if _, err := tx.Exec(ctx, workloadSchema); err != nil {
+				return err
+			}
+		}
+		_, err := tx.Exec(ctx, adminRecoverySchema)
 		return err
 	})
 }
@@ -354,7 +370,7 @@ func (s *Store) Register(ctx context.Context, w domain.Worker) error {
 	seen := map[string]bool{}
 	for _, c := range w.Capabilities {
 		key := fmt.Sprintf("%s/%d", c.Handler, c.Version)
-		if c.Handler == "" || c.Version < 1 || c.Result.Version < 1 || c.Result.Schema == "" || (c.Result.Kind != "json" && c.Result.Kind != "file" && c.Result.Kind != "dataset") || seen[key] {
+		if c.Handler == "" || c.Version < 1 || c.Result.Version < 1 || c.Result.Schema == "" || (c.Result.Kind != "json" && c.Result.Kind != "file" && c.Result.Kind != "dataset" && c.Result.Kind != "status") || seen[key] {
 			return domain.Bad("invalid or duplicate capability")
 		}
 		seen[key] = true
@@ -636,7 +652,10 @@ func (s *Store) Complete(ctx context.Context, job string, c domain.Completion) (
 		if c.Descriptor.Kind == "json" && len(c.Files) != 1 {
 			return domain.Bad("JSON result requires exactly one file")
 		}
-		if len(c.Files) == 0 {
+		if c.Descriptor.Kind == "status" && (len(c.Files) != 0 || c.Dataset != nil) {
+			return domain.Bad("status results cannot contain artifacts")
+		}
+		if len(c.Files) == 0 && c.Descriptor.Kind != "status" {
 			return domain.Bad("result requires at least one file")
 		}
 		var sum int64
@@ -686,6 +705,9 @@ func (s *Store) Complete(ctx context.Context, job string, c domain.Completion) (
 		result.Dataset = c.Dataset
 		result.Descriptor = c.Descriptor
 		result.Files = c.Files
+		if c.Descriptor.Kind == "status" && result.Files == nil {
+			result.Files = []domain.File{}
+		}
 		e = tx.QueryRow(ctx, "SELECT clock_timestamp()+$1*interval '1 second'", p.RetentionSeconds).Scan(&result.ExpiresAt)
 		if e != nil {
 			return e

@@ -19,13 +19,14 @@ import (
 )
 
 type S3Config struct {
-	Bucket         string `json:"bucket"`
-	Prefix         string `json:"prefix"`
-	Endpoint       string `json:"endpoint"`
-	Region         string `json:"region"`
-	PathStyle      bool   `json:"pathStyle"`
-	DatasetRoleARN string `json:"datasetRoleArn,omitempty"`
-	STSEndpoint    string `json:"stsEndpoint,omitempty"`
+	AllowWorkloadAccess bool   `json:"allowWorkloadAccess,omitempty"`
+	Bucket              string `json:"bucket"`
+	Prefix              string `json:"prefix"`
+	Endpoint            string `json:"endpoint"`
+	Region              string `json:"region"`
+	PathStyle           bool   `json:"pathStyle"`
+	DatasetRoleARN      string `json:"datasetRoleArn,omitempty"`
+	STSEndpoint         string `json:"stsEndpoint,omitempty"`
 }
 type S3 struct {
 	client      *s3.Client

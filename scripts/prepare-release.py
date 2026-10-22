@@ -12,7 +12,13 @@ ROOT = Path(__file__).resolve().parents[1]
 NS = "http://maven.apache.org/POM/4.0.0"
 ET.register_namespace("", NS)
 ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
-SDK_MODULES = ["sdk/protocol-jvm", "sdk/client-jvm", "sdk/worker-jvm", "sdk/spark-jvm"]
+SDK_MODULES = [
+    "sdk/protocol-jvm",
+    "sdk/hadoop-jvm",
+    "sdk/client-jvm",
+    "sdk/worker-jvm",
+    "sdk/spark-jvm",
+]
 POMS = ["pom.xml"] + [p + "/pom.xml" for p in SDK_MODULES + ["examples/jvm"]]
 
 
@@ -156,6 +162,7 @@ def main():
         "version": version,
         "image_prefix": "ghcr.io/" + data["repository"].lower(),
         "license": data["license"]["spdx"],
+        "sdk_modules": ",".join(SDK_MODULES),
     }
     if output := os.environ.get("GITHUB_OUTPUT"):
         with open(output, "a") as stream:

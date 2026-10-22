@@ -120,3 +120,36 @@ export function newSubmissionKey(): string {
     .map((value) => value.toString(16).padStart(2, "0"))
     .join("");
 }
+
+// Contexts remain available as filter choices after their execution resources stop.
+export function useContextChoices(owner = "") {
+  const visible = useVisible();
+  return useQuery({
+    queryKey: ["context-choices", owner],
+    enabled: visible,
+    staleTime: 30_000,
+    queryFn: async ({ signal }) => {
+      const contexts: import("./types").Context[] = [];
+      let cursor = "";
+      const seen = new Set<string>();
+      do {
+        const params = new URLSearchParams({
+          includeStopped: "true",
+          limit: "200",
+          owner,
+        });
+        if (cursor) params.set("cursor", cursor);
+        const page = await api<Page<import("./types").Context>>(
+          `/v1/admin/contexts?${params}`,
+          { signal },
+        );
+        contexts.push(...page.items);
+        cursor = page.nextCursor ?? "";
+        if (cursor && seen.has(cursor))
+          throw new Error("Context choices could not be paginated");
+        seen.add(cursor);
+      } while (cursor);
+      return contexts;
+    },
+  });
+}

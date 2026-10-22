@@ -116,7 +116,7 @@ func TestHostnameMigrationAndLeaseMetadata(t *testing.T) {
 	// Recreate a populated schema 9 database, then exercise the actual upgrade.
 	_, err := s.Pool.Exec(ctx, `ALTER TABLE linha_client_leases DROP COLUMN hostname;
         DROP INDEX linha_jobs_active_overview; DROP INDEX linha_jobs_terminal_overview;
-        DROP INDEX linha_attempts_finished_overview; DELETE FROM linha_schema WHERE version=10`)
+        DROP INDEX linha_attempts_finished_overview; DROP TABLE linha_storage_locks; DROP TABLE linha_storage_sessions; DELETE FROM linha_schema WHERE version>=10`)
 	if err != nil {
 		t.Fatal(err)
 	}

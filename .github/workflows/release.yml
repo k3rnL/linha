@@ -17,6 +17,7 @@ jobs:
       version: ${{ steps.metadata.outputs.version }}
       image_prefix: ${{ steps.metadata.outputs.image_prefix }}
       license: ${{ steps.metadata.outputs.license }}
+      sdk_modules: ${{ steps.metadata.outputs.sdk_modules }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -156,5 +157,5 @@ jobs:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: >-
           mvn -B --no-transfer-progress -Prelease
-          -pl sdk/protocol-jvm,sdk/client-jvm,sdk/worker-jvm,sdk/spark-jvm -am
+          -pl "${{ needs.prepare.outputs.sdk_modules }}" -am
           -Dcentral.autoPublish=true -Dcentral.waitUntil=published deploy

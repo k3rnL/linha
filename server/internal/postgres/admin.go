@@ -47,7 +47,7 @@ func (s *Store) AdminSubmit(ctx context.Context, actor, contextID string, in dom
 		}
 		if existing != "" {
 			var equal bool
-			e = tx.QueryRow(ctx, `SELECT submission_source='admin' AND context_id=$2 AND submitted_by=$3 AND replayed_from=$4 AND admin_activation=$5 AND request=$6::jsonb AND policy=$7::jsonb FROM linha_jobs WHERE id=$1`, existing, contextID, actor, in.ReplayedFrom, in.ActivateIfStopped, domain.JSON(in.SubmitRequest), domain.JSON(c.Spec.Results)).Scan(&equal)
+			e = tx.QueryRow(ctx, `SELECT submission_source='admin' AND EXISTS(SELECT 1 FROM linha_admin_audit a WHERE a.job_id=linha_jobs.id AND a.context_id=$2 AND a.action IN ('create','replay')) AND submitted_by=$3 AND replayed_from=$4 AND admin_activation=$5 AND request=$6::jsonb AND policy=$7::jsonb FROM linha_jobs WHERE id=$1`, existing, contextID, actor, in.ReplayedFrom, in.ActivateIfStopped, domain.JSON(in.SubmitRequest), domain.JSON(c.Spec.Results)).Scan(&equal)
 			if e != nil {
 				return e
 			}
@@ -102,39 +102,48 @@ func (s *Store) AdminSubmit(ctx context.Context, actor, contextID string, in dom
 	return
 }
 func acceptedAudit(ctx context.Context, tx pgx.Tx, actor, action, owner, contextID, job, source, outcome string) error {
-	_, e := tx.Exec(ctx, `INSERT INTO linha_admin_audit(id,actor,action,owner,context_id,job_id,replayed_from,outcome) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(job_id,action) DO NOTHING`, domain.ID(), actor, action, owner, contextID, job, source, outcome)
+	_, e := tx.Exec(ctx, `INSERT INTO linha_admin_audit(id,actor,action,owner,context_id,job_id,replayed_from,outcome) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT DO NOTHING`, domain.ID(), actor, action, owner, contextID, job, source, outcome)
 	return e
 }
 func (s *Store) AdminCancel(ctx context.Context, actor, id string) (out domain.Job, err error) {
+	if actor == "" {
+		return out, domain.Bad("actor required")
+	}
 	err = s.tx(ctx, func(tx pgx.Tx) error {
-		var owner string
-		if e := tx.QueryRow(ctx, "SELECT owner FROM linha_jobs WHERE id=$1", id).Scan(&owner); e != nil {
-			return missing(e)
-		}
-		j, e := scanJob(tx.QueryRow(ctx, "SELECT "+jobCols+" FROM linha_jobs WHERE id=$1 FOR UPDATE", id))
-		if e != nil {
-			return e
-		}
-		state := j.State
-		switch state {
-		case "QUEUED", "RETRYING":
-			state = "CANCELLED"
-		case "RUNNING":
-			state = "CANCELLING"
-		}
-		if state != j.State {
-			_, e = tx.Exec(ctx, "UPDATE linha_jobs SET state=$2,updated_at=clock_timestamp() WHERE id=$1", id, state)
-			if e != nil {
-				return e
-			}
-		}
-		if e = acceptedAudit(ctx, tx, actor, "cancel", owner, j.ContextID, id, "", state); e != nil {
-			return e
-		}
-		out, e = scanJob(tx.QueryRow(ctx, "SELECT "+jobCols+" FROM linha_jobs WHERE id=$1", id))
+		var e error
+		out, e = cancelAdminJob(ctx, tx, actor, id, "")
 		return e
 	})
 	return
+}
+func cancelAdminJob(ctx context.Context, tx pgx.Tx, actor, id, expected string) (out domain.Job, err error) {
+	j, err := scanJob(tx.QueryRow(ctx, "SELECT "+jobCols+" FROM linha_jobs WHERE id=$1 FOR UPDATE", id))
+	if err != nil {
+		return out, err
+	}
+	if expected != "" && j.ContextID != expected {
+		return out, domain.Conflict("request context changed; refresh the selection")
+	}
+	state := j.State
+	switch state {
+	case "QUEUED", "RETRYING":
+		state = "CANCELLED"
+	case "RUNNING":
+		state = "CANCELLING"
+	}
+	if state != j.State {
+		if _, err = tx.Exec(ctx, "UPDATE linha_jobs SET state=$2,updated_at=clock_timestamp() WHERE id=$1", id, state); err != nil {
+			return out, err
+		}
+	}
+	var owner string
+	if err = tx.QueryRow(ctx, "SELECT owner FROM linha_jobs WHERE id=$1", id).Scan(&owner); err != nil {
+		return out, err
+	}
+	if err = acceptedAudit(ctx, tx, actor, "cancel", owner, j.ContextID, id, "", state); err != nil {
+		return out, err
+	}
+	return scanJob(tx.QueryRow(ctx, "SELECT "+jobCols+" FROM linha_jobs WHERE id=$1", id))
 }
 
 var adminJobProjection = `jsonb_build_object('id',j.id,'contextId',j.context_id,'request',j.request,'state',j.state,'submittedAt',j.submitted_at,'updatedAt',j.updated_at,'attemptCount',j.attempt_count,'progress',j.progress,'failure',j.failure,'result',j.result,'owner',j.owner,'contextName',c.name,'contextVersion',c.version,'metricContext',c.metric_context,'submittedBy',j.submitted_by,'replayedFrom',j.replayed_from)`
@@ -198,7 +207,7 @@ func (s *Store) AdminAudit(ctx context.Context, job string, f domain.Operational
 	if e != nil {
 		return
 	}
-	rows, e := s.Pool.Query(ctx, `SELECT id,actor,action,owner,context_id,job_id,replayed_from,accepted_at,outcome FROM linha_admin_audit WHERE job_id=$1 AND (accepted_at,id)<($2,$3) ORDER BY accepted_at DESC,id DESC LIMIT $4`, job, cursor.Time, cursor.Key, limit+1)
+	rows, e := s.Pool.Query(ctx, `SELECT id,actor,action,owner,context_id,job_id,replayed_from,accepted_at,outcome,COALESCE(source_context_id,'') FROM linha_admin_audit WHERE job_id=$1 AND (accepted_at,id)<($2,$3) ORDER BY accepted_at DESC,id DESC LIMIT $4`, job, cursor.Time, cursor.Key, limit+1)
 	if e != nil {
 		return
 	}
@@ -206,7 +215,7 @@ func (s *Store) AdminAudit(ctx context.Context, job string, f domain.Operational
 	page.Items = []domain.AuditRecord{}
 	for rows.Next() {
 		var a domain.AuditRecord
-		if e = rows.Scan(&a.ID, &a.Actor, &a.Action, &a.Owner, &a.ContextID, &a.JobID, &a.ReplayedFrom, &a.AcceptedAt, &a.Outcome); e != nil {
+		if e = rows.Scan(&a.ID, &a.Actor, &a.Action, &a.Owner, &a.ContextID, &a.JobID, &a.ReplayedFrom, &a.AcceptedAt, &a.Outcome, &a.SourceContextID); e != nil {
 			return
 		}
 		page.Items = append(page.Items, a)
@@ -266,11 +275,11 @@ func (s *Store) TakeLogin(ctx context.Context, hash string) (out domain.LoginTra
 	return out, missing(e)
 }
 func (s *Store) SaveSession(ctx context.Context, v domain.BrowserSession) error {
-	_, e := s.Pool.Exec(ctx, "INSERT INTO linha_browser_sessions(hash,claims,csrf,expires_at) VALUES($1,$2,$3,$4)", v.Hash, v.Claims, v.CSRF, v.ExpiresAt)
+	_, e := s.Pool.Exec(ctx, "INSERT INTO linha_browser_sessions(hash,claims,csrf,expires_at,auth_expires_at,refresh_cipher) VALUES($1,$2,$3,$4,$5,$6)", v.Hash, v.Claims, v.CSRF, v.ExpiresAt, v.AuthExpiresAt, v.RefreshCipher)
 	return e
 }
 func (s *Store) Session(ctx context.Context, hash string) (v domain.BrowserSession, e error) {
-	e = s.Pool.QueryRow(ctx, "SELECT hash,claims,csrf,expires_at FROM linha_browser_sessions WHERE hash=$1 AND expires_at>clock_timestamp()", hash).Scan(&v.Hash, &v.Claims, &v.CSRF, &v.ExpiresAt)
+	e = s.Pool.QueryRow(ctx, "SELECT hash,claims,csrf,expires_at,auth_expires_at,refresh_cipher FROM linha_browser_sessions WHERE hash=$1 AND expires_at>clock_timestamp()", hash).Scan(&v.Hash, &v.Claims, &v.CSRF, &v.ExpiresAt, &v.AuthExpiresAt, &v.RefreshCipher)
 	return v, missing(e)
 }
 func (s *Store) DeleteSession(ctx context.Context, hash string) error {

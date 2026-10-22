@@ -12,7 +12,7 @@ public repository and verified Maven namespace. Linha uses `k3rnL/linha`,
 
 The published parent is `com.k3rnl:linha-jvm`; the Scala 2.12 modules are
 `linha-protocol_2.12`, `linha-client_2.12`, `linha-worker_2.12` and
-`linha-spark_2.12`. Examples are packaged for the worker image and excluded from
+`linha-spark_2.12` and `linha-hadoop_2.12`. Examples are packaged for the worker image and excluded from
 Central. Each SDK publication includes binary, sources, API documentation,
 checksums and signatures.
 

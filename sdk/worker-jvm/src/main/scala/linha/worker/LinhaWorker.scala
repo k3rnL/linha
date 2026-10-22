@@ -341,6 +341,19 @@ final class LinhaWorker[E](
         }
         def isCancelled: Boolean = task.cancelled.get() || System.nanoTime() >= task.deadline.get()
         def checkCancelled(): Unit = check()
+        override def storage(destination: String): StorageSession = {
+          check()
+          val session = StorageSession.fromJson(
+            transport.baseUrl,
+            transport.call(
+              "POST",
+              path + "/storage-sessions",
+              task.update.deepMerge(Json.obj("destination" -> destination.asJson))
+            )
+          )
+          cleanup += (() => session.close())
+          session
+        }
         def results: ResultWriter = writer
         def onCleanup(action: () => Unit): Unit = cleanup += action
       }
@@ -349,6 +362,7 @@ final class LinhaWorker[E](
       check()
       phase = "result"
       val files = produced match {
+        case StatusResult      => Vector.empty
         case JsonResult(value) =>
           Vector(
             produce("result.json", "application/json", "json")(path =>

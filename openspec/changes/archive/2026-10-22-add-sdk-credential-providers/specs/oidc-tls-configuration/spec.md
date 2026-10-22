@@ -42,3 +42,7 @@ The OIDC TLS setting SHALL apply to browser discovery, signing-key retrieval and
 #### Scenario: Independent API TLS bypass
 - **WHEN** only one of API JWT or browser OIDC enables a verification bypass
 - **THEN** the other provider retains its independently configured certificate verification
+
+#### Scenario: API authentication after initialization
+- **WHEN** an enabled API JWT verifier needs a signing-key fetch after initialization
+- **THEN** it uses the independently configured API TLS policy regardless of the browser OIDC verification setting

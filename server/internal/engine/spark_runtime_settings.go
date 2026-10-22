@@ -66,7 +66,9 @@ func infinityHint(defaultValue string) string {
 // runtimeConf is shared by SparkApplication submission and legacy driver Pods.
 // Callers supply settings that have passed ParseSpark normalization.
 func (c SparkSettings) runtimeConf() map[string]string {
+	// An arbitrary container UID may have no usable home; Ivy still resolves local repositories.
 	values := map[string]string{
+		"spark.jars.ivy":                  "/tmp/linha-ivy",
 		"spark.scheduler.mode":            "FAIR",
 		"spark.ui.enabled":                "false",
 		"spark.dynamicAllocation.enabled": strconv.FormatBool(c.Executors.Dynamic),
