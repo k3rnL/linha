@@ -1,0 +1,2216 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Durable jobs, managed Spark engines, and Scala/JVM SDKs">
+      
+      
+      
+        <link rel="canonical" href="https://k3rnl.github.io/linha/0.1.3/configuration/">
+      
+      
+        <link rel="prev" href="../docs-contributing/">
+      
+      
+        <link rel="next" href="../sdk-reference/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Configuration - Linha</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#configuration-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Linha" class="md-header__button md-logo" aria-label="Linha" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Linha
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Configuration
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/k3rnL/linha" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    k3rnL/linha
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Linha" class="md-nav__button md-logo" aria-label="Linha" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Linha
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/k3rnL/linha" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    k3rnL/linha
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run your first job
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../walkthrough/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build a Scala client and worker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy on Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../client-authentication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configure OAuth 2.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../versioned-spark-applications/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manage Spark applications
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pod-templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customize Pods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dataset-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Return files and datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../admin-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enable the admin console
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitor queries and resources
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../job-failures/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnose failures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kubernetes-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run Kubernetes validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publish a release
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docs-contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintain documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../validation/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#helm-deployment-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Helm deployment settings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spark-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spark settings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#results-and-request-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Results and request policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#result-path-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Result path templates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#standalone-server-environment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Standalone server environment
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sdk-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scala/JVM SDK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../application-storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../http-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HTTP API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prometheus metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compatibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../acceptance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform acceptance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../admin-observability-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin and observability validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../releases/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4_11" id="__nav_4_11_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Release notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releases/v0.1.3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releases/v0.1.2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releases/v0.1.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Explanation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Explanation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How Linha works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../retention-proposal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Result retention
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocol-conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#helm-deployment-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Helm deployment settings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spark-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spark settings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#results-and-request-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Results and request policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#result-path-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Result path templates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#standalone-server-environment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Standalone server environment
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="configuration-reference">Configuration reference<a class="headerlink" href="#configuration-reference" title="Permanent link">&para;</a></h1>
+<p>Configuration belongs to three surfaces: deployment settings in Helm, immutable
+backend settings supplied by the client, and policy captured with each request.
+Unknown or conflicting fields are rejected rather than silently ignored.</p>
+<p>The complete chart contract is in
+<a href="https://github.com/k3rnL/linha/blob/main/deploy/helm/linha/values.yaml">values.yaml</a>
+and <a href="https://github.com/k3rnL/linha/blob/main/deploy/helm/linha/values.schema.json">values.schema.json</a>.</p>
+<h2 id="helm-deployment-settings">Helm deployment settings<a class="headerlink" href="#helm-deployment-settings" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type / default</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>replicaCount</code></td>
+<td>integer / <code>2</code></td>
+<td>API replicas sharing the same database</td>
+</tr>
+<tr>
+<td><code>image.repository</code>, <code>image.tag</code></td>
+<td>strings / GHCR server, chart release</td>
+<td>Published server image; use a matching source build for unreleased features</td>
+</tr>
+<tr>
+<td><code>imagePullSecrets</code></td>
+<td>array / <code>[]</code></td>
+<td>Server pull Secret references and worker defaults</td>
+</tr>
+<tr>
+<td><code>database.postgres.host</code></td>
+<td>string / <code>postgres</code></td>
+<td>PostgreSQL host</td>
+</tr>
+<tr>
+<td><code>database.postgres.port</code></td>
+<td>integer / <code>5432</code></td>
+<td>PostgreSQL port</td>
+</tr>
+<tr>
+<td><code>database.postgres.database</code></td>
+<td>string / <code>linha</code></td>
+<td>Existing database name</td>
+</tr>
+<tr>
+<td><code>database.postgres.sslMode</code></td>
+<td>string / <code>verify-full</code></td>
+<td>PostgreSQL TLS mode</td>
+</tr>
+<tr>
+<td><code>database.postgres.sslRootCert</code></td>
+<td>string / empty</td>
+<td>Mounted PostgreSQL CA file</td>
+</tr>
+<tr>
+<td><code>database.postgres.secretRef</code></td>
+<td>string / <code>linha-postgres</code></td>
+<td>Caller-managed database credential Secret</td>
+</tr>
+<tr>
+<td><code>database.postgres.usernameKey</code>, <code>passwordKey</code></td>
+<td>strings / <code>username</code>, <code>password</code></td>
+<td>Selected Secret keys</td>
+</tr>
+<tr>
+<td><code>security.enabled</code></td>
+<td>boolean / <code>true</code></td>
+<td>Master authentication switch; false uses one anonymous owner</td>
+</tr>
+<tr>
+<td><code>security.api.enabled</code></td>
+<td>boolean / <code>true</code></td>
+<td>Public job API JWT validation</td>
+</tr>
+<tr>
+<td><code>security.api.jwt.issuer</code></td>
+<td>string / empty</td>
+<td>Required API token issuer when API authentication is active</td>
+</tr>
+<tr>
+<td><code>security.api.jwt.audience</code></td>
+<td>string / <code>linha</code></td>
+<td>Intended API token audience</td>
+</tr>
+<tr>
+<td><code>security.api.jwt.tls.insecureSkipVerify</code></td>
+<td>boolean / <code>false</code></td>
+<td>Skip TLS verification only for API identity discovery/keys</td>
+</tr>
+<tr>
+<td><code>security.oidc.enabled</code></td>
+<td>boolean / <code>true</code></td>
+<td>Browser administrator OIDC login</td>
+</tr>
+<tr>
+<td><code>security.oidc.issuer</code></td>
+<td>string / empty</td>
+<td>Browser issuer; required for secured UI</td>
+</tr>
+<tr>
+<td><code>security.oidc.tls.insecureSkipVerify</code></td>
+<td>boolean / <code>false</code></td>
+<td>Skip TLS verification only for browser identity operations</td>
+</tr>
+<tr>
+<td><code>security.admin.viewer</code>, <code>operator</code></td>
+<td>objects / empty rules</td>
+<td>Subject or claim membership; inherit browser issuer</td>
+</tr>
+<tr>
+<td><code>rbac.namespaceOnly</code></td>
+<td>boolean / <code>true</code></td>
+<td>Namespaced management; false adds worker TokenReview permission</td>
+</tr>
+<tr>
+<td><code>allowedImages</code></td>
+<td>string array / <code>[]</code></td>
+<td>Authorized worker, sidecar and init-container repository prefixes</td>
+</tr>
+<tr>
+<td><code>local.enabled</code></td>
+<td>boolean / <code>false</code></td>
+<td>Enable local result destination</td>
+</tr>
+<tr>
+<td><code>local.root</code></td>
+<td>string / <code>/var/lib/linha/results</code></td>
+<td>Shared persistent result root</td>
+</tr>
+<tr>
+<td><code>local.existingClaim</code></td>
+<td>string / empty</td>
+<td>Caller-managed PVC for server results</td>
+</tr>
+<tr>
+<td><code>s3.enabled</code></td>
+<td>boolean / <code>false</code></td>
+<td>Enable S3 destinations</td>
+</tr>
+<tr>
+<td><code>s3.secretRef</code>, <code>destinationsKey</code></td>
+<td>strings / <code>linha-s3</code>, <code>destinations</code></td>
+<td>Secret containing destination JSON</td>
+</tr>
+<tr>
+<td><code>workerPodTemplates</code></td>
+<td>object / empty templates</td>
+<td>Default driver/executor Pod fragments</td>
+</tr>
+<tr>
+<td><code>registrySecrets.allowedNames</code></td>
+<td>string array / <code>[]</code></td>
+<td>Registry Secrets approved for per-context selection</td>
+</tr>
+<tr>
+<td><code>results.cleanup.enabled</code></td>
+<td>boolean / <code>false</code></td>
+<td>Physical deletion of eligible tracked output</td>
+</tr>
+<tr>
+<td><code>results.maxStagingBytes</code></td>
+<td>integer / <code>5368709120</code></td>
+<td>Server concurrent staging reservation budget</td>
+</tr>
+<tr>
+<td><code>ui.enabled</code></td>
+<td>boolean / <code>false</code></td>
+<td>Register embedded UI/admin/login routes</td>
+</tr>
+<tr>
+<td><code>ui.publicURL</code></td>
+<td>string / empty</td>
+<td>Absolute URL ending in <code>/ui/</code>, no query or fragment</td>
+</tr>
+<tr>
+<td><code>ui.sessionSeconds</code></td>
+<td>integer / <code>3600</code></td>
+<td>Browser session lifetime, additionally capped by token expiry</td>
+</tr>
+<tr>
+<td><code>ui.oidc.clientId</code></td>
+<td>string / empty</td>
+<td>Browser client ID and ID-token audience</td>
+</tr>
+<tr>
+<td><code>ui.oidc.scopes</code></td>
+<td>string array / <code>[openid, profile, email]</code></td>
+<td>Browser scopes; must include <code>openid</code></td>
+</tr>
+<tr>
+<td><code>ui.oidc.secretRef</code>, <code>clientSecretKey</code></td>
+<td>strings / empty, <code>client-secret</code></td>
+<td>Optional confidential browser client credentials</td>
+</tr>
+<tr>
+<td><code>ui.ingress.enabled</code></td>
+<td>boolean / <code>false</code></td>
+<td>Same-origin <code>/ui</code> and <code>/v1/admin</code> ingress</td>
+</tr>
+<tr>
+<td><code>metrics.enabled</code></td>
+<td>boolean / <code>true</code></td>
+<td>Register <code>/metrics</code></td>
+</tr>
+<tr>
+<td><code>metrics.maxContexts</code></td>
+<td>integer / <code>100</code></td>
+<td>Lifetime cap of named metric context dimensions, 0–10,000</td>
+</tr>
+<tr>
+<td><code>metrics.serviceMonitor.enabled</code></td>
+<td>boolean / <code>false</code></td>
+<td>Requires Prometheus Operator CRD</td>
+</tr>
+<tr>
+<td><code>metrics.grafanaDashboard.enabled</code></td>
+<td>boolean / <code>false</code></td>
+<td>Requires Grafana Operator CRD</td>
+</tr>
+</tbody>
+</table>
+<p><code>extraEnv</code>, <code>extraVolumes</code>, <code>extraVolumeMounts</code>, <code>resources</code>, <code>nodeSelector</code> and
+<code>tolerations</code> configure server Pods. <code>workerVolumes</code> and <code>workerMounts</code> are
+administrator mount defaults; prefer explicit driver/executor Pod templates.</p>
+<p>The removed <code>existingSecret</code>, <code>deploymentMode</code>, top-level <code>oidc</code>, and
+<code>security.oidc.audience</code> fields are not part of the current contract.</p>
+<h2 id="spark-settings">Spark settings<a class="headerlink" href="#spark-settings" title="Permanent link">&para;</a></h2>
+<p>These fields are under <code>spec.engine.settings</code>. The engine type is <code>spark</code>,
+version <code>3.5.6</code>. The application uses <code>sparkoperator.k8s.io/v1beta2</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type / default</th>
+<th>Contract</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>application.mainClass</code></td>
+<td>string / required</td>
+<td>JVM main class installed in the image</td>
+</tr>
+<tr>
+<td><code>application.mainApplicationFile</code></td>
+<td>string / required</td>
+<td><code>local:///</code> path ending in <code>.jar</code></td>
+</tr>
+<tr>
+<td><code>application.arguments</code></td>
+<td>string array / <code>[]</code></td>
+<td>At most 128 main-class arguments</td>
+</tr>
+<tr>
+<td><code>drivers.minDrivers</code></td>
+<td>integer / <code>1</code></td>
+<td>Minimum with demand, may be zero</td>
+</tr>
+<tr>
+<td><code>drivers.maxDrivers</code></td>
+<td>integer / <code>1</code></td>
+<td>1–16, at least the minimum</td>
+</tr>
+<tr>
+<td><code>drivers.maxConcurrentRequestsPerDriver</code></td>
+<td>integer / <code>1</code></td>
+<td>1–32 request slots per driver</td>
+</tr>
+<tr>
+<td><code>drivers.queueThreshold</code></td>
+<td>integer / <code>1</code></td>
+<td>Ready queue threshold for scale-up</td>
+</tr>
+<tr>
+<td><code>drivers.waitSeconds</code></td>
+<td>integer / <code>5</code></td>
+<td>Queue wait threshold for scale-up</td>
+</tr>
+<tr>
+<td><code>drivers.cooldownSeconds</code></td>
+<td>integer / <code>10</code></td>
+<td>Scale-up cooldown</td>
+</tr>
+<tr>
+<td><code>drivers.idleSeconds</code></td>
+<td>integer / <code>60</code></td>
+<td>Idle retirement above minimum</td>
+</tr>
+<tr>
+<td><code>drivers.cores</code>, <code>executors.cores</code></td>
+<td>integer / <code>1</code></td>
+<td>Spark parallelism, 1–32</td>
+</tr>
+<tr>
+<td><code>drivers.coreRequest</code>, <code>executors.coreRequest</code></td>
+<td>quantity string / cores</td>
+<td>Positive CPU request, up to 32 cores</td>
+</tr>
+<tr>
+<td><code>drivers.coreLimit</code>, <code>executors.coreLimit</code></td>
+<td>quantity string / cores</td>
+<td>CPU limit, at least request, up to 32 cores</td>
+</tr>
+<tr>
+<td><code>drivers.memory</code>, <code>executors.memory</code></td>
+<td>string / <code>1024m</code></td>
+<td>JVM heap, 512m–128g, units m/g</td>
+</tr>
+<tr>
+<td><code>drivers.memoryOverhead</code>, <code>executors.memoryOverhead</code></td>
+<td>string / max(384m, 10% heap)</td>
+<td>Added to heap for container request and limit</td>
+</tr>
+<tr>
+<td><code>drivers.javaOptions</code>, <code>executors.javaOptions</code></td>
+<td>string / empty</td>
+<td>Additional JVM options; heap overrides rejected</td>
+</tr>
+<tr>
+<td><code>executors.dynamicAllocation</code></td>
+<td>boolean / <code>false</code></td>
+<td>Spark executor autoscaling</td>
+</tr>
+<tr>
+<td><code>executors.instances</code></td>
+<td>integer / <code>1</code></td>
+<td>Static executor count, 1–128</td>
+</tr>
+<tr>
+<td><code>executors.minExecutors</code></td>
+<td>integer / <code>0</code></td>
+<td>Dynamic minimum</td>
+</tr>
+<tr>
+<td><code>executors.initialExecutors</code></td>
+<td>integer / <code>1</code></td>
+<td>Dynamic startup count, at least minimum</td>
+</tr>
+<tr>
+<td><code>executors.maxExecutors</code></td>
+<td>integer / <code>4</code></td>
+<td>Dynamic maximum, at least initial, 1–128</td>
+</tr>
+<tr>
+<td><code>executors.executorIdleTimeout</code></td>
+<td>duration / <code>60s</code></td>
+<td>Idle timeout without retained data</td>
+</tr>
+<tr>
+<td><code>executors.cachedExecutorIdleTimeout</code></td>
+<td>duration / <code>infinity</code></td>
+<td>Cached-data retention timeout</td>
+</tr>
+<tr>
+<td><code>executors.shuffleTrackingTimeout</code></td>
+<td>duration / <code>infinity</code></td>
+<td>Shuffle-data retention timeout</td>
+</tr>
+<tr>
+<td><code>ui.enabled</code></td>
+<td>boolean / <code>false</code></td>
+<td>Start each driver's Spark UI</td>
+</tr>
+<tr>
+<td><code>ui.port</code></td>
+<td>integer / <code>4040</code></td>
+<td>1024–65535</td>
+</tr>
+<tr>
+<td><code>kubernetes.driverPodTemplate</code>, <code>executorPodTemplate</code></td>
+<td>objects / empty</td>
+<td>Independent native fragments; each at most 64 KiB</td>
+</tr>
+</tbody>
+</table>
+<p>Durations accept positive integer s/m/h/d units up to 2,147,483,647 seconds.
+Cache/shuffle timeouts also accept <code>infinity</code>. Equivalent durations normalize to
+one configuration version. Deprecated <code>memoryMi</code> is a heap alias and cannot be
+combined with <code>memory</code>; new configuration should use Spark units.</p>
+<p>Example: <code>memory: "10g"</code> with <code>memoryOverhead: "2g"</code> creates a 10g heap inside a
+12Gi container. See <a href="../versioned-spark-applications/">manage Spark applications</a>.</p>
+<h2 id="results-and-request-policy">Results and request policy<a class="headerlink" href="#results-and-request-policy" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Default / bound</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>results.type</code></td>
+<td><code>local</code> or <code>s3</code></td>
+<td>Backend result provider</td>
+</tr>
+<tr>
+<td><code>results.root</code></td>
+<td>allowed configured root</td>
+<td>Local result filesystem</td>
+</tr>
+<tr>
+<td><code>results.destination</code></td>
+<td>configured alias</td>
+<td>S3 destination; no bucket credentials in requests</td>
+</tr>
+<tr>
+<td><code>results.path</code></td>
+<td>version 1 template</td>
+<td>Relative output key policy</td>
+</tr>
+<tr>
+<td><code>retry.maxAttempts</code></td>
+<td><code>1</code>, maximum <code>10</code></td>
+<td>Total attempts, including the first</td>
+</tr>
+<tr>
+<td><code>retry.backoffSeconds</code></td>
+<td><code>1</code></td>
+<td>Delay between eligible retries</td>
+</tr>
+<tr>
+<td>Result <code>maxBytes</code></td>
+<td>64 MiB, maximum 5 GiB</td>
+<td>Total accepted result bytes</td>
+</tr>
+<tr>
+<td>Result retention</td>
+<td>seven days by default</td>
+<td>Availability duration; metadata remains after expiry</td>
+</tr>
+<tr>
+<td>Attempt lease</td>
+<td>30 seconds</td>
+<td>Current worker authority</td>
+</tr>
+<tr>
+<td>Client lease</td>
+<td>90 seconds</td>
+<td>Context demand; SDK renews every 30 seconds</td>
+</tr>
+<tr>
+<td>Dataset parts</td>
+<td>maximum 100,000</td>
+<td>Distributed output inventory cap</td>
+</tr>
+</tbody>
+</table>
+<p>The <a href="https://github.com/k3rnL/linha/blob/main/api/openapi.json">OpenAPI contract</a>
+is authoritative for complete request schema, policy placement and bounds.</p>
+<h2 id="result-path-templates">Result path templates<a class="headerlink" href="#result-path-templates" title="Permanent link">&para;</a></h2>
+<p>The default is <code>{contextId}/{requestId}/{attemptId}/{file}</code>. <code>{requestId}</code> and
+<code>{attemptId}</code> must each occupy a complete segment, and <code>{file}</code> must appear once
+at the end. <code>{contextId}</code> is optional. <code>{submittedAt}</code> expands the original
+accepted time in UTC; formats allow yyyy/MM/dd/HH/mm/ss/SSS fields and <code>/ - _ T Z</code>
+literals.</p>
+<div class="highlight"><pre><span></span><code>exports/{submittedAt:yyyy/MM/dd}/{requestId}/{attemptId}/{file}
+</code></pre></div>
+<p>Templates are declarative data, not remote lambdas. Absolute paths, URI schemes,
+traversal, encoded traversal and reserved <code>_linha</code> segments are rejected. The S3
+bucket and base prefix remain administrator-controlled.</p>
+<h2 id="standalone-server-environment">Standalone server environment<a class="headerlink" href="#standalone-server-environment" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Helm field</th>
+<th>Environment variable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Master security</td>
+<td><code>LINHA_SECURITY_ENABLED</code></td>
+</tr>
+<tr>
+<td>API JWT enabled / issuer / audience</td>
+<td><code>LINHA_API_AUTH_ENABLED</code>, <code>LINHA_API_JWT_ISSUER</code>, <code>LINHA_API_JWT_AUDIENCE</code></td>
+</tr>
+<tr>
+<td>API provider TLS bypass</td>
+<td><code>LINHA_API_JWT_TLS_INSECURE_SKIP_VERIFY</code></td>
+</tr>
+<tr>
+<td>Browser OIDC enabled / issuer</td>
+<td><code>LINHA_OIDC_ENABLED</code>, <code>LINHA_OIDC_ISSUER</code></td>
+</tr>
+<tr>
+<td>Browser provider TLS bypass</td>
+<td><code>LINHA_OIDC_TLS_INSECURE_SKIP_VERIFY</code></td>
+</tr>
+<tr>
+<td>Admin membership JSON</td>
+<td><code>LINHA_ADMIN_MAPPINGS</code></td>
+</tr>
+<tr>
+<td>Browser client / scopes</td>
+<td><code>LINHA_UI_OIDC_CLIENT_ID</code>, <code>LINHA_UI_OIDC_SCOPES</code></td>
+</tr>
+<tr>
+<td>Database fields</td>
+<td><code>LINHA_DATABASE_HOST</code>, <code>PORT</code>, <code>NAME</code>, <code>USERNAME</code>, <code>PASSWORD</code>, <code>SSL_MODE</code>, <code>SSL_ROOT_CERT</code>, each with <code>LINHA_DATABASE_</code> prefix</td>
+</tr>
+<tr>
+<td>Cleanup / staging</td>
+<td><code>LINHA_CLEANUP_ENABLED</code>, <code>LINHA_MAX_STAGING_BYTES</code></td>
+</tr>
+<tr>
+<td>Worker templates / pull names / permitted registry names</td>
+<td><code>LINHA_WORKER_POD_TEMPLATES</code>, <code>LINHA_WORKER_IMAGE_PULL_SECRETS</code>, <code>LINHA_REGISTRY_SECRETS</code></td>
+</tr>
+</tbody>
+</table>
+<p>A standalone <code>LINHA_DATABASE_URL</code> is mutually exclusive with separate database
+fields. Managed backends also require <code>LINHA_SERVER_URL</code>,
+<code>LINHA_WORKER_SERVICE_ACCOUNT</code> and <code>LINHA_ALLOWED_IMAGES</code>. Helm supplies these.
+<code>LINHA_WORKER_AUTH</code> selects <code>projected-token</code> (default) or <code>token-review</code>.
+Use JSON arrays/objects for structured environment settings.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.indexes", "navigation.top", "content.code.copy", "search.suggest"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

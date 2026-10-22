@@ -1,0 +1,2224 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Durable jobs, managed Spark engines, and Scala/JVM SDKs">
+      
+      
+      
+        <link rel="canonical" href="https://k3rnl.github.io/linha/0.1.3/metrics/">
+      
+      
+        <link rel="prev" href="../http-api/">
+      
+      
+        <link rel="next" href="../compatibility/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Prometheus metrics - Linha</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#prometheus-metric-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Linha" class="md-header__button md-logo" aria-label="Linha" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Linha
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Prometheus metrics
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/k3rnL/linha" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    k3rnL/linha
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Linha" class="md-nav__button md-logo" aria-label="Linha" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Linha
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/k3rnL/linha" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    k3rnL/linha
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run your first job
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../walkthrough/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build a Scala client and worker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy on Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../client-authentication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configure OAuth 2.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../versioned-spark-applications/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manage Spark applications
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pod-templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customize Pods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dataset-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Return files and datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../admin-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enable the admin console
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitor queries and resources
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../job-failures/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnose failures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kubernetes-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run Kubernetes validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publish a release
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docs-contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintain documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../validation/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sdk-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scala/JVM SDK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../application-storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../http-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HTTP API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prometheus metrics
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prometheus metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#scope-and-labels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope and labels
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clients-and-contexts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clients and contexts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jobs-and-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Jobs and execution
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workers-and-engines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workers and engines
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#servers-dependencies-and-background-loops" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Servers, dependencies, and background loops
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#http-and-resultsstorage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP and results/storage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compatibility-and-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compatibility and validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../compatibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../acceptance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform acceptance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../admin-observability-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin and observability validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../releases/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4_11" id="__nav_4_11_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Release notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releases/v0.1.3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releases/v0.1.2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releases/v0.1.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Explanation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Explanation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How Linha works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../retention-proposal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Result retention
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protocol-conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#scope-and-labels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope and labels
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clients-and-contexts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clients and contexts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jobs-and-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Jobs and execution
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workers-and-engines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workers and engines
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#servers-dependencies-and-background-loops" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Servers, dependencies, and background loops
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#http-and-resultsstorage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP and results/storage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compatibility-and-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compatibility and validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="prometheus-metric-reference">Prometheus metric reference<a class="headerlink" href="#prometheus-metric-reference" title="Permanent link">&para;</a></h1>
+<p>These families are exported from <code>/metrics</code>. They supplement the older compatibility aliases retained by the server. Every family has HELP and TYPE metadata. Seconds and bytes are base units. Histogram names imply <code>_bucket{le}</code>, <code>_sum</code>, and <code>_count</code>; Info is a gauge with value 1.</p>
+<h2 id="scope-and-labels">Scope and labels<a class="headerlink" href="#scope-and-labels" title="Permanent link">&para;</a></h2>
+<p><strong>Shared</strong> metrics describe durable database state. Every server exposes the same
+values, so deduplicate replicas before aggregation. <strong>Local</strong> metrics describe one
+process; retain Pod identity or sum per-Pod rates. <strong>Observed</strong> metrics describe
+persisted current engine observations; deduplicate and require complete, fresh data.</p>
+<p>Labels <code>engine,context</code> identify the bounded persisted context registry. Storage
+labels <code>provider,destination</code> identify the provider and configured destination
+alias, never a bucket URI. Scrape discovery supplies deployment labels such as
+<code>cluster</code>, <code>namespace</code>, <code>linha_deployment</code>, <code>pod</code> and <code>instance</code>.</p>
+<p>Tables use <strong>C</strong> for <code>engine,context</code> and <strong>D</strong> for <code>provider,destination</code> to keep
+individual entries compact. No request ID, owner, exception text or result path
+is a metric label. Failed snapshots omit shared series; a known zero is emitted
+only from a successful snapshot. See <a href="../observability/#4-write-correct-ha-queries">HA query examples</a>.</p>
+<h2 id="clients-and-contexts">Clients and contexts<a class="headerlink" href="#clients-and-contexts" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type/scope</th>
+<th>Labels</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>linha_client_leases</code></td>
+<td>Gauge Shared</td>
+<td>C, <code>state</code></td>
+<td>Current stored lease generations: active, expired, released; active uses database-clock expiry.</td>
+</tr>
+<tr>
+<td><code>linha_client_lease_events_total</code></td>
+<td>Counter Shared</td>
+<td>C, <code>event</code></td>
+<td>Acquired, explicitly released, or expired generations, once per event/generation. Renewals do not count as acquisitions.</td>
+</tr>
+<tr>
+<td><code>linha_context_versions</code></td>
+<td>Gauge Shared</td>
+<td>C, <code>state</code></td>
+<td>Immutable versions in each normalized lifecycle state.</td>
+</tr>
+<tr>
+<td><code>linha_context_versions_with_demand</code></td>
+<td>Gauge Shared</td>
+<td>C, <code>demand</code></td>
+<td>Versions with live clients or accepted work, reported separately as <code>clients|work</code>; one version can have both, so do not sum these as distinct versions.</td>
+</tr>
+<tr>
+<td><code>linha_context_conditions</code></td>
+<td>Gauge Shared</td>
+<td>C, <code>reason</code></td>
+<td>Versions with a provisioning/lifecycle condition, grouped by fixed platform reason.</td>
+</tr>
+<tr>
+<td><code>linha_metrics_context_labels</code></td>
+<td>Gauge Shared</td>
+<td><code>state</code></td>
+<td>Number of permanently assigned named dimensions and logical contexts grouped into overflow.</td>
+</tr>
+</tbody>
+</table>
+<p>Expired/released lease rows are record counts, not current demand; historical acquisition/release/expiry rates use counters. Client identifiers and exact last-seen times are available in the admin API only.</p>
+<h2 id="jobs-and-execution">Jobs and execution<a class="headerlink" href="#jobs-and-execution" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type/scope</th>
+<th>Labels</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>linha_job_records</code></td>
+<td>Gauge Shared</td>
+<td>C, <code>state</code></td>
+<td>Retained jobs currently in QUEUED, RETRYING, RUNNING, CANCELLING, SUCCEEDED, FAILED, CANCELLED; terminal values include retained history.</td>
+</tr>
+<tr>
+<td><code>linha_queue_jobs</code></td>
+<td>Gauge Shared</td>
+<td>C, <code>eligibility</code></td>
+<td>Queued/retrying work classified <code>ready|backoff</code>; never includes running work.</td>
+</tr>
+<tr>
+<td><code>linha_queue_oldest_age_seconds</code></td>
+<td>Gauge Shared</td>
+<td>C</td>
+<td>Age since original submission of oldest QUEUED/RETRYING job, including retry backoff; zero for an empty queue.</td>
+</tr>
+<tr>
+<td><code>linha_job_submissions_total</code></td>
+<td>Counter Shared</td>
+<td>C, <code>source</code></td>
+<td>Newly committed jobs (<code>sdk|admin</code>), excluding idempotent repeats.</td>
+</tr>
+<tr>
+<td><code>linha_job_completions_total</code></td>
+<td>Counter Shared</td>
+<td>C, <code>outcome</code></td>
+<td>First committed terminal job transitions: SUCCEEDED, FAILED, CANCELLED.</td>
+</tr>
+<tr>
+<td><code>linha_job_failures_total</code></td>
+<td>Counter Shared</td>
+<td>C, <code>reason</code></td>
+<td>Terminal FAILED jobs classified by bounded reason; business exception text never becomes a label.</td>
+</tr>
+<tr>
+<td><code>linha_job_retries_total</code></td>
+<td>Counter Shared</td>
+<td>C, <code>reason</code></td>
+<td>Persisted additional-attempt decisions, not duplicate claim attempts.</td>
+</tr>
+<tr>
+<td><code>linha_attempts_current</code></td>
+<td>Gauge Shared</td>
+<td>C, <code>state</code></td>
+<td>Nonterminal current attempts with <code>running|cancelling|lease_expired</code>, a disjoint classification.</td>
+</tr>
+<tr>
+<td><code>linha_attempt_completions_total</code></td>
+<td>Counter Shared</td>
+<td>C, <code>outcome</code></td>
+<td>First persisted attempt termination, including failure/interruption/cancellation; duplicate completion callbacks excluded.</td>
+</tr>
+<tr>
+<td><code>linha_job_queue_wait_seconds</code></td>
+<td>Histogram Shared</td>
+<td>C</td>
+<td>Submission to first assignment, exactly one observation when first claimed.</td>
+</tr>
+<tr>
+<td><code>linha_attempt_duration_seconds</code></td>
+<td>Histogram Shared</td>
+<td>C</td>
+<td>Assignment to persisted terminal attempt state, exactly one observation per terminated attempt.</td>
+</tr>
+<tr>
+<td><code>linha_job_duration_seconds</code></td>
+<td>Histogram Shared</td>
+<td>C, <code>outcome</code></td>
+<td>Submission to terminal job outcome, including retries and queue wait.</td>
+</tr>
+<tr>
+<td><code>linha_job_cancellation_duration_seconds</code></td>
+<td>Histogram Shared</td>
+<td>C</td>
+<td>First cancellation intent to CANCELLED; success-before-cancel is excluded.</td>
+</tr>
+<tr>
+<td><code>linha_worker_updates_rejected_total</code></td>
+<td>Counter Local</td>
+<td><code>operation,reason</code></td>
+<td>Rejected worker reports; operations are a fixed set and reasons include identity mismatch, stale attempt, expired lease, invalid state, invalid payload, and other.</td>
+</tr>
+<tr>
+<td><code>linha_accounting_started_timestamp_seconds</code></td>
+<td>Gauge Shared</td>
+<td>none</td>
+<td>Baseline of new durable lifecycle counters/histograms; old history is represented by gauges, not fabricated events.</td>
+</tr>
+</tbody>
+</table>
+<p>Fixed failure categories: <code>business_error</code>, <code>lease_expired</code>, <code>worker_lost</code>, <code>deadline_exceeded</code>, <code>provisioning</code>, <code>result_storage</code>, <code>invalid_result</code>, <code>other</code>. Map arbitrary worker failure codes into this set. Do not label by handler or exception type. Attempts use documented normalized outcomes <code>SUCCEEDED|FAILED|CANCELLED|INTERRUPTED</code>; preserve richer raw states in the detail API.</p>
+<p>Job/attempt/queue/cancellation histogram boundaries: 0.1, 1, 5, 15, 30, 60, 120, 300, 600, 1800, 3600, 10800, 43200, 86400 seconds, plus +Inf. Bucket changes are a metric contract change, not an arbitrary per-replica setting.</p>
+<h2 id="workers-and-engines">Workers and engines<a class="headerlink" href="#workers-and-engines" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type/scope</th>
+<th>Labels</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>linha_workers</code></td>
+<td>Gauge Shared</td>
+<td>C, <code>state</code></td>
+<td>Registered workers classified <code>ready|draining|stale</code>; stale takes precedence over draining.</td>
+</tr>
+<tr>
+<td><code>linha_worker_capacity_slots</code></td>
+<td>Gauge Shared</td>
+<td>C</td>
+<td>Total configured claim slots on fresh non-draining registered workers.</td>
+</tr>
+<tr>
+<td><code>linha_worker_occupied_slots</code></td>
+<td>Gauge Shared</td>
+<td>C</td>
+<td>Slots held by unexpired current running/cancelling attempts on those workers; unrelated/stale instances are excluded.</td>
+</tr>
+<tr>
+<td><code>linha_engine_instances</code></td>
+<td>Gauge Shared</td>
+<td>C, <code>state</code></td>
+<td>Managed instances by lifecycle state, including STARTING, READY, DRAINING, DEAD.</td>
+</tr>
+<tr>
+<td><code>linha_engine_desired_instances</code></td>
+<td>Gauge Shared</td>
+<td>C</td>
+<td>Current desired instance count after client/work lifetime and scaler rules, not just configured minimum.</td>
+</tr>
+<tr>
+<td><code>linha_engine_configured_instances</code></td>
+<td>Gauge Shared</td>
+<td>C, <code>bound</code></td>
+<td>Sum of configured <code>min|max</code> for versions with current demand; stopped versions do not inflate limits.</td>
+</tr>
+<tr>
+<td><code>linha_engine_provisioning_duration_seconds</code></td>
+<td>Histogram Shared</td>
+<td>C</td>
+<td>Instance demand to first ready registered worker, boundaries 1, 5, 15, 30, 60, 120, 300, 600, 1800, +Inf.</td>
+</tr>
+<tr>
+<td><code>linha_engine_instances_replaced_total</code></td>
+<td>Counter Shared</td>
+<td>C, <code>reason</code></td>
+<td>Persisted replacement decisions for lost/failed instances; reconciliation polls are not new events.</td>
+</tr>
+<tr>
+<td><code>linha_engine_observations</code></td>
+<td>Gauge Shared</td>
+<td>C, <code>state</code></td>
+<td>Required live-instance observations classified <code>fresh|stale|missing</code>, measured independently of their content.</td>
+</tr>
+<tr>
+<td><code>linha_engine_observation_oldest_timestamp_seconds</code></td>
+<td>Gauge Shared</td>
+<td>C</td>
+<td>Oldest observation among currently required observed instances; missing observations are indicated separately.</td>
+</tr>
+<tr>
+<td><code>linha_spark_driver_pods</code></td>
+<td>Gauge Observed</td>
+<td>C, <code>state</code></td>
+<td>Current owned Spark driver pods by normalized Kubernetes phase, separate from SDK readiness.</td>
+</tr>
+<tr>
+<td><code>linha_spark_executor_pods</code></td>
+<td>Gauge Observed</td>
+<td>C, <code>state</code></td>
+<td>Current owned executor pods by phase; deleted executors disappear.</td>
+</tr>
+<tr>
+<td><code>linha_spark_executor_configuration</code></td>
+<td>Gauge Shared</td>
+<td>C, <code>bound</code></td>
+<td>Sum of configured executor <code>min|initial|max</code> across currently desired drivers; static instances use the same value for all three.</td>
+</tr>
+<tr>
+<td><code>linha_spark_pod_cpu_cores</code></td>
+<td>Gauge Observed</td>
+<td>C, <code>role,allocation</code></td>
+<td>Sum of Spark main-container CPU requests/limits; role driver/executor, allocation request/limit.</td>
+</tr>
+<tr>
+<td><code>linha_spark_pod_memory_bytes</code></td>
+<td>Gauge Observed</td>
+<td>C, <code>role,allocation</code></td>
+<td>Sum of observed Spark main-container memory requests/limits, including container overhead; not memory usage.</td>
+</tr>
+</tbody>
+</table>
+<p>Normalize pod phases to <code>Pending|Running|Succeeded|Failed|Unknown|Terminating</code>, using Terminating when deletion is observed. Ready workers and Running pods are not interchangeable. Desired demand can change between snapshots; explicitly timestamp it. Do not publish partial resource totals as complete when a quantity is missing; expose a fixed <code>missing_resources</code> observation condition in the internal detail/condition projection.</p>
+<h2 id="servers-dependencies-and-background-loops">Servers, dependencies, and background loops<a class="headerlink" href="#servers-dependencies-and-background-loops" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type/scope</th>
+<th>Labels</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>linha_server_build_info</code></td>
+<td>Info Local</td>
+<td><code>version,revision</code></td>
+<td>Build metadata, once per responding server.</td>
+</tr>
+<tr>
+<td><code>linha_server_ready</code></td>
+<td>Gauge Local</td>
+<td>none</td>
+<td>Latest bounded readiness observation, 0/1; timestamped by its collector.</td>
+</tr>
+<tr>
+<td><code>linha_servers</code></td>
+<td>Gauge Shared</td>
+<td><code>state</code></td>
+<td>Latest process per server pod classified <code>ready|unready|stale|stopping</code>, with 24-hour heartbeat retention.</td>
+</tr>
+<tr>
+<td><code>linha_dependency_available</code></td>
+<td>Gauge Local</td>
+<td><code>dependency</code></td>
+<td>Latest configured database/local-storage check; 0/1, never fabricated for an unchecked service.</td>
+</tr>
+<tr>
+<td><code>linha_background_loop_runs_total</code></td>
+<td>Counter Local</td>
+<td><code>loop,outcome</code></td>
+<td>Runs of reconcile/recovery/retention/cleanup/heartbeat/observation, success/error.</td>
+</tr>
+<tr>
+<td><code>linha_background_loop_duration_seconds</code></td>
+<td>Histogram Local</td>
+<td><code>loop</code></td>
+<td>Duration of each loop run, including errors.</td>
+</tr>
+<tr>
+<td><code>linha_background_loop_last_success_timestamp_seconds</code></td>
+<td>Gauge Local</td>
+<td><code>loop</code></td>
+<td>Last success; zero before the first success.</td>
+</tr>
+<tr>
+<td><code>linha_database_pool_connections</code></td>
+<td>Gauge Local</td>
+<td><code>state</code></td>
+<td>Acquired, idle, constructing connections.</td>
+</tr>
+<tr>
+<td><code>linha_database_pool_max_connections</code></td>
+<td>Gauge Local</td>
+<td>none</td>
+<td>Configured pool capacity.</td>
+</tr>
+<tr>
+<td><code>linha_database_pool_acquire_wait_seconds_total</code></td>
+<td>Counter Local</td>
+<td>none</td>
+<td>Accumulated pool acquisition wait time.</td>
+</tr>
+<tr>
+<td><code>linha_database_pool_acquire_failures_total</code></td>
+<td>Counter Local</td>
+<td><code>reason</code></td>
+<td>Timeout/cancel/error acquisition failures.</td>
+</tr>
+<tr>
+<td><code>linha_kubernetes_api_requests_total</code></td>
+<td>Counter Local</td>
+<td><code>resource,verb,outcome</code></td>
+<td>Bounded resource/verb set and outcome success/forbidden/not_found/timeout/error.</td>
+</tr>
+<tr>
+<td><code>linha_kubernetes_api_duration_seconds</code></td>
+<td>Histogram Local</td>
+<td><code>resource,verb</code></td>
+<td>Kubernetes call latency without names, selectors, URLs, or error strings.</td>
+</tr>
+<tr>
+<td><code>linha_collector_success</code></td>
+<td>Gauge Local</td>
+<td><code>collector</code></td>
+<td>Latest collection completed successfully, 0/1.</td>
+</tr>
+<tr>
+<td><code>linha_collector_last_success_timestamp_seconds</code></td>
+<td>Gauge Local</td>
+<td><code>collector</code></td>
+<td>Last usable sample time; zero before initialization.</td>
+</tr>
+<tr>
+<td><code>linha_collector_duration_seconds</code></td>
+<td>Histogram Local</td>
+<td><code>collector</code></td>
+<td>Background collection latency.</td>
+</tr>
+<tr>
+<td><code>linha_collector_errors_total</code></td>
+<td>Counter Local</td>
+<td><code>collector,reason</code></td>
+<td>Bounded timeout/unavailable/invalid/other errors.</td>
+</tr>
+</tbody>
+</table>
+<p>Use fixed collector names <code>database|readiness|engine_snapshot</code>; the engine_snapshot collector reports completeness of required engine observations, while per-context detail identifies gaps. No synthetic <code>up</code> metric: Prometheus supplies <code>up</code> per scrape target. Standard Go/process collectors supply CPU time, resident memory, goroutines, GC and process start time. Runtime metrics do not imply Kubernetes pod readiness; optional external dashboards can use kube-state-metrics for desired replica count and pod restarts.</p>
+<h2 id="http-and-resultsstorage">HTTP and results/storage<a class="headerlink" href="#http-and-resultsstorage" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type/scope</th>
+<th>Labels</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>linha_api_requests_total</code></td>
+<td>Counter Local</td>
+<td><code>route,method,status_code</code></td>
+<td>All API responses, including unauthorized, worker and admin routes, and unmatched paths; probes, metrics and static assets are excluded.</td>
+</tr>
+<tr>
+<td><code>linha_api_request_duration_seconds</code></td>
+<td>Histogram Local</td>
+<td><code>route,method</code></td>
+<td>Time through response completion, including streamed results.</td>
+</tr>
+<tr>
+<td><code>linha_api_requests_in_flight</code></td>
+<td>Gauge Local</td>
+<td><code>route,method</code></td>
+<td>Currently executing API requests.</td>
+</tr>
+<tr>
+<td><code>linha_api_response_bytes_total</code></td>
+<td>Counter Local</td>
+<td><code>route,method</code></td>
+<td>Bytes written by API responses.</td>
+</tr>
+<tr>
+<td><code>linha_results</code></td>
+<td>Gauge Shared</td>
+<td>C, D, <code>state</code></td>
+<td>Published result sets classified retained/expired, not per-file parts.</td>
+</tr>
+<tr>
+<td><code>linha_result_published_bytes</code></td>
+<td>Gauge Shared</td>
+<td>C, D, <code>state</code></td>
+<td>Logical published file/part bytes recorded in manifests; exclude manifest bytes from dataset part totals and do not count replicas/staging copies.</td>
+</tr>
+<tr>
+<td><code>linha_result_cleanup_candidates</code></td>
+<td>Gauge Shared</td>
+<td>D</td>
+<td>Allocations currently eligible under terminal/expiry/delegation/grace rules.</td>
+</tr>
+<tr>
+<td><code>linha_result_cleanup_runs_total</code></td>
+<td>Counter Local</td>
+<td>D, <code>outcome</code></td>
+<td>Cleanup executions success/error; these are operations, not exactly-once object deletion counts.</td>
+</tr>
+<tr>
+<td><code>linha_storage_operations_total</code></td>
+<td>Counter Local</td>
+<td>D, <code>operation,outcome</code></td>
+<td>Server-observed allocate/upload/download/publish/list/delete/delegate/probe/other operations.</td>
+</tr>
+<tr>
+<td><code>linha_storage_operation_duration_seconds</code></td>
+<td>Histogram Local</td>
+<td>D, <code>operation</code></td>
+<td>Complete server-observed operation latency.</td>
+</tr>
+<tr>
+<td><code>linha_storage_transferred_bytes_total</code></td>
+<td>Counter Local</td>
+<td>D, <code>direction</code></td>
+<td>Server-observed upload/download bytes; direct worker/Spark S3 writes are excluded.</td>
+</tr>
+<tr>
+<td><code>linha_staging_reserved_bytes</code></td>
+<td>Gauge Local</td>
+<td>none</td>
+<td>Current server staging budget reservation.</td>
+</tr>
+<tr>
+<td><code>linha_staging_limit_bytes</code></td>
+<td>Gauge Local</td>
+<td>none</td>
+<td>Configured server staging reservation limit.</td>
+</tr>
+</tbody>
+</table>
+<p>HTTP/local operation duration boundaries: 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, +Inf. Storage/JVM business failures also appear in durable job failure categories when they terminate a request; local storage call metrics do not claim to cover direct worker I/O.</p>
+<h2 id="compatibility-and-validation">Compatibility and validation<a class="headerlink" href="#compatibility-and-validation" title="Permanent link">&para;</a></h2>
+<p>The old unlabeled HTTP counters and legacy shared gauges retain their original name/shape for one release. New code registers no mixed-definition family. Tests parse exposition, assert HELP/TYPE, escaped values and zero states, and verify fixture totals against PostgreSQL. Test HTTP route normalization with attacker-chosen paths/methods and label-registry overflow with more than the configured context budget. Report the measured series count and SQL/collection cost in validation documentation.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.indexes", "navigation.top", "content.code.copy", "search.suggest"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
