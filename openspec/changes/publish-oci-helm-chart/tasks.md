@@ -10,5 +10,5 @@
 
 ## 3. Publish the existing release
 
-- [ ] 3.1 Push the reviewed workflow change and run chart-only publication for the original 0.1.3 release archive.
-- [ ] 3.2 Verify public package visibility and a credential-free pull/template with the same archive checksum.
+- [x] 3.1 Push the reviewed workflow change and run chart-only publication for the original 0.1.3 release archive.
+- [x] 3.2 Verify public package visibility and a credential-free pull/template with the same archive checksum.

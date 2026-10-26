@@ -48,7 +48,12 @@ def validate_archive(archive, version, checksum=None):
             ):
                 raise ValueError("Invalid chart metadata: " + filename)
             documents[filename] = yaml.safe_load(chart.extractfile(entries[0]))
-    metadata = documents["linha/Chart.yaml"]
+    validate_documents(
+        documents["linha/Chart.yaml"], documents["linha/values.yaml"], version
+    )
+
+
+def validate_documents(metadata, values, version):
     if not isinstance(metadata, dict) or any(
         metadata.get(key) != value
         for key, value in {
@@ -58,13 +63,21 @@ def validate_archive(archive, version, checksum=None):
         }.items()
     ):
         raise ValueError("Chart name, version and appVersion must match the release")
-    values = documents["linha/values.yaml"]
     if (
         not isinstance(values, dict)
         or not isinstance(values.get("image"), dict)
         or values["image"].get("tag") != version
     ):
         raise ValueError("Default server image tag must match the chart release")
+
+
+def validate_source(root, version):
+    chart = Path(root) / "deploy/helm/linha"
+    validate_documents(
+        yaml.safe_load((chart / "Chart.yaml").read_text()),
+        yaml.safe_load((chart / "values.yaml").read_text()),
+        version,
+    )
 
 
 def validate_published_release(data, tag):
@@ -119,6 +132,7 @@ def prepare(tag, repository, output, published=False):
         validate_archive(archive, version, output / "SHA256SUMS")
     else:
         release.validate(ROOT, tag, repository)
+        validate_source(ROOT, version)
         subprocess.run(["helm", "lint", str(ROOT / "deploy/helm/linha")], check=True)
         subprocess.run(
             [
@@ -145,13 +159,27 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tag", required=True)
     parser.add_argument("--repository", required=True)
-    parser.add_argument("--output", required=True)
+    parser.add_argument("--output")
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Validate source versions without packaging",
+    )
     parser.add_argument(
         "--published",
         action="store_true",
         help="Use the original published release archive",
     )
     args = parser.parse_args()
+    if args.check:
+        if args.published:
+            parser.error("--check is only available for source validation")
+        version, _ = release.validate(ROOT, args.tag, args.repository)
+        validate_source(ROOT, version)
+        print("Chart and server versions match " + version)
+        return
+    if not args.output:
+        parser.error("--output is required when packaging or downloading a chart")
     result = prepare(args.tag, args.repository, args.output, args.published)
     if os.environ.get("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"], "a") as target:

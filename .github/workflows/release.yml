@@ -35,6 +35,15 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: python3 scripts/prepare-release.py --check --tag "$RELEASE_TAG" --repository "$GITHUB_REPOSITORY"
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Validate matching chart and server versions
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          pip install PyYAML==6.0.3
+          python3 scripts/prepare-chart.py --check --tag "$RELEASE_TAG" --repository "$GITHUB_REPOSITORY"
       - name: Check required publishing secrets
         env:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
