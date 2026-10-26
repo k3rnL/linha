@@ -900,6 +900,8 @@
         
       
         
+      
+        
           
         
       
@@ -1000,6 +1002,34 @@
     
   
     Scala/JVM SDK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../application-storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application storage
   
 
     
@@ -1200,6 +1230,8 @@
       
         
       
+        
+      
     
     
     
@@ -1210,7 +1242,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_10" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1232,14 +1264,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_4_10" id="__nav_4_10_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_4_11" id="__nav_4_11_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_10_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_10">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1249,6 +1281,34 @@
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releases/v0.1.3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
               
             
               
@@ -1577,6 +1637,13 @@ spec passed to <code>ensureBackend</code>. Linha creates one SparkApplication pe
 driver. Kubeflow Spark Operator submits it, and Spark creates driver/executor Pods.</p>
 <p>This guide assumes the operator watches the Linha namespace and your worker image
 contains the declared JVM main class and JAR. See <a href="../operations/">deployment</a>.</p>
+<p>New driver Pods use <code>&lt;context-name&gt;-&lt;instance-id&gt;-driver</code>, for example
+<code>reporting-0123456789abcdef0123456789abcdef-driver</code>. Linha lowercases the context
+prefix, replaces unsupported characters with hyphens and limits that prefix to
+23 characters, keeping the complete unique instance ID within Kubernetes' 63-character
+name limit. A name with no supported characters uses <code>context</code> as its prefix.
+Existing applications retain their current driver names until a new instance is
+provisioned. No client configuration change is needed.</p>
 <h2 id="set-the-application-and-resources">Set the application and resources<a class="headerlink" href="#set-the-application-and-resources" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">"image"</span><span class="p">:</span><span class="w"> </span><span class="s2">"registry.example/workers/reporting:1"</span><span class="p">,</span>

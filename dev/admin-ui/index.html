@@ -697,10 +697,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-verify-the-four-pages" class="md-nav__link">
+  <a href="#4-verify-the-console" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. Verify the four pages
+        4. Verify the console
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recover-a-stranded-queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recover a stranded queue
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#keep-browser-sessions-connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keep browser sessions connected
       
     </span>
   </a>
@@ -900,6 +922,8 @@
         
       
         
+      
+        
           
         
       
@@ -1000,6 +1024,34 @@
     
   
     Scala/JVM SDK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../application-storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application storage
   
 
     
@@ -1200,6 +1252,8 @@
       
         
       
+        
+      
     
     
     
@@ -1210,7 +1264,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_10" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1232,14 +1286,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_4_10" id="__nav_4_10_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_4_11" id="__nav_4_11_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_10_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_10">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1249,6 +1303,34 @@
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releases/v0.1.3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
               
             
               
@@ -1533,10 +1615,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-verify-the-four-pages" class="md-nav__link">
+  <a href="#4-verify-the-console" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. Verify the four pages
+        4. Verify the console
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recover-a-stranded-queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recover a stranded queue
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#keep-browser-sessions-connected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Keep browser sessions connected
       
     </span>
   </a>
@@ -1573,7 +1677,8 @@
 
 <h1 id="enable-the-administrator-console">Enable the administrator console<a class="headerlink" href="#enable-the-administrator-console" title="Permanent link">&para;</a></h1>
 <p>The console displays contexts, clients, workers, requests, attempts and retained
-results. Operators can create or edit-and-replay requests and cancel accepted work.
+results. Operators can create or edit-and-replay requests, cancel accepted work and
+move pending requests to a corrected context version.
 It is embedded in the server image and disabled by default.</p>
 <p>This guide assumes a reachable Linha server and an OIDC provider. API OAuth
 configuration remains independent; see <a href="../client-authentication/">client authentication</a>.</p>
@@ -1634,13 +1739,14 @@ The chart infers the host from <code>ui.publicURL</code> and routes <code>/ui</c
 to the existing Service. Preserve these paths; no rewriting or sticky sessions
 are required. If TLS terminates upstream, retain the external HTTPS public URL
 and set ingress TLS to false. An externally managed ingress can use the same routes.</p>
-<h2 id="4-verify-the-four-pages">4. Verify the four pages<a class="headerlink" href="#4-verify-the-four-pages" title="Permanent link">&para;</a></h2>
+<h2 id="4-verify-the-console">4. Verify the console<a class="headerlink" href="#4-verify-the-console" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Overview:</strong> current work, capacity, health and recent activity.</li>
 <li><strong>Contexts:</strong> logical names and immutable versions, clients with hostnames,
   worker instances, current allocations and separated historical observations.</li>
 <li><strong>Requests:</strong> payloads, state, progress, attempts, failures, cancellation and
   links to retained results. Edit-and-replay opens the create form.</li>
+<li><strong>Servers:</strong> replica readiness, versions and heartbeat freshness.</li>
 <li><strong>Create request:</strong> select a context version, edit JSON, set policy and submit.</li>
 </ul>
 <p>Spark instances link to a current UI ingress when the SparkApplication exposes
@@ -1650,6 +1756,61 @@ Historical instances do not imply that their UI is still reachable.</p>
 <p>File results expose names, sizes, digests and locations, with bounded previews
 when supported. Dataset parts are paginated. Operators have actions; viewers
 have inspection access. Actions are recorded in the persisted audit history.</p>
+<h2 id="recover-a-stranded-queue">Recover a stranded queue<a class="headerlink" href="#recover-a-stranded-queue" title="Permanent link">&para;</a></h2>
+<p>Use this procedure when an old context version is draining but its workers cannot
+start. First ensure that the corrected version has working workers and supports
+the queued handlers and payload contracts.</p>
+<ol>
+<li>Open <strong>Requests</strong>, or open the old context version and choose its <strong>Requests</strong> tab.</li>
+<li>Use the context suggestions and local date/time inputs to locate the work.</li>
+<li>Select the queued or retrying requests. The header checkbox selects eligible
+   rows on the current page; repeat for further pages as needed.</li>
+<li>Choose <strong>Move selected</strong>, search the destination versions, and choose the
+   corrected active version. Confirm the move.</li>
+<li>Review <strong>Batch results</strong>. Successful rows move immediately; failed rows remain
+   selected with an explanation. Refresh and retry those rows if appropriate.</li>
+</ol>
+<p>The destination must have the same owner, logical context name, engine type and
+engine version. It must retain the source's workload storage destinations and
+fingerprints. Stopped and draining versions cannot receive moved work.</p>
+<p>A move preserves public request IDs, payloads, submission time, deadline, retry
+count/backoff and the original result-storage policy. Clients keep polling the
+same IDs. The source can finish draining once its remaining accepted work ends.
+Each actual move appears in the request's administrative audit with links to the
+source and destination versions.</p>
+<p>Running requests cannot move. Choose <strong>Cancel selected</strong> to signal running work or
+cancel pending work; cancellation leaves drivers available for other requests.
+If a payload needs editing, use <strong>Edit and replay</strong> to create a new request and
+cancel the obsolete request instead of moving it unchanged.</p>
+<p>Batch actions apply per request. A worker can claim a row while the dialog is open;
+that row then reports a conflict instead of being executed twice. The API accepts
+up to 200 unique IDs per batch; the UI selects one page at a time. See the
+<a href="../http-api/">OpenAPI contract</a> for <code>POST /v1/admin/jobs/batch</code>.</p>
+<h2 id="keep-browser-sessions-connected">Keep browser sessions connected<a class="headerlink" href="#keep-browser-sessions-connected" title="Permanent link">&para;</a></h2>
+<p>Linha renews short-lived identity credentials on the server when the provider
+issues a refresh token. Refresh credentials remain encrypted in PostgreSQL;
+JavaScript and browser cookies never contain provider tokens. Any replica can
+renew the same session, and current administrator membership is checked again.</p>
+<p>Set the maximum browser session duration explicitly. For example, for eight hours:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">ui</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">sessionSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">28800</span>
+</code></pre></div>
+<p>The default is 3600 seconds; the supported range is 60–86400 seconds. Renewal does
+not extend this absolute limit. The provider's own session expiry or revocation
+can end access earlier. Sign in once after upgrading: sessions created by older
+servers have no refresh credential and retain their original expiry.</p>
+<p>For Keycloak, enable the browser client's <strong>Standard flow</strong> and align its client
+and realm session timeouts with the duration you need. Ordinary interactive
+renewal does not require <code>offline_access</code>. Other providers may require an extra
+scope or consent to issue a refresh token; use <code>ui.oidc.scopes</code> when needed.
+If refreshed ID tokens are omitted, Linha uses fresh UserInfo and verifies its
+subject, so UserInfo must include the claims used by administrator mappings.
+See the <a href="https://www.keycloak.org/docs/26.7.5/server_admin/index.html#_timeouts">Keycloak session documentation</a>
+and <a href="https://openid.net/specs/openid-connect-core-1_0.html#RefreshTokens">OpenID Connect refresh rules</a>.</p>
+<p>A temporary provider outage does not extend an expired identity. Rejected refresh
+credentials, changed identity, removed administrator membership, or an interrupted
+provider-token rotation can require another login. Logout removes the shared
+session so another replica cannot revive it.</p>
 <h2 id="diagnose-login">Diagnose login<a class="headerlink" href="#diagnose-login" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1679,13 +1840,21 @@ have inspection access. Actions are recorded in the persisted audit history.</p>
 <td>Certificate error</td>
 <td>Provider CA trusted by server and browser; these are separate trust stores</td>
 </tr>
+<tr>
+<td>Login needed at each short token expiry</td>
+<td>Sign in after upgrading; verify the provider issues a refresh token and the browser client can refresh</td>
+</tr>
+<tr>
+<td>Login needed at a fixed longer interval</td>
+<td>Check <code>ui.sessionSeconds</code> and the provider's maximum session duration</td>
+</tr>
 </tbody>
 </table>
 <p>Log in again after changing scopes or the provider's token mapper. Administrator
 mappings are evaluated using the running server configuration on every request.
 The browser session is database-backed, HttpOnly, SameSite=Lax and Secure over
-HTTPS. Its lifetime is bounded by the configured session duration and ID-token
-expiry. JavaScript never stores bearer tokens.</p>
+HTTPS. Its absolute lifetime is bounded by <code>ui.sessionSeconds</code>. Without a refresh
+token, it also ends at identity-token expiry. JavaScript never stores bearer tokens.</p>
 <p>For an isolated development fixture, <code>security.enabled: false</code> with
 <code>ui.enabled: true</code> gives anonymous operator access. It provides no user isolation.</p>
 

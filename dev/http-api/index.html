@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://k3rnl.github.io/linha/dev/http-api/">
       
       
-        <link rel="prev" href="../sdk-reference/">
+        <link rel="prev" href="../application-storage/">
       
       
         <link rel="next" href="../metrics/">
@@ -798,6 +798,8 @@
         
       
         
+      
+        
           
         
       
@@ -915,6 +917,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../application-storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -1007,6 +1037,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Worker and administrator routes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#batch-request-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batch request actions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1189,6 +1236,8 @@
       
         
       
+        
+      
     
     
     
@@ -1199,7 +1248,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_10" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1221,14 +1270,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_4_10" id="__nav_4_10_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_4_11" id="__nav_4_11_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_10_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_10">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1238,6 +1287,34 @@
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releases/v0.1.3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
               
             
               
@@ -1519,6 +1596,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Worker and administrator routes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#batch-request-actions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batch request actions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1700,6 +1794,30 @@ not application OAuth requests.</p>
 viewer/operator membership from the browser issuer. Mutations require operator
 access; cookie mutations also require origin/CSRF checks. The
 <a href="../admin-ui/">console guide</a> covers setup.</p>
+<h3 id="batch-request-actions">Batch request actions<a class="headerlink" href="#batch-request-actions" title="Permanent link">&para;</a></h3>
+<p><code>POST /v1/admin/jobs/batch</code> requires operator access. Browser requests also send
+same-origin <code>Origin</code> and <code>X-Linha-CSRF</code> headers. Supply 1–200 unique requests and
+the context version each selection came from:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"move"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"targetContextId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"corrected-context-id"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"jobs"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"request-id"</span><span class="p">,</span><span class="w"> </span><span class="nt">"contextId"</span><span class="p">:</span><span class="w"> </span><span class="s2">"old-context-id"</span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Use <code>action: "cancel"</code> and omit <code>targetContextId</code> for cancellation. A malformed
+batch returns a structured HTTP error before any item changes. A valid batch
+returns HTTP 200 with <code>items</code>; inspect each item's <code>outcome</code> and optional <code>error</code>.
+An eligible item returns its unchanged public <code>id</code> and a compact <code>job</code> summary
+(context, state, attempt count and update time); payloads are not duplicated in
+batch responses. Failed
+items contain a safe <code>code</code> and <code>message</code> and do not roll back other items.</p>
+<p>Moves preserve original requests, result policies and retry history. They require
+an active destination of the same owner, logical name and engine type/version,
+with unchanged source workload-storage access. Audit records for moves include
+<code>sourceContextId</code> and destination <code>contextId</code>. See <a href="../admin-ui/#recover-a-stranded-queue">queue recovery</a>
+for the operator procedure.</p>
 <h2 id="operational-routes">Operational routes<a class="headerlink" href="#operational-routes" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

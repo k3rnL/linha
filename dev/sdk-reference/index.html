@@ -16,7 +16,7 @@
         <link rel="prev" href="../configuration/">
       
       
-        <link rel="next" href="../http-api/">
+        <link rel="next" href="../application-storage/">
       
       
         
@@ -798,6 +798,8 @@
         
       
         
+      
+        
           
         
       
@@ -1031,6 +1033,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../application-storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../http-api/" class="md-nav__link">
         
   
@@ -1211,6 +1241,8 @@
       
         
       
+        
+      
     
     
     
@@ -1221,7 +1253,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_10" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1243,14 +1275,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_4_10" id="__nav_4_10_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_4_11" id="__nav_4_11_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_10_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_10">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1260,6 +1292,34 @@
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releases/v0.1.3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
               
             
               
@@ -1595,9 +1655,10 @@
 
 <h1 id="scalajvm-sdk-reference">Scala/JVM SDK reference<a class="headerlink" href="#scalajvm-sdk-reference" title="Permanent link">&para;</a></h1>
 <p>All Scala artifacts use binary version 2.12 and Java 17. This guide uses SDK
-version <code>0.1.2-SNAPSHOT</code>.</p>
+version <code>0.1.3-SNAPSHOT</code>.</p>
 <!-- development-only:start -->
-<p>Install these development artifacts from source for the OAuth API documented here.</p>
+<p>Build from source to use these development coordinates, or select the published
+<code>0.1.3</code> version from Maven Central.</p>
 <!-- development-only:end -->
 
 <table>
@@ -1621,6 +1682,10 @@ version <code>0.1.2-SNAPSHOT</code>.</p>
 <td>Handler runtime, leases, progress and publication</td>
 </tr>
 <tr>
+<td><code>com.k3rnl:linha-hadoop_2.12</code></td>
+<td>Scoped application filesystem with range reads</td>
+</tr>
+<tr>
 <td><code>com.k3rnl:linha-spark_2.12</code></td>
 <td>SparkContext sessions and distributed result helpers</td>
 </tr>
@@ -1629,7 +1694,7 @@ version <code>0.1.2-SNAPSHOT</code>.</p>
 <h2 id="dependency-declarations">Dependency declarations<a class="headerlink" href="#dependency-declarations" title="Permanent link">&para;</a></h2>
 <p>For an SBT application that includes both client and worker examples:</p>
 <div class="highlight"><pre><span></span><code><span class="n">scalaVersion</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="s">"2.12.20"</span>
-<span class="kd">val</span><span class="w"> </span><span class="n">linhaVersion</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"0.1.2-SNAPSHOT"</span>
+<span class="kd">val</span><span class="w"> </span><span class="n">linhaVersion</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"0.1.3-SNAPSHOT"</span>
 <span class="n">libraryDependencies</span><span class="w"> </span><span class="o">++=</span><span class="w"> </span><span class="nc">Seq</span><span class="p">(</span>
 <span class="w">  </span><span class="s">"com.k3rnl"</span><span class="w"> </span><span class="o">%%</span><span class="w"> </span><span class="s">"linha-client"</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">linhaVersion</span><span class="p">,</span>
 <span class="w">  </span><span class="s">"com.k3rnl"</span><span class="w"> </span><span class="o">%%</span><span class="w"> </span><span class="s">"linha-spark"</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">linhaVersion</span><span class="p">,</span>
@@ -1684,6 +1749,10 @@ For Maven, use the explicit artifact names in the table, with group <code>com.k3
 <tr>
 <td><code>context.submitRaw(RawRequest(...), idempotencyKey, maxAttempts)</code></td>
 <td>Same protocol with raw JSON parameters</td>
+</tr>
+<tr>
+<td><code>context.storage(destination)</code></td>
+<td>Live client session for an enabled application destination</td>
 </tr>
 <tr>
 <td><code>context.status()</code></td>
@@ -1916,6 +1985,7 @@ worker credentials are separate from the application's OAuth credentials.</p>
 <p>See <a href="../walkthrough/">client/worker tutorial</a>,
 <a href="../dataset-results/">result guide</a> and <a href="../configuration/#result-path-templates">path reference</a>
 for examples.</p>
+<p>Application file access and <code>Unit</code>/<code>StatusResult</code> completion are described in <a href="../application-storage/">Application storage</a>.</p>
 
 
 
