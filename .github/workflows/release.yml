@@ -3,13 +3,20 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      chart_tag:
+        description: Existing published release tag to distribute as an OCI chart
+        required: true
+        type: string
 permissions:
   contents: read
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.chart_tag || github.ref_name }}
   cancel-in-progress: false
 jobs:
   prepare:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment: release
@@ -159,3 +166,70 @@ jobs:
           mvn -B --no-transfer-progress -Prelease
           -pl "${{ needs.prepare.outputs.sdk_modules }}" -am
           -Dcentral.autoPublish=true -Dcentral.waitUntil=published deploy
+  chart:
+    needs:
+      - prepare
+      - checks
+    if: >-
+      ${{ !cancelled() && (github.event_name == 'workflow_dispatch' ||
+          (needs.prepare.result == 'success' && needs.checks.result == 'success')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: release
+    permissions:
+      contents: read
+      packages: write
+    env:
+      RELEASE_TAG: ${{ inputs.chart_tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        with:
+          version: v3.18.4
+      - run: pip install PyYAML==6.0.3
+      - name: Prepare and validate chart archive
+        id: chart
+        env:
+          CHART_RECOVERY: ${{ github.event_name == 'workflow_dispatch' }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          options=()
+          if [ "$CHART_RECOVERY" = true ]; then options+=(--published); fi
+          python3 scripts/prepare-chart.py --tag "$RELEASE_TAG" \
+            --repository "$GITHUB_REPOSITORY" --output "$RUNNER_TEMP/linha-chart" "${options[@]}"
+      - name: Log in to GHCR
+        env:
+          REGISTRY_TOKEN: ${{ github.token }}
+        run: printf '%s' "$REGISTRY_TOKEN" | helm registry login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Publish OCI chart
+        env:
+          CHART_ARCHIVE: ${{ steps.chart.outputs.archive }}
+          CHART_REPOSITORY: ${{ steps.chart.outputs.chart_repository }}
+        run: helm push "$CHART_ARCHIVE" "$CHART_REPOSITORY"
+      - name: Verify anonymous pull and archive identity
+        env:
+          CHART_REF: ${{ steps.chart.outputs.chart_ref }}
+          CHART_VERSION: ${{ steps.chart.outputs.version }}
+          CHART_ARCHIVE: ${{ steps.chart.outputs.archive }}
+          PACKAGE_SETTINGS: ${{ steps.chart.outputs.package_settings }}
+        run: |
+          public_check="$(mktemp -d)"
+          mkdir -p "$public_check/docker" "$public_check/pull"
+          printf '{"auths":{}}' > "$public_check/registry.json"
+          printf '{"auths":{}}' > "$public_check/docker/config.json"
+          if ! DOCKER_CONFIG="$public_check/docker" HELM_REGISTRY_CONFIG="$public_check/registry.json" \
+            helm pull "$CHART_REF" --version "$CHART_VERSION" --destination "$public_check/pull"; then
+            echo "::error::OCI upload completed, but anonymous pull failed. If access is denied, set the GHCR package visibility to Public at $PACKAGE_SETTINGS and retry this chart-only job."
+            exit 1
+          fi
+          cmp "$CHART_ARCHIVE" "$public_check/pull/linha-$CHART_VERSION.tgz"
+          {
+            echo '### Public Helm chart'
+            echo "helm pull $CHART_REF --version $CHART_VERSION"
+          } >> "$GITHUB_STEP_SUMMARY"

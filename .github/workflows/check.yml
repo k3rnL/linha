@@ -79,6 +79,7 @@ jobs:
       - name: Check release preparation and signed SDK artifacts
         run: |
           python3 scripts/test-release.py
+          python3 scripts/test-chart.py
           python3 scripts/check-release-artifacts.py
           go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
       - run: mvn -B package
