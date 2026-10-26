@@ -175,6 +175,17 @@ func (s *Server) adminRoutes(m *http.ServeMux) {
 		}
 		return e
 	}))
+	m.HandleFunc("POST /v1/admin/jobs/batch", s.administrator(true, func(w http.ResponseWriter, r *http.Request, id auth.AdminIdentity) error {
+		var in domain.AdminBatchRequest
+		if e := decode(w, r, &in); e != nil {
+			return e
+		}
+		out, e := repo.AdminBatch(r.Context(), id.Actor, in)
+		if e == nil {
+			write(w, 200, out)
+		}
+		return e
+	}))
 	m.HandleFunc("GET /v1/admin/jobs/{job}", s.administrator(false, func(w http.ResponseWriter, r *http.Request, id auth.AdminIdentity) error {
 		out, e := repo.AdminJob(r.Context(), r.PathValue("job"))
 		if e == nil {

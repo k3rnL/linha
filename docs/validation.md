@@ -50,6 +50,20 @@ multi-node database, object-store or filesystem HA. Production IAM, admission
 policy, storage failures and capacity need tests in the target environment.
 Measured fixture latency is not an SLO or a maximum throughput guarantee.
 
-The current database schema is 10. Older binaries can reject it; retaining IDs
+The current database schema is 12. Older binaries can reject it; retaining IDs
 during migration does not make arbitrary binary rollback safe. Job metadata is
 retained indefinitely; payload retention and cleanup are separately configured.
+
+## Queue recovery and browser renewal
+
+Disposable PostgreSQL and signed HTTPS OIDC fixtures verify pending-request moves,
+original IDs and idempotency, immutable payload/result policy, repeated move audit,
+claim races, retry backoff, compatibility rejection, transaction rollback and
+cross-pool visibility. Refresh tests cover concurrent rotation across independent
+pools, encrypted credentials, changed membership and token bindings, UserInfo,
+transient provider failures, nonrenewable expiry and logout.
+
+Browser tests cover global and context-version selection, cancellation and moves,
+partial outcomes, viewer restrictions, searchable context suggestions, local date
+conversion and selection reset. These checks use local Docker fixtures; they do
+not assert deployment into an external Kubernetes cluster.

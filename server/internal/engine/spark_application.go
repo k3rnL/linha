@@ -49,7 +49,7 @@ func (k *Kubernetes) ensureApplication(ctx context.Context, c domain.BackendCont
 		}
 		return t
 	}
-	driver := map[string]any{"cores": s.Drivers.Cores, "coreRequest": s.Drivers.CoreRequest, "coreLimit": s.Drivers.CoreLimit, "memory": s.Drivers.Memory, "memoryOverhead": s.Drivers.MemoryOverhead, "javaOptions": s.Drivers.JavaOptions, "serviceAccount": k.ServiceAccount, "labels": labels, "template": makeTemplate(templates.Driver, true)}
+	driver := map[string]any{"podName": kube.DriverPodName(c.Name, i.ID), "cores": s.Drivers.Cores, "coreRequest": s.Drivers.CoreRequest, "coreLimit": s.Drivers.CoreLimit, "memory": s.Drivers.Memory, "memoryOverhead": s.Drivers.MemoryOverhead, "javaOptions": s.Drivers.JavaOptions, "serviceAccount": k.ServiceAccount, "labels": labels, "template": makeTemplate(templates.Driver, true)}
 	executor := map[string]any{"cores": s.Executors.Cores, "coreRequest": s.Executors.CoreRequest, "coreLimit": s.Executors.CoreLimit, "memory": s.Executors.Memory, "memoryOverhead": s.Executors.MemoryOverhead, "javaOptions": s.Executors.JavaOptions, "labels": labels, "template": makeTemplate(templates.Executor, false)}
 	conf := s.runtimeConf()
 	spec := map[string]any{"type": "Scala", "mode": "cluster", "sparkVersion": c.Spec.Engine.Version, "image": i.Image, "mainClass": s.Application.MainClass, "mainApplicationFile": s.Application.MainApplicationFile, "arguments": s.Application.Arguments, "restartPolicy": map[string]any{"type": "Never"}, "driver": driver, "executor": executor, "sparkConf": conf}

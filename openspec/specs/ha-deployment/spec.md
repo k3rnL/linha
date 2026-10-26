@@ -65,7 +65,7 @@ Deployment SHALL support references to caller-managed persistent result volumes 
 - **THEN** the affected component exposes a storage/readiness failure without claiming that unavailable payloads are durably accessible
 
 ### Requirement: Independent deployment and security settings
-The chart SHALL expose PostgreSQL connection settings under database.postgres and read credentials using secretRef, usernameKey, and passwordKey. OIDC SHALL be configurable under security.oidc. A master security.enabled switch SHALL disable all Linha authentication without a deployment mode. With only OIDC disabled, worker authentication SHALL remain enabled. Anonymous public access SHALL use one stable owner and SHALL NOT promise per-client isolation or remap retained ownership.
+The chart SHALL expose PostgreSQL connection settings under database.postgres and read credentials using secretRef, usernameKey, and passwordKey. API JWT authentication SHALL be configurable under security.api and browser OIDC under security.oidc. A master security.enabled switch SHALL disable all Linha authentication without a deployment mode. Disabling API authentication SHALL NOT disable browser or worker authentication. Anonymous public access SHALL use one stable owner and SHALL NOT promise per-client isolation or remap retained ownership.
 
 #### Scenario: Custom database Secret keys
 - **WHEN** the administrator selects a Secret and custom username/password keys
@@ -75,9 +75,13 @@ The chart SHALL expose PostgreSQL connection settings under database.postgres an
 - **WHEN** security.enabled is false
 - **THEN** clients and workers operate without OIDC or bearer credentials using a stable anonymous owner and worker routing identities, while durable leases and attempt fencing still apply
 
-#### Scenario: Only OIDC disabled
-- **WHEN** security is enabled and security.oidc.enabled is false
+#### Scenario: Only API authentication disabled
+- **WHEN** security is enabled and security.api.enabled is false
 - **THEN** public requests use the anonymous owner and worker requests still require verified assigned identities
+
+#### Scenario: Only OIDC disabled
+- **WHEN** security is enabled and browser OIDC is disabled
+- **THEN** public API requests retain their independently configured authentication policy and worker requests still require verified assigned identities
 
 ### Requirement: Namespace-only backend permissions
 The chart SHALL offer namespace-only RBAC without rendering ClusterRoles or ClusterRoleBindings, including when authentication is enabled. Signed projected worker tokens SHALL be verified against Kubernetes issuer keys and checked against live Pod/service-account identity and persisted instance assignments. TokenReview cluster permission SHALL be opt-in. All engine resources SHALL remain in the release namespace in either variant.

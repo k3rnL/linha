@@ -65,6 +65,23 @@ func (b *browserMemory) Session(_ context.Context, h string) (domain.BrowserSess
 	}
 	return s, nil
 }
+func (b *browserMemory) RefreshSession(_ context.Context, h string, renew func(domain.BrowserSession) (domain.BrowserSession, error)) (domain.BrowserSession, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	current, ok := b.sessions[h]
+	if !ok || !current.ExpiresAt.After(time.Now()) {
+		return current, domain.NotFound
+	}
+	next, e := renew(current)
+	if e != nil {
+		if e == Unauthorized || e == Forbidden {
+			delete(b.sessions, h)
+		}
+		return next, e
+	}
+	b.sessions[h] = next
+	return next, nil
+}
 func (b *browserMemory) DeleteSession(_ context.Context, h string) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()

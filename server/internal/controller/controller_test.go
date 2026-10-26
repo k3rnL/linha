@@ -289,3 +289,57 @@ func TestRejectedResourceIdentityImmediatelySuppressesLinks(t *testing.T) {
 		t.Fatal("stale UID invalidation", e)
 	}
 }
+
+func TestMovingStrandedQueueLetsOldVersionStop(t *testing.T) {
+	s, source := fixture(t)
+	ctx := context.Background()
+	adapter := engine.NewFake()
+	reconciler := &Controller{Pool: s.Pool, Adapter: adapter, ID: "queue-recovery", Resolve: func(context.Context, domain.BackendSpec) (string, error) { return "image@sha256:fixed", nil }}
+	tick := func() {
+		t.Helper()
+		if err := reconciler.Tick(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.Recover(ctx); err != nil {
+			t.Fatal(err)
+		}
+	}
+	job, err := s.Submit(ctx, "owner", source.ID, domain.SubmitRequest{LeaseID: source.ClientLease.ID, Handler: "sum", Version: 1, Payload: json.RawMessage(`{}`), IdempotencyKey: "stranded"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tick()
+	tick()
+	fixed := source.Spec
+	fixed.Image = "worker:fixed"
+	target, err := s.Ensure(ctx, "owner", domain.EnsureRequest{Name: source.Name, Spec: fixed})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = s.ReleaseClient(ctx, "owner", source.ID, source.ClientLease.ID); err != nil {
+		t.Fatal(err)
+	}
+	tick()
+	old, err := s.Context(ctx, "owner", source.ID)
+	if err != nil || old.State != "DRAINING" {
+		t.Fatal("old queue did not keep version draining", old, err)
+	}
+	moved, err := s.AdminBatch(ctx, "operator", domain.AdminBatchRequest{Action: "move", TargetContextID: target.ID, Jobs: []domain.AdminJobSelection{{ID: job.ID, ContextID: source.ID}}})
+	if err != nil || moved.Items[0].Error != nil {
+		t.Fatal(moved, err)
+	}
+	tick()
+	tick()
+	tick()
+	old, err = s.Context(ctx, "owner", source.ID)
+	if err != nil || old.State != "STOPPED" {
+		t.Fatal("old version remained stranded", old, err)
+	}
+	current, err := s.Job(ctx, "owner", job.ID)
+	if err != nil || current.ContextID != target.ID || current.State != "QUEUED" {
+		t.Fatal("accepted work lost", current, err)
+	}
+	if rows, err := reconciler.instances(ctx, target.ID, ""); err != nil || len(rows) != 1 {
+		t.Fatal("destination lost execution demand", rows, err)
+	}
+}

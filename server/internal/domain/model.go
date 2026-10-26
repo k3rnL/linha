@@ -52,10 +52,15 @@ type ResultPolicy struct {
 	MaxBytes               int64        `json:"maxBytes"`
 	RetentionSeconds       int64        `json:"retentionSeconds"`
 }
+type WorkloadStoragePolicy struct {
+	Destinations []string          `json:"destinations"`
+	Fingerprints map[string]string `json:"fingerprints,omitempty"`
+}
 type BackendSpec struct {
-	Image   string       `json:"image"`
-	Engine  EngineSpec   `json:"engine"`
-	Results ResultPolicy `json:"results"`
+	Storage *WorkloadStoragePolicy `json:"storage,omitempty"`
+	Image   string                 `json:"image"`
+	Engine  EngineSpec             `json:"engine"`
+	Results ResultPolicy           `json:"results"`
 }
 type ClientLease struct {
 	ID              string    `json:"id"`

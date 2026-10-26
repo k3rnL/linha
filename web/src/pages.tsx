@@ -12,6 +12,7 @@ import {
   decodeJSON,
   newSubmissionKey,
   useData,
+  useContextChoices,
   usePage,
 } from "./api";
 import { Button } from "./components/ui/button";
@@ -45,15 +46,8 @@ import type {
   Worker,
 } from "./types";
 import { Instances } from "./instances";
-const jobStates = [
-  "QUEUED",
-  "RETRYING",
-  "RUNNING",
-  "CANCELLING",
-  "SUCCEEDED",
-  "FAILED",
-  "CANCELLED",
-];
+import { JobsTable } from "./requests";
+export { Requests } from "./requests";
 const terminal = (state: string) =>
   ["SUCCEEDED", "FAILED", "CANCELLED"].includes(state);
 export function Contexts({ operator }: { operator: boolean }) {
@@ -62,6 +56,7 @@ export function Contexts({ operator }: { operator: boolean }) {
     metricContext: search.get("metricContext") ?? "",
     state: search.get("state") ?? "",
   });
+  const choices = useContextChoices(filters.owner);
   const query = usePage<Context>("/v1/admin/contexts", filters);
   const groups = Map.groupBy(
     query.data?.items ?? [],
@@ -85,7 +80,13 @@ export function Contexts({ operator }: { operator: boolean }) {
         values={filters}
         onChange={setFilters}
         fields={[
-          { key: "name", label: "Name" },
+          {
+            key: "name",
+            label: "Name",
+            suggestions: [
+              ...new Set(choices.data?.map((c) => c.name) ?? []),
+            ].sort(),
+          },
           { key: "owner", label: "Owner" },
           { key: "engine", label: "Engine" },
           {
@@ -302,114 +303,13 @@ export function ContextDetail({ operator }: { operator: boolean }) {
             )}{" "}
             {tab === "Workers" && <ContextWorkers id={c.id} />}{" "}
             {tab === "Clients" && <ContextClients id={c.id} />}{" "}
-            {tab === "Requests" && <JobsTable contextId={c.id} />}{" "}
+            {tab === "Requests" && (
+              <JobsTable contextId={c.id} operator={operator} />
+            )}{" "}
             {tab === "Configuration" && <Json value={c.spec} />}
           </div>
         </>
       )}
-    </>
-  );
-}
-function JobsTable({
-  contextId,
-  filters = {},
-}: {
-  contextId?: string;
-  filters?: Record<string, string>;
-}) {
-  const q = usePage<Job>("/v1/admin/jobs", {
-    ...filters,
-    ...(contextId ? { contextId } : {}),
-  });
-  return (
-    <>
-      <ErrorMessage error={q.error} />
-      <table>
-        <thead>
-          <tr>
-            <th>Request</th>
-            <th>Context</th>
-            <th>Handler</th>
-            <th>State / progress</th>
-            <th>Attempts</th>
-            <th>Submitted</th>
-          </tr>
-        </thead>
-        <tbody>
-          {q.data?.items.map((j) => (
-            <tr key={j.id}>
-              <td>
-                <JobLink id={j.id} />
-                {j.replayedFrom && <small>Replay</small>}
-              </td>
-              <td>
-                <Link to={`/contexts/${j.contextId}`}>{j.contextName}</Link>
-                <small>
-                  {short(j.contextVersion)} · {j.owner}
-                </small>
-              </td>
-              <td>
-                {j.request.handler}
-                <small>Contract v{j.request.version}</small>
-              </td>
-              <td>
-                <State value={j.state} />
-                {j.progress && (
-                  <small>
-                    {Math.round(j.progress.fraction * 100)}% ·{" "}
-                    {j.progress.message}
-                  </small>
-                )}
-              </td>
-              <td>{j.attemptCount}</td>
-              <td>{date(j.submittedAt)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {!q.isPending && !q.data?.items.length && (
-        <Empty>No requests match these filters.</Empty>
-      )}
-      {q.isPending && <Empty>Loading requests…</Empty>}
-      <Pagination {...q} />
-    </>
-  );
-}
-export function Requests({ operator }: { operator: boolean }) {
-  const [search] = useSearchParams();
-  const [filters, setFilters] = useState<Record<string, string>>({
-    contextId: search.get("contextId") ?? "",
-    metricContext: search.get("metricContext") ?? "",
-    state: search.get("state") ?? "",
-  });
-  return (
-    <>
-      <Heading
-        eyebrow="Execution"
-        title="Requests"
-        description="Durable status, attempts and published results."
-        action={
-          operator && (
-            <Button asChild>
-              <Link to="/requests/new">New request</Link>
-            </Button>
-          )
-        }
-      />
-      <Filters
-        values={filters}
-        onChange={setFilters}
-        fields={[
-          { key: "owner", label: "Owner" },
-          { key: "name", label: "Context name" },
-          { key: "state", label: "State", options: jobStates },
-          { key: "from", label: "From (RFC3339)" },
-          { key: "until", label: "Until (RFC3339)" },
-        ]}
-      />
-      <div className="card table-card">
-        <JobsTable filters={filters} />
-      </div>
     </>
   );
 }
@@ -706,6 +606,17 @@ export function RequestDetail({ operator }: { operator: boolean }) {
                 <span>{a.actor}</span>
                 <span>{date(a.acceptedAt)}</span>
                 <State value={a.outcome} />
+                {a.sourceContextId && (
+                  <span>
+                    <Link to={`/contexts/${a.sourceContextId}`}>
+                      {short(a.sourceContextId)}
+                    </Link>{" "}
+                    →{" "}
+                    <Link to={`/contexts/${a.contextId}`}>
+                      {short(a.contextId)}
+                    </Link>
+                  </span>
+                )}
               </div>
             ))}
             {!audits.data?.items.length && (

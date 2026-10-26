@@ -7,6 +7,7 @@ import (
 	"linha/server/internal/kube"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 )
 
@@ -28,12 +29,12 @@ func TestSparkApplicationResourcesAndProtectedTemplates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = k.Ensure(context.Background(), domain.BackendContext{ID: "context", Spec: domain.BackendSpec{Engine: prepared}}, Instance{ID: "instance", Image: "image@sha256:test"}); err != nil {
+	if err = k.Ensure(context.Background(), domain.BackendContext{ID: "context", Name: "reporting", Spec: domain.BackendSpec{Engine: prepared}}, Instance{ID: "instance", Image: "image@sha256:test"}); err != nil {
 		t.Fatal(err)
 	}
 	s := application["spec"].(map[string]any)
 	driver := s["driver"].(map[string]any)
-	if s["mode"] != "cluster" || driver["memory"] != "10240m" || driver["memoryOverhead"] != "2048m" || driver["coreRequest"] != "0.5" || driver["coreLimit"] != "2" {
+	if driver["podName"] != "reporting-instance-driver" || s["mode"] != "cluster" || driver["memory"] != "10240m" || driver["memoryOverhead"] != "2048m" || driver["coreRequest"] != "0.5" || driver["coreLimit"] != "2" {
 		t.Fatal(s)
 	}
 	template := driver["template"].(map[string]any)
@@ -83,7 +84,12 @@ func TestSparkApplicationPendingLossAndDeletionFencing(t *testing.T) {
 	if err != nil || pending.ResourceUID != "app-uid" || pending.Incarnation != "" || pending.Draining {
 		t.Fatal(pending, err)
 	}
-	driverName = "spark-driver"
+	driverName = "linha-instance-driver"
+	original, err := k.Observe(context.Background(), pending)
+	if err != nil || !original.Ready || original.Observation.DriverPod != driverName {
+		t.Fatal(original, err)
+	}
+	driverName = kube.DriverPodName("reporting", "instance")
 	ready, err := k.Observe(context.Background(), pending)
 	if err != nil || !ready.Ready || ready.Incarnation != "pod-uid" {
 		t.Fatal(ready, err)
@@ -105,5 +111,82 @@ func TestSparkApplicationPendingLossAndDeletionFencing(t *testing.T) {
 	}
 	if err = k.Stop(context.Background(), lost); err != nil || deletes != 1 {
 		t.Fatal(deletes, err)
+	}
+}
+
+func TestContextNamedDriverEnsureRecovery(t *testing.T) {
+	var mu sync.Mutex
+	applications := map[string]map[string]any{}
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		const prefix = "/apis/sparkoperator.k8s.io/v1beta2/namespaces/jobs/sparkapplications"
+		if r.Method == http.MethodPost && r.URL.Path == prefix {
+			var application map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&application); err != nil {
+				t.Error(err)
+				return
+			}
+			name := application["metadata"].(map[string]any)["name"].(string)
+			if applications[name] != nil {
+				w.WriteHeader(http.StatusConflict)
+				return
+			}
+			applications[name] = application
+			w.WriteHeader(http.StatusCreated)
+			return
+		}
+		if r.Method == http.MethodGet {
+			for name, application := range applications {
+				if r.URL.Path == prefix+"/"+name {
+					json.NewEncoder(w).Encode(application)
+					return
+				}
+			}
+		}
+		t.Error("unexpected resource", r.Method, r.URL.Path)
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer api.Close()
+	adapter := &Kubernetes{RequireApplication: true, Client: &kube.Client{Namespace: "jobs", URL: api.URL, HTTP: api.Client()}, ServiceAccount: "worker", ServerURL: "http://linha"}
+	spec, err := adapter.Prepare(domain.EngineSpec{Type: "spark", Version: "3.5.6", Settings: json.RawMessage(`{"application":{"mainClass":"example.Main","mainApplicationFile":"local:///opt/job.jar"}}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := domain.BackendContext{ID: "context", Name: "reporting", Spec: domain.BackendSpec{Engine: spec}}
+	instance := Instance{ID: "0123456789abcdef0123456789abcdef", Image: "worker@sha256:example"}
+	// Independent adapters represent replicas or a server restart. Concurrent
+	// ensure must retain one application and the same driver identity.
+	restarted := *adapter
+	var wg sync.WaitGroup
+	for _, replica := range []*Kubernetes{adapter, &restarted} {
+		wg.Go(func() {
+			if err := replica.Ensure(context.Background(), c, instance); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+	wg.Wait()
+	if len(applications) != 1 {
+		t.Fatal("duplicate application", applications)
+	}
+	original := applications["linha-"+instance.ID]
+	driver := original["spec"].(map[string]any)["driver"].(map[string]any)
+	if driver["podName"] != kube.DriverPodName(c.Name, instance.ID) {
+		t.Fatal(driver)
+	}
+	c.ID = "different-context"
+	if err := restarted.Ensure(context.Background(), c, instance); err == nil {
+		t.Fatal("different context reused the application")
+	}
+	c.ID = "context"
+	// An application submitted before this naming change has no explicit Pod
+	// name. Ensuring it after restart must not patch or replace that application.
+	delete(driver, "podName")
+	if err := restarted.Ensure(context.Background(), c, instance); err != nil {
+		t.Fatal(err)
+	}
+	if driver["podName"] != nil || len(applications) != 1 {
+		t.Fatal("existing application was renamed", applications)
 	}
 }

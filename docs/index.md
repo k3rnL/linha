@@ -8,10 +8,9 @@ These pages serve application developers and Kubernetes operators equally.
 
 <!-- development-only:start -->
 !!! note "Development version"
-    This version documents the current source checkout, including OAuth 2.0 client
-    credentials support. Build the `0.1.2-SNAPSHOT` SDKs from source until that
-    feature is released. Published `0.1.2` artifacts do not contain this API.
-    Use the version selector for documentation captured with a newer release.
+    These pages follow the current source checkout. Source builds use
+    `0.1.3-SNAPSHOT`; choose a release in the version selector for documentation
+    matching published artifacts.
 
 <!-- development-only:end -->
 

@@ -94,6 +94,7 @@ func (p *Kubernetes) authorizePod(ctx context.Context, name, uid string) (identi
 				APIVersion string `json:"apiVersion"`
 				Kind       string `json:"kind"`
 				Name       string `json:"name"`
+				UID        string `json:"uid"`
 			} `json:"ownerReferences"`
 		} `json:"metadata"`
 		Spec struct {
@@ -109,10 +110,10 @@ func (p *Kubernetes) authorizePod(ctx context.Context, name, uid string) (identi
 	contextID := pod.Metadata.Labels["linha.io/context"]
 	instanceID := pod.Metadata.Labels["linha.io/instance"]
 	validName := name == "linha-"+instanceID
-	if name == "linha-"+instanceID+"-driver" && pod.Metadata.Labels["spark-role"] == "driver" {
+	if kube.MatchesDriverPodName(name, instanceID) && pod.Metadata.Labels["spark-role"] == "driver" {
 		for _, owner := range pod.Metadata.OwnerReferences {
 			if owner.APIVersion == "sparkoperator.k8s.io/v1beta2" && owner.Kind == "SparkApplication" && owner.Name == "linha-"+instanceID {
-				validName = true
+				validName = name == "linha-"+instanceID+"-driver" || p.configuredDriver(ctx, name, contextID, instanceID, owner.UID)
 			}
 		}
 	}
@@ -123,4 +124,31 @@ func (p *Kubernetes) authorizePod(ctx context.Context, name, uid string) (identi
 		return identity, Unauthorized
 	}
 	return WorkerIdentity{ContextID: contextID, ID: uid, Incarnation: uid}, nil
+}
+
+// Named drivers must be the exact Pod configured on the current owned
+// application, so a matching name suffix cannot authorize another child Pod.
+func (p *Kubernetes) configuredDriver(ctx context.Context, name, contextID, instanceID, ownerUID string) bool {
+	if ownerUID == "" {
+		return false
+	}
+	var app struct {
+		Metadata struct {
+			UID               string            `json:"uid"`
+			Labels            map[string]string `json:"labels"`
+			DeletionTimestamp *string           `json:"deletionTimestamp"`
+		} `json:"metadata"`
+		Spec struct {
+			Driver struct {
+				PodName string `json:"podName"`
+			} `json:"driver"`
+		} `json:"spec"`
+	}
+	if err := p.Kube.Do(ctx, "GET", p.Kube.Path("sparkapplications", "linha-"+instanceID), nil, &app); err != nil {
+		return false
+	}
+	return app.Metadata.UID == ownerUID && app.Metadata.DeletionTimestamp == nil &&
+		app.Metadata.Labels["app.kubernetes.io/managed-by"] == "linha" &&
+		app.Metadata.Labels["linha.io/context"] == contextID && app.Metadata.Labels["linha.io/instance"] == instanceID &&
+		app.Spec.Driver.PodName == name
 }

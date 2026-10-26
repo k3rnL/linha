@@ -3,10 +3,11 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.k3rnl</groupId>
   <artifactId>linha-jvm</artifactId>
-  <version>0.1.2-SNAPSHOT</version>
+  <version>0.1.3-SNAPSHOT</version>
   <packaging>pom</packaging>
   <modules>
     <module>sdk/protocol-jvm</module>
+    <module>sdk/hadoop-jvm</module>
     <module>sdk/client-jvm</module>
     <module>sdk/worker-jvm</module>
     <module>sdk/spark-jvm</module>

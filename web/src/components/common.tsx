@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { Button } from "./ui/button";
+import { Combobox } from "./ui/combobox";
 export const date = (value?: string) =>
   value ? new Date(value).toLocaleString() : "Not observed";
 export const short = (value: string) => value.slice(0, 12);
@@ -133,36 +134,59 @@ export function Filters({
 }: {
   values: Record<string, string>;
   onChange: (v: Record<string, string>) => void;
-  fields: { key: string; label: string; options?: string[]; type?: string }[];
+  fields: {
+    key: string;
+    label: string;
+    options?: string[];
+    suggestions?: string[];
+    type?: string;
+  }[];
   children?: ReactNode;
 }) {
+  const fieldId = useId();
   return (
     <div className="filters">
-      {fields.map((f) => (
-        <label key={f.key}>
-          {f.label}
-          {f.options ? (
-            <select
-              value={values[f.key] ?? ""}
-              onChange={(e) => onChange({ ...values, [f.key]: e.target.value })}
-            >
-              <option value="">All</option>
-              {f.options.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              type={f.type ?? "text"}
-              value={values[f.key] ?? ""}
-              onChange={(e) => onChange({ ...values, [f.key]: e.target.value })}
-              placeholder={`Filter ${f.label.toLowerCase()}`}
-            />
-          )}
-        </label>
-      ))}
+      {fields.map((f) => {
+        const id = `${fieldId}-${f.key}`;
+        const value = values[f.key] ?? "";
+        const change = (value: string) =>
+          onChange({ ...values, [f.key]: value });
+        return (
+          <div key={f.key} className="filter-field">
+            <label htmlFor={id}>{f.label}</label>
+            {f.options ? (
+              <select
+                id={id}
+                value={value}
+                onChange={(e) => change(e.target.value)}
+              >
+                <option value="">All</option>
+                {f.options.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            ) : f.suggestions ? (
+              <Combobox
+                id={id}
+                value={value}
+                onChange={change}
+                options={f.suggestions}
+                placeholder={`Filter ${f.label.toLowerCase()}`}
+              />
+            ) : (
+              <input
+                id={id}
+                type={f.type ?? "text"}
+                value={value}
+                onChange={(e) => change(e.target.value)}
+                placeholder={`Filter ${f.label.toLowerCase()}`}
+              />
+            )}
+          </div>
+        );
+      })}
       {children}
     </div>
   );

@@ -27,5 +27,5 @@ independently optional.
 - [Administrator console](../../../docs/admin-ui.md)
 - [Prometheus and Grafana](../../../docs/observability.md)
 
-Use a server image built from the same source revision for unreleased configuration;
-the chart's published image default remains 0.1.2 until the next release.
+Use matching chart and server versions. This chart defaults to the published
+`ghcr.io/k3rnl/linha/server:0.1.3` image.

@@ -24,7 +24,7 @@ Linha SHALL offer an optional console served by each server replica under `/ui/`
 ### Requirement: Explicit administrator authorization
 With security enabled, the server SHALL require validated OIDC identity and explicit configured administrator membership for every administrative read or mutation. A viewer SHALL have cross-owner inspection/result access; an operator SHALL additionally create, replay, and cancel requests. Ordinary SDK APIs SHALL retain their owner scope. Enabling the UI with security enabled but OIDC disabled SHALL fail configuration validation. With the master security switch disabled, an explicitly enabled UI SHALL use anonymous operator access and attribution.
 
-Subject and claim rules SHALL inherit the configured OIDC issuer when their issuer is omitted. Legacy explicit issuers SHALL be accepted only when they equal that configured issuer. Missing membership rules SHALL continue to deny administration; removing repeated issuer fields SHALL NOT authorize identities from another issuer.
+Subject and claim rules SHALL inherit the configured browser OIDC issuer when their issuer is omitted. Legacy explicit issuers SHALL be accepted only when they equal that configured issuer. Missing membership rules SHALL continue to deny administration; removing repeated issuer fields SHALL NOT authorize identities from another issuer.
 
 #### Scenario: Application identity is not an administrator
 - **WHEN** an authenticated ordinary client calls an admin endpoint or supplies a forged owner/role header
@@ -40,7 +40,7 @@ Subject and claim rules SHALL inherit the configured OIDC issuer when their issu
 
 #### Scenario: Issuer omitted from membership rules
 - **WHEN** viewer or operator rules specify subjects or claim paths/values without an issuer
-- **THEN** the rules match only identities validated against the configured OIDC issuer
+- **THEN** the rules match only identities validated against the configured browser OIDC issuer
 
 #### Scenario: Legacy issuer configuration
 - **WHEN** an existing rule specifies an explicit issuer
@@ -49,6 +49,10 @@ Subject and claim rules SHALL inherit the configured OIDC issuer when their issu
 #### Scenario: Session survives a configuration simplification
 - **WHEN** a server restarts with equivalent issuer-inheriting rules replacing repeated issuers
 - **THEN** retained sessions are evaluated against the same trusted issuer and administrator membership, without changing public job ownership
+
+#### Scenario: Separate API issuer
+- **WHEN** API tokens and browser tokens have different issuers or audiences
+- **THEN** admin sessions and admin bearer credentials are validated only against the browser issuer/client and API tokens do not automatically grant administration
 
 ### Requirement: HA browser authentication
 Browser authentication SHALL validate issuer, signature, audience, expiry, state, nonce, and the code exchange, and SHALL protect cookie-authenticated mutations against cross-site requests. Browser sessions and login transactions SHALL work across replicas without sticky sessions, expire within validated identity lifetime, and be revocable by logout. Authentication credentials SHALL NOT be exposed in frontend configuration or browser local storage.
@@ -116,3 +120,62 @@ The console SHALL show committed result descriptors, published local paths or S3
 #### Scenario: Result contains HTML or credentials are held internally
 - **WHEN** a result includes executable-looking text or its provider uses temporary access credentials
 - **THEN** the preview is inert text and credentials are absent from result-location responses
+
+### Requirement: Configurable browser OIDC scopes
+Linha SHALL allow operators to configure the browser OIDC scope list through `ui.oidc.scopes` in Helm or the JSON-array `LINHA_UI_OIDC_SCOPES` environment variable. An omitted setting SHALL request `openid`, `profile`, and `email`. An explicit list SHALL replace those defaults, preserve the supplied order, and contain `openid` and unique nonempty valid OAuth scope tokens. Active browser OIDC SHALL reject malformed, non-array, null, empty, duplicate, invalid-token, or missing-openid configuration before requesting provider discovery. When the UI or master security is disabled, the server SHALL ignore the unused scope environment variable.
+
+Custom scope claims SHALL be subject to the existing verified-token administrator membership rules. Configuring scopes SHALL NOT grant roles, change SDK token audiences or public job ownership, weaken PKCE/state/nonce or token validation, or require sticky sessions.
+
+#### Scenario: Existing deployment omits scopes
+- **WHEN** browser OIDC is enabled without explicit scopes
+- **THEN** the authorization request includes `openid profile email` and retains existing login validation
+
+#### Scenario: Provider-specific scope selection
+- **WHEN** scopes are configured as `[openid, groups]`
+- **THEN** browser login requests exactly `openid groups`, without adding optional default scopes
+
+#### Scenario: Invalid active configuration
+- **WHEN** active browser scope configuration is malformed, non-array, null, empty, duplicated, lacks openid, or contains invalid scope tokens
+- **THEN** the server refuses startup with a scope configuration error before discovery
+
+#### Scenario: Unused scope configuration
+- **WHEN** the UI or master security is disabled and the scope environment variable is malformed
+- **THEN** the unused setting does not prevent startup or change the effective anonymous/security behavior
+
+#### Scenario: Group membership across replicas
+- **WHEN** a browser requests the configured groups scope and the signed ID token contains a group matching a viewer or operator rule
+- **THEN** login can begin on one replica, complete on another, and retain the mapped role after service recreation using shared persisted session state
+
+#### Scenario: Scope does not grant administrator membership
+- **WHEN** a valid token lacks a configured group, omits its group claim, or belongs to an unrelated group despite the requested scope
+- **THEN** login is denied without creating a session or exposing another owner's administration data
+
+#### Scenario: Custom-scope token is invalid or callback is replayed
+- **WHEN** a custom-scope callback has invalid state, nonce, issuer, audience, expiry, subject or signature, or reuses a consumed login transaction
+- **THEN** it is rejected and creates no session
+
+#### Scenario: Helm renders scope configuration
+- **WHEN** a deployment configures the Helm scope list
+- **THEN** the server Deployment receives the corresponding JSON-array environment value and invalid explicit lists fail chart validation
+
+### Requirement: Validated administrator mapping placement
+The Helm chart SHALL reject unknown properties under `security.oidc`, including administrator mappings placed under `security.oidc.admin`. Administrator mappings configured under `security.admin` SHALL be rendered into the server's role configuration without silently dropping group-claim rules.
+
+#### Scenario: Administrator mappings are nested under OIDC
+- **WHEN** chart values configure `security.oidc.admin`
+- **THEN** chart validation rejects the misplaced property before deployment instead of rendering empty role mappings
+
+#### Scenario: Group mappings use the canonical location
+- **WHEN** chart values configure viewer and operator group-claim mappings under `security.admin`
+- **THEN** the Deployment contains those exact configured claim paths and group values
+
+### Requirement: Diagnosable browser administrator membership rejection
+A browser callback whose verified identity fails administrator membership SHALL emit a structured server warning that distinguishes missing membership rules, an unavailable or unsupported configured claim, and a nonmatching claim value. The warning SHALL identify requested scopes and configured claim paths without exposing tokens, authorization codes, state, nonce, cookies, client secrets, subject identifiers or arbitrary claim values. The external failure SHALL remain the existing generic administrator 403.
+
+#### Scenario: Verified login has no group claim
+- **WHEN** a verified callback fails a configured group rule because the claim is absent
+- **THEN** server diagnostics identify that path as absent while the browser receives the generic 403 and no session is created
+
+#### Scenario: Rules are empty or claim values do not match
+- **WHEN** verified callback membership fails with no rules or with a present but nonmatching claim
+- **THEN** diagnostics distinguish those failures using rule counts and path/match metadata without logging claim values or credentials

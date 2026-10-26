@@ -14,3 +14,7 @@ The chart SHALL expose PostgreSQL connection settings under database.postgres an
 #### Scenario: Only API authentication disabled
 - **WHEN** security is enabled and security.api.enabled is false
 - **THEN** public requests use the anonymous owner and worker requests still require verified assigned identities
+
+#### Scenario: Only OIDC disabled
+- **WHEN** security is enabled and browser OIDC is disabled
+- **THEN** public API requests retain their independently configured authentication policy and worker requests still require verified assigned identities

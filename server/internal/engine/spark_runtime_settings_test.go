@@ -82,7 +82,7 @@ func TestSparkRuntimeSettingsReachBothLaunchPaths(t *testing.T) {
 		name, raw string
 		want      map[string]string
 	}{
-		{"defaults", `{}`, map[string]string{"spark.ui.enabled": "false", "spark.dynamicAllocation.enabled": "false"}},
+		{"defaults", `{}`, map[string]string{"spark.jars.ivy": "/tmp/linha-ivy", "spark.ui.enabled": "false", "spark.dynamicAllocation.enabled": "false"}},
 		{"ui-default-port", `{"ui":{"enabled":true}}`, map[string]string{"spark.ui.enabled": "true", "spark.ui.port": "4040"}},
 		{"disabled-custom-port", `{"ui":{"enabled":false,"port":4050}}`, map[string]string{"spark.ui.enabled": "false", "spark.ui.port": "4050"}},
 		{"dynamic", `{"ui":{"enabled":true,"port":4050},"executors":{"dynamicAllocation":true,"minExecutors":0,"initialExecutors":1,"maxExecutors":6,"executorIdleTimeout":"90s","cachedExecutorIdleTimeout":"2m","shuffleTrackingTimeout":"3m"}}`, map[string]string{

@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Linha",
-    "version": "0.1.2",
-    "description": "Versioned JSON base protocol. SDKs wrap these operations. Result templates and policies are snapshotted; job IDs survive process restarts. Authentication follows deployment configuration: security.enabled=false disables client and worker authentication; security.oidc.enabled=false disables only client authentication. Anonymous clients share owner anonymous. Secured deployments require the bearer schemes below."
+    "version": "0.1.3",
+    "description": "Versioned JSON base protocol. SDKs wrap these operations. Result templates and policies are snapshotted; job IDs survive process restarts. Authentication follows deployment configuration: security.enabled=false disables client and worker authentication; security.api.enabled=false disables only public API authentication; browser OIDC and worker identity retain their independent policies. Anonymous clients share owner anonymous. Secured deployments require the bearer schemes below."
   },
   "paths": {
     "/v1/contexts:ensure": {
@@ -3412,6 +3412,708 @@
           }
         }
       }
+    },
+    "/v1/contexts/{context}/storage-sessions": {
+      "post": {
+        "summary": "Create a scoped application storage session",
+        "description": "Client sessions require a live clientLease. Worker sessions require active attempt identity and worker authentication. The context must enable the destination.",
+        "parameters": [
+          {
+            "name": "context",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "destination": {
+                    "type": "string"
+                  },
+                  "clientLease": {
+                    "type": "string"
+                  },
+                  "attemptId": {
+                    "type": "string"
+                  },
+                  "workerId": {
+                    "type": "string"
+                  },
+                  "incarnation": {
+                    "type": "string"
+                  },
+                  "fence": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "destination"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Session ID, opaque token, destination root and linha:// URI"
+          },
+          "403": {
+            "description": "Destination not enabled"
+          },
+          "409": {
+            "description": "Expired client or stale attempt"
+          }
+        }
+      }
+    },
+    "/v1/jobs/{job}/storage-sessions": {
+      "post": {
+        "summary": "Create a scoped application storage session",
+        "description": "Client sessions require a live clientLease. Worker sessions require active attempt identity and worker authentication. The context must enable the destination.",
+        "parameters": [
+          {
+            "name": "job",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "destination": {
+                    "type": "string"
+                  },
+                  "clientLease": {
+                    "type": "string"
+                  },
+                  "attemptId": {
+                    "type": "string"
+                  },
+                  "workerId": {
+                    "type": "string"
+                  },
+                  "incarnation": {
+                    "type": "string"
+                  },
+                  "fence": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "destination"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Session ID, opaque token, destination root and linha:// URI"
+          },
+          "403": {
+            "description": "Destination not enabled"
+          },
+          "409": {
+            "description": "Expired client or stale attempt"
+          }
+        }
+      }
+    },
+    "/v1/storage/sessions/{session}/stat": {
+      "get": {
+        "summary": "Application storage stat",
+        "description": "Checks the live session and destination on every use. Paths are relative to the configured destination; traversal and destination-root mutations are rejected. Lock proofs use X-Linha-Storage-Lock.",
+        "security": [
+          {
+            "storageSessionBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result or object data"
+          },
+          "204": {
+            "description": "Session closed"
+          },
+          "401": {
+            "description": "Invalid storage session"
+          },
+          "409": {
+            "description": "Stale session, lost lock or conflicting operation"
+          },
+          "413": {
+            "description": "Object exceeds 5 GiB"
+          },
+          "429": {
+            "description": "Server staging capacity exhausted"
+          }
+        }
+      }
+    },
+    "/v1/storage/sessions/{session}/list": {
+      "get": {
+        "summary": "Application storage list",
+        "description": "Checks the live session and destination on every use. Paths are relative to the configured destination; traversal and destination-root mutations are rejected. Lock proofs use X-Linha-Storage-Lock.",
+        "security": [
+          {
+            "storageSessionBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result or object data"
+          },
+          "204": {
+            "description": "Session closed"
+          },
+          "401": {
+            "description": "Invalid storage session"
+          },
+          "409": {
+            "description": "Stale session, lost lock or conflicting operation"
+          },
+          "413": {
+            "description": "Object exceeds 5 GiB"
+          },
+          "429": {
+            "description": "Server staging capacity exhausted"
+          }
+        }
+      }
+    },
+    "/v1/storage/sessions/{session}/data": {
+      "get": {
+        "summary": "Application storage data",
+        "description": "Checks the live session and destination on every use. Paths are relative to the configured destination; traversal and destination-root mutations are rejected. Lock proofs use X-Linha-Storage-Lock.",
+        "security": [
+          {
+            "storageSessionBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Range",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result or object data"
+          },
+          "204": {
+            "description": "Session closed"
+          },
+          "401": {
+            "description": "Invalid storage session"
+          },
+          "409": {
+            "description": "Stale session, lost lock or conflicting operation"
+          },
+          "413": {
+            "description": "Object exceeds 5 GiB"
+          },
+          "429": {
+            "description": "Server staging capacity exhausted"
+          }
+        }
+      },
+      "put": {
+        "summary": "Application storage data",
+        "description": "Checks the live session and destination on every use. Paths are relative to the configured destination; traversal and destination-root mutations are rejected. Lock proofs use X-Linha-Storage-Lock.",
+        "security": [
+          {
+            "storageSessionBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result or object data"
+          },
+          "204": {
+            "description": "Session closed"
+          },
+          "401": {
+            "description": "Invalid storage session"
+          },
+          "409": {
+            "description": "Stale session, lost lock or conflicting operation"
+          },
+          "413": {
+            "description": "Object exceeds 5 GiB"
+          },
+          "429": {
+            "description": "Server staging capacity exhausted"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/storage/sessions/{session}/mkdir": {
+      "post": {
+        "summary": "Application storage mkdir",
+        "description": "Checks the live session and destination on every use. Paths are relative to the configured destination; traversal and destination-root mutations are rejected. Lock proofs use X-Linha-Storage-Lock.",
+        "security": [
+          {
+            "storageSessionBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result or object data"
+          },
+          "204": {
+            "description": "Session closed"
+          },
+          "401": {
+            "description": "Invalid storage session"
+          },
+          "409": {
+            "description": "Stale session, lost lock or conflicting operation"
+          },
+          "413": {
+            "description": "Object exceeds 5 GiB"
+          },
+          "429": {
+            "description": "Server staging capacity exhausted"
+          }
+        }
+      }
+    },
+    "/v1/storage/sessions/{session}/rename": {
+      "post": {
+        "summary": "Application storage rename",
+        "description": "Checks the live session and destination on every use. Paths are relative to the configured destination; traversal and destination-root mutations are rejected. Lock proofs use X-Linha-Storage-Lock.",
+        "security": [
+          {
+            "storageSessionBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "target",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result or object data"
+          },
+          "204": {
+            "description": "Session closed"
+          },
+          "401": {
+            "description": "Invalid storage session"
+          },
+          "409": {
+            "description": "Stale session, lost lock or conflicting operation"
+          },
+          "413": {
+            "description": "Object exceeds 5 GiB"
+          },
+          "429": {
+            "description": "Server staging capacity exhausted"
+          }
+        }
+      }
+    },
+    "/v1/storage/sessions/{session}/delete": {
+      "delete": {
+        "summary": "Application storage delete",
+        "description": "Checks the live session and destination on every use. Paths are relative to the configured destination; traversal and destination-root mutations are rejected. Lock proofs use X-Linha-Storage-Lock.",
+        "security": [
+          {
+            "storageSessionBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "recursive",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result or object data"
+          },
+          "204": {
+            "description": "Session closed"
+          },
+          "401": {
+            "description": "Invalid storage session"
+          },
+          "409": {
+            "description": "Stale session, lost lock or conflicting operation"
+          },
+          "413": {
+            "description": "Object exceeds 5 GiB"
+          },
+          "429": {
+            "description": "Server staging capacity exhausted"
+          }
+        }
+      }
+    },
+    "/v1/storage/sessions/{session}/lock": {
+      "post": {
+        "summary": "Application storage lock",
+        "description": "Checks the live session and destination on every use. Paths are relative to the configured destination; traversal and destination-root mutations are rejected. Lock proofs use X-Linha-Storage-Lock.",
+        "security": [
+          {
+            "storageSessionBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "renew",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result or object data"
+          },
+          "204": {
+            "description": "Session closed"
+          },
+          "401": {
+            "description": "Invalid storage session"
+          },
+          "409": {
+            "description": "Stale session, lost lock or conflicting operation"
+          },
+          "413": {
+            "description": "Object exceeds 5 GiB"
+          },
+          "429": {
+            "description": "Server staging capacity exhausted"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Application storage lock",
+        "description": "Checks the live session and destination on every use. Paths are relative to the configured destination; traversal and destination-root mutations are rejected. Lock proofs use X-Linha-Storage-Lock.",
+        "security": [
+          {
+            "storageSessionBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result or object data"
+          },
+          "204": {
+            "description": "Session closed"
+          },
+          "401": {
+            "description": "Invalid storage session"
+          },
+          "409": {
+            "description": "Stale session, lost lock or conflicting operation"
+          },
+          "413": {
+            "description": "Object exceeds 5 GiB"
+          },
+          "429": {
+            "description": "Server staging capacity exhausted"
+          }
+        }
+      }
+    },
+    "/v1/storage/sessions/{session}/close": {
+      "delete": {
+        "summary": "Application storage close",
+        "description": "Checks the live session and destination on every use. Paths are relative to the configured destination; traversal and destination-root mutations are rejected. Lock proofs use X-Linha-Storage-Lock.",
+        "security": [
+          {
+            "storageSessionBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result or object data"
+          },
+          "204": {
+            "description": "Session closed"
+          },
+          "401": {
+            "description": "Invalid storage session"
+          },
+          "409": {
+            "description": "Stale session, lost lock or conflicting operation"
+          },
+          "413": {
+            "description": "Object exceeds 5 GiB"
+          },
+          "429": {
+            "description": "Server staging capacity exhausted"
+          }
+        }
+      }
+    },
+    "/v1/admin/jobs/batch": {
+      "post": {
+        "operationId": "adminBatchJobs",
+        "summary": "Move or cancel selected requests with per-request outcomes",
+        "security": [
+          {
+            "adminSession": []
+          },
+          {
+            "clientBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Linha-CSRF",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required with same-origin browser-session mutations; bearer requests use verified token authorization."
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminBatchResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "description": "Operator-only. Moves preserve IDs and original requests/results; only queued/retrying requests can move between active versions of the same owner, logical context and engine. Source workload-storage access must be retained. Each item commits separately; inspect every outcome.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminBatchRequest"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3531,6 +4233,22 @@
           },
           "results": {
             "$ref": "#/components/schemas/ResultPolicy"
+          },
+          "storage": {
+            "type": "object",
+            "properties": {
+              "destinations": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 16,
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "destinations"
+            ]
           }
         },
         "required": [
@@ -3736,7 +4454,8 @@
             "enum": [
               "json",
               "file",
-              "dataset"
+              "dataset",
+              "status"
             ]
           },
           "schema": {
@@ -5128,6 +5847,10 @@
           "acceptedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "sourceContextId": {
+            "type": "string",
+            "description": "Source context for a move. contextId identifies the destination."
           }
         },
         "required": [
@@ -5548,6 +6271,167 @@
           "message",
           "updatedAt"
         ]
+      },
+      "AdminJobSelection": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "contextId"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "contextId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        }
+      },
+      "AdminBatchRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action",
+          "jobs"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "cancel",
+              "move"
+            ]
+          },
+          "jobs": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 200,
+            "items": {
+              "$ref": "#/components/schemas/AdminJobSelection"
+            }
+          },
+          "targetContextId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "description": "Move requires targetContextId; cancel forbids it. IDs must be unique. Each contextId is the expected source context."
+      },
+      "AdminBatchItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "outcome"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "moved",
+              "cancelled",
+              "cancelling",
+              "unchanged",
+              "failed"
+            ]
+          },
+          "job": {
+            "$ref": "#/components/schemas/AdminBatchJob"
+          },
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "job"
+            ],
+            "not": {
+              "required": [
+                "error"
+              ]
+            }
+          },
+          {
+            "required": [
+              "error"
+            ],
+            "not": {
+              "required": [
+                "job"
+              ]
+            }
+          }
+        ]
+      },
+      "AdminBatchResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 200,
+            "items": {
+              "$ref": "#/components/schemas/AdminBatchItem"
+            }
+          }
+        }
+      },
+      "AdminBatchJob": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "contextId",
+          "state",
+          "attemptCount",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contextId": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "attemptCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -5565,7 +6449,12 @@
         "type": "apiKey",
         "in": "cookie",
         "name": "linha_session",
-        "description": "Opaque HA browser session; viewer/operator mapping checked for each admin request. Cookie mutations additionally require Origin and X-Linha-CSRF."
+        "description": "Opaque HA browser session. Provider credentials are refreshed server-side when available, within the absolute configured session lifetime. Viewer/operator mapping is checked for every admin request; cookie mutations require Origin and X-Linha-CSRF."
+      },
+      "storageSessionBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Scoped opaque application storage session token. Not an OIDC or worker token."
       }
     }
   }

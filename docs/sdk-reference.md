@@ -1,10 +1,11 @@
 # Scala/JVM SDK reference
 
 All Scala artifacts use binary version 2.12 and Java 17. This guide uses SDK
-version `0.1.2-SNAPSHOT`.
+version `0.1.3-SNAPSHOT`.
 
 <!-- development-only:start -->
-Install these development artifacts from source for the OAuth API documented here.
+Build from source to use these development coordinates, or select the published
+`0.1.3` version from Maven Central.
 <!-- development-only:end -->
 
 | Maven artifact | Responsibility |
@@ -12,6 +13,7 @@ Install these development artifacts from source for the OAuth API documented her
 | `com.k3rnl:linha-protocol_2.12` | Wire contracts, codecs, credentials and result paths |
 | `com.k3rnl:linha-client_2.12` | Client, contexts, job handles and OAuth acquisition |
 | `com.k3rnl:linha-worker_2.12` | Handler runtime, leases, progress and publication |
+| `com.k3rnl:linha-hadoop_2.12` | Scoped application filesystem with range reads |
 | `com.k3rnl:linha-spark_2.12` | SparkContext sessions and distributed result helpers |
 
 ## Dependency declarations
@@ -20,7 +22,7 @@ For an SBT application that includes both client and worker examples:
 
 ```scala
 scalaVersion := "2.12.20"
-val linhaVersion = "0.1.2-SNAPSHOT"
+val linhaVersion = "0.1.3-SNAPSHOT"
 libraryDependencies ++= Seq(
   "com.k3rnl" %% "linha-client" % linhaVersion,
   "com.k3rnl" %% "linha-spark" % linhaVersion,
@@ -46,6 +48,7 @@ For Maven, use the explicit artifact names in the table, with group `com.k3rnl`.
 | `close()` | Release attachments and stop client lease scheduling |
 | `context.submit(entrypoint, idempotencyKey, maxAttempts)` | Typed handle; defaults: generated key, one attempt |
 | `context.submitRaw(RawRequest(...), idempotencyKey, maxAttempts)` | Same protocol with raw JSON parameters |
+| `context.storage(destination)` | Live client session for an enabled application destination |
 | `context.status()` | Current version state |
 | `context.close()` | Release this context handle; shared handles retain their lease |
 
@@ -133,3 +136,5 @@ worker credentials are separate from the application's OAuth credentials.
 See [client/worker tutorial](walkthrough.md),
 [result guide](dataset-results.md) and [path reference](configuration.md#result-path-templates)
 for examples.
+
+Application file access and `Unit`/`StatusResult` completion are described in [Application storage](application-storage.md).

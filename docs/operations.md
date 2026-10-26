@@ -42,17 +42,8 @@ alias and path policy; storage credentials do not travel in job JSON.
 Use the server image matching your chart and documentation version.
 
 <!-- development-only:start -->
-The current OAuth/API-browser configuration is unreleased. Build and push a server
-from this checkout; the chart default image `0.1.2` does not contain it:
-
-```sh
-make build
-docker build -f server/Dockerfile -t registry.example/linha/server:development .
-docker push registry.example/linha/server:development
-```
-
-Use that explicit image in the values below. For a published version, use its
-matching image/chart and documentation instead.
+The example below selects a source-built image. For a published release, select
+`ghcr.io/k3rnl/linha/server` and its matching release tag instead.
 <!-- development-only:end -->
 
 ## 4. Create a values file

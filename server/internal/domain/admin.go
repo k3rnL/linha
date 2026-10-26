@@ -11,16 +11,42 @@ type AdminSubmitRequest struct {
 	ReplayedFrom      string `json:"replayedFrom,omitempty"`
 	ActivateIfStopped bool   `json:"activateIfStopped,omitempty"`
 }
-type AuditRecord struct {
+type AdminJobSelection struct {
+	ID        string `json:"id"`
+	ContextID string `json:"contextId"`
+}
+type AdminBatchRequest struct {
+	Action          string              `json:"action"`
+	Jobs            []AdminJobSelection `json:"jobs"`
+	TargetContextID string              `json:"targetContextId,omitempty"`
+}
+type AdminBatchJob struct {
 	ID           string    `json:"id"`
-	Actor        string    `json:"actor"`
-	Action       string    `json:"action"`
-	Owner        string    `json:"owner"`
 	ContextID    string    `json:"contextId"`
-	JobID        string    `json:"jobId"`
-	ReplayedFrom string    `json:"replayedFrom,omitempty"`
-	AcceptedAt   time.Time `json:"acceptedAt"`
-	Outcome      string    `json:"outcome"`
+	State        string    `json:"state"`
+	AttemptCount int       `json:"attemptCount"`
+	UpdatedAt    time.Time `json:"updatedAt"`
+}
+type AdminBatchItem struct {
+	ID      string         `json:"id"`
+	Outcome string         `json:"outcome"`
+	Job     *AdminBatchJob `json:"job,omitempty"`
+	Error   *Error         `json:"error,omitempty"`
+}
+type AdminBatchResult struct {
+	Items []AdminBatchItem `json:"items"`
+}
+type AuditRecord struct {
+	SourceContextID string    `json:"sourceContextId,omitempty"`
+	ID              string    `json:"id"`
+	Actor           string    `json:"actor"`
+	Action          string    `json:"action"`
+	Owner           string    `json:"owner"`
+	ContextID       string    `json:"contextId"`
+	JobID           string    `json:"jobId"`
+	ReplayedFrom    string    `json:"replayedFrom,omitempty"`
+	AcceptedAt      time.Time `json:"acceptedAt"`
+	Outcome         string    `json:"outcome"`
 }
 type WorkerObservation struct {
 	Worker
@@ -36,13 +62,16 @@ type AdminRepository interface {
 	AdminJob(context.Context, string) (AdministrativeJob, error)
 	AdminSubmit(context.Context, string, string, AdminSubmitRequest) (Job, error)
 	AdminCancel(context.Context, string, string) (Job, error)
+	AdminBatch(context.Context, string, AdminBatchRequest) (AdminBatchResult, error)
 	AdminAudit(context.Context, string, OperationalFilter) (Page[AuditRecord], error)
 }
 type BrowserSession struct {
-	Hash      string
-	Claims    json.RawMessage
-	CSRF      string
-	ExpiresAt time.Time
+	AuthExpiresAt *time.Time
+	RefreshCipher []byte
+	Hash          string
+	Claims        json.RawMessage
+	CSRF          string
+	ExpiresAt     time.Time
 }
 type LoginTransaction struct {
 	Hash, Nonce, Verifier string
@@ -53,6 +82,7 @@ type BrowserRepository interface {
 	TakeLogin(context.Context, string) (LoginTransaction, error)
 	SaveSession(context.Context, BrowserSession) error
 	Session(context.Context, string) (BrowserSession, error)
+	RefreshSession(context.Context, string, func(BrowserSession) (BrowserSession, error)) (BrowserSession, error)
 	DeleteSession(context.Context, string) error
 	ExpireBrowserRecords(context.Context) error
 }

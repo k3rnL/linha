@@ -76,6 +76,9 @@ func (s *Server) Handler() http.Handler {
 			})
 		}
 	}
+	m.HandleFunc("POST /v1/contexts/{context}/storage-sessions", s.user(s.createClientStorage))
+	m.HandleFunc("POST /v1/jobs/{job}/storage-sessions", s.worker(s.createWorkerStorage))
+	m.HandleFunc("/v1/storage/sessions/{session}/{operation}", s.storageHandler)
 	m.HandleFunc("POST /v1/contexts:ensure", s.user(s.ensure))
 	m.HandleFunc("GET /v1/contexts/{context}", s.user(s.getContext))
 	m.HandleFunc("POST /v1/contexts/{context}/clients", s.user(s.attachClient))
@@ -236,6 +239,22 @@ func (s *Server) normalize(spec *domain.BackendSpec) error {
 			return err
 		}
 		spec.Engine = normalized
+	}
+	if spec.Storage != nil {
+		if len(spec.Storage.Destinations) < 1 || len(spec.Storage.Destinations) > 16 {
+			return domain.Bad("request 1 to 16 storage destinations")
+		}
+		spec.Storage.Fingerprints = map[string]string{}
+		for _, name := range spec.Storage.Destinations {
+			if _, exists := spec.Storage.Fingerprints[name]; exists {
+				return domain.Bad("duplicate storage destination")
+			}
+			b, e := s.Storage.Application(name)
+			if e != nil {
+				return e
+			}
+			spec.Storage.Fingerprints[name] = b.Fingerprint()
+		}
 	}
 	p := &spec.Results
 	if p.MaxBytes == 0 {

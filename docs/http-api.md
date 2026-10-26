@@ -84,6 +84,36 @@ viewer/operator membership from the browser issuer. Mutations require operator
 access; cookie mutations also require origin/CSRF checks. The
 [console guide](admin-ui.md) covers setup.
 
+### Batch request actions
+
+`POST /v1/admin/jobs/batch` requires operator access. Browser requests also send
+same-origin `Origin` and `X-Linha-CSRF` headers. Supply 1–200 unique requests and
+the context version each selection came from:
+
+```json
+{
+  "action": "move",
+  "targetContextId": "corrected-context-id",
+  "jobs": [
+    {"id": "request-id", "contextId": "old-context-id"}
+  ]
+}
+```
+
+Use `action: "cancel"` and omit `targetContextId` for cancellation. A malformed
+batch returns a structured HTTP error before any item changes. A valid batch
+returns HTTP 200 with `items`; inspect each item's `outcome` and optional `error`.
+An eligible item returns its unchanged public `id` and a compact `job` summary
+(context, state, attempt count and update time); payloads are not duplicated in
+batch responses. Failed
+items contain a safe `code` and `message` and do not roll back other items.
+
+Moves preserve original requests, result policies and retry history. They require
+an active destination of the same owner, logical name and engine type/version,
+with unchanged source workload-storage access. Audit records for moves include
+`sourceContextId` and destination `contextId`. See [queue recovery](admin-ui.md#recover-a-stranded-queue)
+for the operator procedure.
+
 ## Operational routes
 
 | Route | Response purpose |
