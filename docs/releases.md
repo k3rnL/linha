@@ -1,7 +1,8 @@
 # Publish a Linha release
 
 A version tag starts the release workflow. After validation, it publishes server
-and example-worker images to GHCR and signed SDK artifacts to Maven Central.
+and example-worker images and the Helm chart to GHCR, plus signed SDK artifacts
+to Maven Central.
 This guide is for maintainers with publishing access.
 
 ## 1. Configure public metadata
@@ -43,8 +44,14 @@ Publish the public key through a Central-supported keyserver. See Sonatype's
 [Maven publishing](https://central.sonatype.org/publish/publish-portal-maven/)
 and [signature requirements](https://central.sonatype.org/publish/requirements/gpg/).
 
-GHCR uses `GITHUB_TOKEN`; only the image job requests `packages: write`.
-No separate registry PAT is needed.
+GHCR uses `GITHUB_TOKEN`; only the image and chart jobs request `packages: write`.
+No separate registry PAT is needed. A newly created GHCR package is private by
+default, independently of the repository's visibility. After the first chart
+upload, open the [chart package settings](https://github.com/users/k3rnl/packages/container/charts%2Flinha/settings)
+and set its visibility to **Public**. The chart job verifies an anonymous pull and
+fails with the settings URL until public access works. Retry only that job after
+changing visibility. GitHub documents
+[package access and visibility](https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility).
 
 ## 3. Validate locally
 
@@ -82,7 +89,18 @@ ghcr.io/k3rnl/linha/server:X.Y.Z
 ghcr.io/k3rnl/linha/spark-example:X.Y.Z
 ```
 
-The initial image platform is Linux amd64. The chart is packaged with the release.
+The initial image platform is Linux amd64. The chart is distributed as:
+
+```sh
+helm pull oci://ghcr.io/k3rnl/charts/linha --version X.Y.Z
+helm upgrade --install linha oci://ghcr.io/k3rnl/charts/linha \
+  --version X.Y.Z --namespace linha --create-namespace --values values.yaml
+```
+
+Use Helm 3.8 or newer. No `helm repo add` or registry login is required to consume
+the public chart. Chart/application versions and its default server image tag
+must match the release. Keep the digest printed by Helm when you need a pinned
+artifact. Existing GitHub release archives remain usable.
 The separate [documentation workflow](docs-contributing.md) captures a versioned
 site snapshot when a new release tag is published.
 
@@ -93,6 +111,20 @@ Portal deployment before rerunning failed jobs. An SDK timeout can occur after
 Central accepted the bundle. Finish an already accepted valid deployment rather
 than republishing an immutable version. Retry an image-only failure without
 rerunning a successful SDK publication.
+
+For a release that already has `linha-X.Y.Z.tgz` and `SHA256SUMS` attached, run the
+chart-only recovery path:
+
+```sh
+gh workflow run release.yml --repo k3rnL/linha -f chart_tag=vX.Y.Z
+```
+
+The workflow must be registered in the default branch. To use an updated revision
+of an existing workflow, add `--ref BRANCH`. Manual execution downloads the original
+published chart and validates its checksum, chart/application versions and image
+tag. It uploads that archive and checks an anonymous pull; image and Maven jobs
+are skipped. Draft releases and missing or mismatched artifacts are rejected.
+This also backfills releases created before OCI chart publishing was introduced.
 
 Do not move a published tag. A code or metadata correction requires a new version.
 External registry permissions, namespace access and signing-key discovery still
