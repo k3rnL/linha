@@ -1,0 +1,3371 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Durable jobs, managed Spark engines, and Scala/JVM SDKs">
+      
+      
+      
+        <link rel="canonical" href="https://k3rnl.github.io/linha/dev/reference/deployment/helm/">
+      
+      
+        <link rel="prev" href="../../http/errors/">
+      
+      
+        <link rel="next" href="../environment/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Helm values - Linha</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#helm-values" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Linha" class="md-header__button md-logo" aria-label="Linha" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Linha
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Helm values
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/k3rnL/linha" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    k3rnL/linha
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Linha" class="md-nav__button md-logo" aria-label="Linha" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Linha
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/k3rnL/linha" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    k3rnL/linha
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run your first job
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../walkthrough/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build a Scala client and worker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy on Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../client-authentication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configure OAuth 2.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../versioned-spark-applications/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manage Spark applications
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../pod-templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customize Pods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dataset-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Return files and datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../application-storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Access application files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../admin-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enable the admin console
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitor queries and resources
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../job-failures/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnose failures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../kubernetes-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run Kubernetes validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../releases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publish a release
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../docs-contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintain documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../backend/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend configuration
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Backend configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backend/spark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spark settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backend/pod-templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pod templates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backend/results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Result policy and paths
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Requests and results
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Requests and results
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../requests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Requests, jobs and failures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Published results and datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application storage models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SDKs
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    SDKs
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_4_1" id="__nav_4_4_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scala/JVM
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_4_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_4_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Scala/JVM
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sdk-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scala/JVM SDK reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sdk/client/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Client and handles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sdk/worker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Entrypoints and workers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sdk/spark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spark runtime
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sdk/credentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials and transport
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sdk/helpers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pod and path helpers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sdk/storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage and Hadoop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_5" id="__nav_4_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HTTP protocol
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    HTTP protocol
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../http-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Routes and headers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../http/workers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Managed workers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../http/admin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administrator requests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../http/operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operational observations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../http/errors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4_6" id="__nav_4_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Server deployment
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Server deployment
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Helm values
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../environment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    S3 destinations and membership
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prometheus metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../compatibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../acceptance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform acceptance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../admin-observability-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin and observability validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fixture measurements
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_14" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../releases/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4_14" id="__nav_4_14_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_14">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Release notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../releases/v0.1.4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.4
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../releases/v0.1.3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../releases/v0.1.2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../releases/v0.1.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Explanation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Explanation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How Linha works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../retention-proposal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Result retention
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../protocol-conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="helm-values">Helm values<a class="headerlink" href="#helm-values" title="Permanent link">&para;</a></h1>
+<p>Operator settings passed through a values file. Backend declarations use the
+separate <a href="../../backend/">backend reference</a>. Default values below come from
+the checked-in chart; nested item fields have no default unless stated. Native
+Kubernetes/monitoring objects retain their upstream validation.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Meaning and constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span id="helm-replicacount"></span><code>replicaCount</code></td>
+<td>integer</td>
+<td><code>2</code></td>
+<td>API replicas sharing the database; default 2. External database/storage HA is operator-managed.</td>
+</tr>
+<tr>
+<td><span id="helm-image"></span><code>image</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Server image selection. Keep chart, image and SDK versions compatible.</td>
+</tr>
+<tr>
+<td><span id="helm-image-repository"></span><code>image.repository</code></td>
+<td>string</td>
+<td><code>"ghcr.io/k3rnl/linha/server"</code></td>
+<td>Server image repository.</td>
+</tr>
+<tr>
+<td><span id="helm-image-tag"></span><code>image.tag</code></td>
+<td>string</td>
+<td><code>"0.1.4"</code></td>
+<td>Server image version; use the chart release version.</td>
+</tr>
+<tr>
+<td><span id="helm-image-pullpolicy"></span><code>image.pullPolicy</code></td>
+<td>string</td>
+<td><code>"IfNotPresent"</code></td>
+<td>Kubernetes image pull policy.</td>
+</tr>
+<tr>
+<td><span id="helm-imagepullsecrets"></span><code>imagePullSecrets</code></td>
+<td>array</td>
+<td><code>[]</code></td>
+<td>Server image pull Secret references, also permitted worker defaults.</td>
+</tr>
+<tr>
+<td><span id="helm-database"></span><code>database</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Database connection configuration; database is provisioned externally.</td>
+</tr>
+<tr>
+<td><span id="helm-database-postgres"></span><code>database.postgres</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>PostgreSQL connection and caller-managed credential Secret.</td>
+</tr>
+<tr>
+<td><span id="helm-database-postgres-host"></span><code>database.postgres.host</code></td>
+<td>string</td>
+<td><code>"postgres"</code></td>
+<td>PostgreSQL DNS/IP hostname. Minimum length 1.</td>
+</tr>
+<tr>
+<td><span id="helm-database-postgres-port"></span><code>database.postgres.port</code></td>
+<td>integer</td>
+<td><code>5432</code></td>
+<td>TCP port. Minimum 1. Maximum 65535.</td>
+</tr>
+<tr>
+<td><span id="helm-database-postgres-database"></span><code>database.postgres.database</code></td>
+<td>string</td>
+<td><code>"linha"</code></td>
+<td>Existing PostgreSQL database name. Minimum length 1.</td>
+</tr>
+<tr>
+<td><span id="helm-database-postgres-sslmode"></span><code>database.postgres.sslMode</code></td>
+<td>string</td>
+<td><code>"verify-full"</code></td>
+<td>TLS mode passed to pgx; verification defaults to verify-full.  Values: <code>disable</code>, <code>allow</code>, <code>prefer</code>, <code>require</code>, <code>verify-ca</code>, <code>verify-full</code>.</td>
+</tr>
+<tr>
+<td><span id="helm-database-postgres-sslrootcert"></span><code>database.postgres.sslRootCert</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Optional mounted CA certificate path.</td>
+</tr>
+<tr>
+<td><span id="helm-database-postgres-secretref"></span><code>database.postgres.secretRef</code></td>
+<td>string</td>
+<td><code>"linha-postgres"</code></td>
+<td>Existing Secret containing database credentials. Minimum length 1.</td>
+</tr>
+<tr>
+<td><span id="helm-database-postgres-usernamekey"></span><code>database.postgres.usernameKey</code></td>
+<td>string</td>
+<td><code>"username"</code></td>
+<td>Username key in that Secret. Minimum length 1.</td>
+</tr>
+<tr>
+<td><span id="helm-database-postgres-passwordkey"></span><code>database.postgres.passwordKey</code></td>
+<td>string</td>
+<td><code>"password"</code></td>
+<td>Password key in that Secret. Minimum length 1.</td>
+</tr>
+<tr>
+<td><span id="helm-security"></span><code>security</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Independent application API, browser and worker authentication settings.</td>
+</tr>
+<tr>
+<td><span id="helm-security-enabled"></span><code>security.enabled</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Master authentication switch; false disables API/worker security and uses one shared owner.</td>
+</tr>
+<tr>
+<td><span id="helm-security-api"></span><code>security.api</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Public application API identity configuration.</td>
+</tr>
+<tr>
+<td><span id="helm-security-api-enabled"></span><code>security.api.enabled</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Validate API JWTs when master security is enabled.</td>
+</tr>
+<tr>
+<td><span id="helm-security-api-jwt"></span><code>security.api.jwt</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>JWT discovery, signature and audience validation settings.</td>
+</tr>
+<tr>
+<td><span id="helm-security-api-jwt-issuer"></span><code>security.api.jwt.issuer</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Required issuer when API authentication is enabled.</td>
+</tr>
+<tr>
+<td><span id="helm-security-api-jwt-audience"></span><code>security.api.jwt.audience</code></td>
+<td>string</td>
+<td><code>"linha"</code></td>
+<td>Required intended API token audience. Minimum length 1.</td>
+</tr>
+<tr>
+<td><span id="helm-security-api-jwt-tls"></span><code>security.api.jwt.tls</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>TLS trust settings for API identity discovery and signing-key requests.</td>
+</tr>
+<tr>
+<td><span id="helm-security-api-jwt-tls-insecureskipverify"></span><code>security.api.jwt.tls.insecureSkipVerify</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Skip API provider certificate/hostname verification only; JWT checks remain.</td>
+</tr>
+<tr>
+<td><span id="helm-security-oidc"></span><code>security.oidc</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Browser administrator OIDC login; separate from application API JWTs.</td>
+</tr>
+<tr>
+<td><span id="helm-security-oidc-enabled"></span><code>security.oidc.enabled</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Enable OIDC; a secured enabled UI requires it.</td>
+</tr>
+<tr>
+<td><span id="helm-security-oidc-issuer"></span><code>security.oidc.issuer</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Required browser issuer for secured UI; inherited by membership rules.</td>
+</tr>
+<tr>
+<td><span id="helm-security-oidc-tls"></span><code>security.oidc.tls</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>TLS trust settings for browser identity operations.</td>
+</tr>
+<tr>
+<td><span id="helm-security-oidc-tls-insecureskipverify"></span><code>security.oidc.tls.insecureSkipVerify</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Skip browser provider certificate/hostname verification only; browser trust is separate.</td>
+</tr>
+<tr>
+<td><span id="helm-security-admin"></span><code>security.admin</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Viewer/operator membership rules; see membership models in the storage/provider reference.</td>
+</tr>
+<tr>
+<td><span id="helm-security-admin-viewer"></span><code>security.admin.viewer</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Viewer membership; rules inherit the browser issuer.</td>
+</tr>
+<tr>
+<td><span id="helm-security-admin-viewer-subjects"></span><code>security.admin.viewer.subjects</code></td>
+<td>array</td>
+<td><code>[]</code></td>
+<td>Explicit subject membership rules.</td>
+</tr>
+<tr>
+<td><span id="helm-security-admin-viewer-subjects-issuer"></span><code>security.admin.viewer.subjects[].issuer</code></td>
+<td>string</td>
+<td>Omitted</td>
+<td>Optional; if supplied it must equal the browser issuer.</td>
+</tr>
+<tr>
+<td><span id="helm-security-admin-viewer-subjects-subject"></span><code>security.admin.viewer.subjects[].subject</code></td>
+<td>string</td>
+<td>Omitted</td>
+<td>Required nonempty token subject. Minimum length 1.</td>
+</tr>
+<tr>
+<td><span id="helm-security-admin-viewer-claims"></span><code>security.admin.viewer.claims</code></td>
+<td>array</td>
+<td><code>[]</code></td>
+<td>Membership by matching a nested claim.</td>
+</tr>
+<tr>
+<td><span id="helm-security-admin-viewer-claims-issuer"></span><code>security.admin.viewer.claims[].issuer</code></td>
+<td>string</td>
+<td>Omitted</td>
+<td>Optional; if supplied it must equal the browser issuer.</td>
+</tr>
+<tr>
+<td><span id="helm-security-admin-viewer-claims-path"></span><code>security.admin.viewer.claims[].path</code></td>
+<td>array</td>
+<td>Omitted</td>
+<td>1–8 nested claim keys; each nonempty, at most 128 bytes, not <strong>proto</strong>.</td>
+</tr>
+<tr>
+<td><span id="helm-security-admin-viewer-claims-values"></span><code>security.admin.viewer.claims[].values</code></td>
+<td>array</td>
+<td>Omitted</td>
+<td>Nonempty list of allowed string values.</td>
+</tr>
+<tr>
+<td><span id="helm-security-admin-operator"></span><code>security.admin.operator</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Operator membership; rules inherit the browser issuer.</td>
+</tr>
+<tr>
+<td><span id="helm-security-admin-operator-subjects"></span><code>security.admin.operator.subjects</code></td>
+<td>array</td>
+<td><code>[]</code></td>
+<td>Explicit subject membership rules.</td>
+</tr>
+<tr>
+<td><span id="helm-security-admin-operator-subjects-issuer"></span><code>security.admin.operator.subjects[].issuer</code></td>
+<td>string</td>
+<td>Omitted</td>
+<td>Optional; if supplied it must equal the browser issuer.</td>
+</tr>
+<tr>
+<td><span id="helm-security-admin-operator-subjects-subject"></span><code>security.admin.operator.subjects[].subject</code></td>
+<td>string</td>
+<td>Omitted</td>
+<td>Required nonempty token subject. Minimum length 1.</td>
+</tr>
+<tr>
+<td><span id="helm-security-admin-operator-claims"></span><code>security.admin.operator.claims</code></td>
+<td>array</td>
+<td><code>[]</code></td>
+<td>Membership by matching a nested claim.</td>
+</tr>
+<tr>
+<td><span id="helm-security-admin-operator-claims-issuer"></span><code>security.admin.operator.claims[].issuer</code></td>
+<td>string</td>
+<td>Omitted</td>
+<td>Optional; if supplied it must equal the browser issuer.</td>
+</tr>
+<tr>
+<td><span id="helm-security-admin-operator-claims-path"></span><code>security.admin.operator.claims[].path</code></td>
+<td>array</td>
+<td>Omitted</td>
+<td>1–8 nested claim keys; each nonempty, at most 128 bytes, not <strong>proto</strong>.</td>
+</tr>
+<tr>
+<td><span id="helm-security-admin-operator-claims-values"></span><code>security.admin.operator.claims[].values</code></td>
+<td>array</td>
+<td>Omitted</td>
+<td>Nonempty list of allowed string values.</td>
+</tr>
+<tr>
+<td><span id="helm-rbac"></span><code>rbac</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Worker/resource permission configuration.</td>
+</tr>
+<tr>
+<td><span id="helm-rbac-namespaceonly"></span><code>rbac.namespaceOnly</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Namespaced management with projected-token verification; false adds cluster-scoped TokenReview permission.</td>
+</tr>
+<tr>
+<td><span id="helm-allowedimages"></span><code>allowedImages</code></td>
+<td>array</td>
+<td><code>[]</code></td>
+<td>Allowed worker, init-container and sidecar image repository prefixes. A nonempty allow-list is required for managed server startup.</td>
+</tr>
+<tr>
+<td><span id="helm-local"></span><code>local</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Optional shared-filesystem result provider.</td>
+</tr>
+<tr>
+<td><span id="helm-local-enabled"></span><code>local.enabled</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Configure local result storage on servers.</td>
+</tr>
+<tr>
+<td><span id="helm-local-root"></span><code>local.root</code></td>
+<td>string</td>
+<td><code>"/var/lib/linha/results"</code></td>
+<td>Persistent shared root; client result root must match exactly.</td>
+</tr>
+<tr>
+<td><span id="helm-local-existingclaim"></span><code>local.existingClaim</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Existing server PVC; drivers/executors still need matching shared mounts.</td>
+</tr>
+<tr>
+<td><span id="helm-s3"></span><code>s3</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Server S3 destination configuration.</td>
+</tr>
+<tr>
+<td><span id="helm-s3-enabled"></span><code>s3.enabled</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Load named destinations from the selected Secret.</td>
+</tr>
+<tr>
+<td><span id="helm-s3-secretref"></span><code>s3.secretRef</code></td>
+<td>string</td>
+<td><code>"linha-s3"</code></td>
+<td>Existing Secret with destination JSON; AWS credentials use the server default credential chain.</td>
+</tr>
+<tr>
+<td><span id="helm-s3-destinationskey"></span><code>s3.destinationsKey</code></td>
+<td>string</td>
+<td><code>"destinations"</code></td>
+<td>Secret key containing the destination-name → S3Config JSON object.</td>
+</tr>
+<tr>
+<td><span id="helm-workervolumes"></span><code>workerVolumes</code></td>
+<td>array</td>
+<td><code>[]</code></td>
+<td>Legacy administrator volumes snapshotted into new context templates; prefer explicit templates.</td>
+</tr>
+<tr>
+<td><span id="helm-workermounts"></span><code>workerMounts</code></td>
+<td>array</td>
+<td><code>[]</code></td>
+<td>Legacy worker mounts; PVC mounts also flow to executor templates.</td>
+</tr>
+<tr>
+<td><span id="helm-workerpodtemplates"></span><code>workerPodTemplates</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Administrator Pod defaults merged with caller overrides for a new context.</td>
+</tr>
+<tr>
+<td><span id="helm-workerpodtemplates-driverpodtemplate"></span><code>workerPodTemplates.driverPodTemplate</code></td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Native Pod fragment; see the backend Pod-template reference for merge/protected-field rules.</td>
+</tr>
+<tr>
+<td><span id="helm-workerpodtemplates-driverpodtemplate-metadata"></span><code>workerPodTemplates.driverPodTemplate.metadata</code></td>
+<td>object</td>
+<td>Omitted</td>
+<td>Application labels/annotations only.</td>
+</tr>
+<tr>
+<td><span id="helm-workerpodtemplates-driverpodtemplate-metadata-labels"></span><code>workerPodTemplates.driverPodTemplate.metadata.labels</code></td>
+<td>object</td>
+<td>Omitted</td>
+<td>String label map; runtime prefixes are protected.</td>
+</tr>
+<tr>
+<td><span id="helm-workerpodtemplates-driverpodtemplate-metadata-annotations"></span><code>workerPodTemplates.driverPodTemplate.metadata.annotations</code></td>
+<td>object</td>
+<td>Omitted</td>
+<td>String annotation map; runtime prefixes are protected.</td>
+</tr>
+<tr>
+<td><span id="helm-workerpodtemplates-driverpodtemplate-spec"></span><code>workerPodTemplates.driverPodTemplate.spec</code></td>
+<td>object</td>
+<td>Omitted</td>
+<td>Kubernetes v1 PodSpec subject to Linha/Spark restrictions.</td>
+</tr>
+<tr>
+<td><span id="helm-workerpodtemplates-executorpodtemplate"></span><code>workerPodTemplates.executorPodTemplate</code></td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Native Pod fragment; see the backend Pod-template reference for merge/protected-field rules.</td>
+</tr>
+<tr>
+<td><span id="helm-workerpodtemplates-executorpodtemplate-metadata"></span><code>workerPodTemplates.executorPodTemplate.metadata</code></td>
+<td>object</td>
+<td>Omitted</td>
+<td>Application labels/annotations only.</td>
+</tr>
+<tr>
+<td><span id="helm-workerpodtemplates-executorpodtemplate-metadata-labels"></span><code>workerPodTemplates.executorPodTemplate.metadata.labels</code></td>
+<td>object</td>
+<td>Omitted</td>
+<td>String label map; runtime prefixes are protected.</td>
+</tr>
+<tr>
+<td><span id="helm-workerpodtemplates-executorpodtemplate-metadata-annotations"></span><code>workerPodTemplates.executorPodTemplate.metadata.annotations</code></td>
+<td>object</td>
+<td>Omitted</td>
+<td>String annotation map; runtime prefixes are protected.</td>
+</tr>
+<tr>
+<td><span id="helm-workerpodtemplates-executorpodtemplate-spec"></span><code>workerPodTemplates.executorPodTemplate.spec</code></td>
+<td>object</td>
+<td>Omitted</td>
+<td>Kubernetes v1 PodSpec subject to Linha/Spark restrictions.</td>
+</tr>
+<tr>
+<td><span id="helm-registrysecrets"></span><code>registrySecrets</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Registry credential access policy for per-context private image resolution.</td>
+</tr>
+<tr>
+<td><span id="helm-registrysecrets-allowednames"></span><code>registrySecrets.allowedNames</code></td>
+<td>array</td>
+<td><code>[]</code></td>
+<td>Permitted Secret names; each gets namespaced get permission for primary image digest resolution.</td>
+</tr>
+<tr>
+<td><span id="helm-results"></span><code>results</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Server result staging and physical-cleanup policy, not the per-backend ResultPolicy.</td>
+</tr>
+<tr>
+<td><span id="helm-results-cleanup"></span><code>results.cleanup</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Physical deletion policy for tracked allocations only.</td>
+</tr>
+<tr>
+<td><span id="helm-results-cleanup-enabled"></span><code>results.cleanup.enabled</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Opt in to eligible terminal/expired allocation deletion after writer expiry and grace; job history remains.</td>
+</tr>
+<tr>
+<td><span id="helm-results-maxstagingbytes"></span><code>results.maxStagingBytes</code></td>
+<td>integer</td>
+<td><code>5368709120</code></td>
+<td>Concurrent server staging reservation budget in bytes; default 5 GiB. Minimum 1.</td>
+</tr>
+<tr>
+<td><span id="helm-extraenv"></span><code>extraEnv</code></td>
+<td>array</td>
+<td><code>[]</code></td>
+<td>Additional native Kubernetes EnvVar entries for server Pods.</td>
+</tr>
+<tr>
+<td><span id="helm-extravolumes"></span><code>extraVolumes</code></td>
+<td>array</td>
+<td><code>[]</code></td>
+<td>Additional native Kubernetes volumes for server Pods.</td>
+</tr>
+<tr>
+<td><span id="helm-extravolumemounts"></span><code>extraVolumeMounts</code></td>
+<td>array</td>
+<td><code>[]</code></td>
+<td>Additional native Kubernetes volume mounts for server containers.</td>
+</tr>
+<tr>
+<td><span id="helm-resources"></span><code>resources</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Server Pod requests and limits, separate from Spark worker resources.</td>
+</tr>
+<tr>
+<td><span id="helm-resources-requests"></span><code>resources.requests</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Native server container resource requests limit.</td>
+</tr>
+<tr>
+<td><span id="helm-resources-requests-cpu"></span><code>resources.requests.cpu</code></td>
+<td>string</td>
+<td><code>"100m"</code></td>
+<td>Native server container resource cpu request.</td>
+</tr>
+<tr>
+<td><span id="helm-resources-requests-memory"></span><code>resources.requests.memory</code></td>
+<td>string</td>
+<td><code>"128Mi"</code></td>
+<td>Native server container resource memory request.</td>
+</tr>
+<tr>
+<td><span id="helm-resources-limits"></span><code>resources.limits</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Native server container resource limits limit.</td>
+</tr>
+<tr>
+<td><span id="helm-resources-limits-memory"></span><code>resources.limits.memory</code></td>
+<td>string</td>
+<td><code>"512Mi"</code></td>
+<td>Native server container resource memory limit.</td>
+</tr>
+<tr>
+<td><span id="helm-podannotations"></span><code>podAnnotations</code></td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Server Pod annotation map.</td>
+</tr>
+<tr>
+<td><span id="helm-nodeselector"></span><code>nodeSelector</code></td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Server Pod node-label selector map.</td>
+</tr>
+<tr>
+<td><span id="helm-tolerations"></span><code>tolerations</code></td>
+<td>array</td>
+<td><code>[]</code></td>
+<td>Server Pod Kubernetes tolerations.</td>
+</tr>
+<tr>
+<td><span id="helm-ui"></span><code>ui</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Embedded administrator console and browser sessions.</td>
+</tr>
+<tr>
+<td><span id="helm-ui-enabled"></span><code>ui.enabled</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Register UI, browser login and administrator routes.</td>
+</tr>
+<tr>
+<td><span id="helm-ui-publicurl"></span><code>ui.publicURL</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Required absolute HTTP(S) URL ending exactly /ui/, without credentials, query or fragment.</td>
+</tr>
+<tr>
+<td><span id="helm-ui-ingress"></span><code>ui.ingress</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Same-origin UI/admin Ingress; does not expose the public job API or Spark UI.</td>
+</tr>
+<tr>
+<td><span id="helm-ui-ingress-enabled"></span><code>ui.ingress.enabled</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Render Ingress for /ui and /v1/admin.</td>
+</tr>
+<tr>
+<td><span id="helm-ui-ingress-classname"></span><code>ui.ingress.className</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Optional IngressClass name. Maximum length 253.</td>
+</tr>
+<tr>
+<td><span id="helm-ui-ingress-annotations"></span><code>ui.ingress.annotations</code></td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Ingress annotations map.</td>
+</tr>
+<tr>
+<td><span id="helm-ui-ingress-tls"></span><code>ui.ingress.tls</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Ingress TLS certificate selection.</td>
+</tr>
+<tr>
+<td><span id="helm-ui-ingress-tls-enabled"></span><code>ui.ingress.tls.enabled</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Enable TLS for the publicURL host.</td>
+</tr>
+<tr>
+<td><span id="helm-ui-ingress-tls-secretname"></span><code>ui.ingress.tls.secretName</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Existing TLS Secret for the host. Maximum length 253.</td>
+</tr>
+<tr>
+<td><span id="helm-ui-sessionseconds"></span><code>ui.sessionSeconds</code></td>
+<td>integer</td>
+<td><code>3600</code></td>
+<td>Absolute browser session lifetime, 60–86400 seconds. Provider refresh renews authentication within this limit; without refresh, token expiry can end access sooner. Minimum 60. Maximum 86400.</td>
+</tr>
+<tr>
+<td><span id="helm-ui-grafanaurl"></span><code>ui.grafanaURL</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Optional absolute Grafana link shown in the console.</td>
+</tr>
+<tr>
+<td><span id="helm-ui-oidc"></span><code>ui.oidc</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Browser client configuration, independent of application OAuth credentials.</td>
+</tr>
+<tr>
+<td><span id="helm-ui-oidc-clientid"></span><code>ui.oidc.clientId</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Required browser client ID/audience for secured UI.</td>
+</tr>
+<tr>
+<td><span id="helm-ui-oidc-scopes"></span><code>ui.oidc.scopes</code></td>
+<td>array</td>
+<td><code>["openid","profile","email"]</code></td>
+<td>Replaces defaults; nonempty unique valid scope strings, including openid. Request groups when needed.</td>
+</tr>
+<tr>
+<td><span id="helm-ui-oidc-secretref"></span><code>ui.oidc.secretRef</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Optional existing browser confidential-client Secret.</td>
+</tr>
+<tr>
+<td><span id="helm-ui-oidc-clientsecretkey"></span><code>ui.oidc.clientSecretKey</code></td>
+<td>string</td>
+<td><code>"client-secret"</code></td>
+<td>Key holding browser client secret.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics"></span><code>metrics</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Prometheus endpoint, context dimensions and optional monitoring resources.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-enabled"></span><code>metrics.enabled</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Register /metrics.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-maxcontexts"></span><code>metrics.maxContexts</code></td>
+<td>integer</td>
+<td><code>100</code></td>
+<td>Lifetime cap on named context metric dimensions; 0–10000. Minimum 0. Maximum 10000.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-cluster"></span><code>metrics.cluster</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Cluster label used by monitoring resources.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-contextaliases"></span><code>metrics.contextAliases</code></td>
+<td>array</td>
+<td><code>[]</code></td>
+<td>Persistent owner/logical-name alias overrides, applied before enrollment.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-contextaliases-owner"></span><code>metrics.contextAliases[].owner</code></td>
+<td>string</td>
+<td>Omitted</td>
+<td>Application owner.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-contextaliases-name"></span><code>metrics.contextAliases[].name</code></td>
+<td>string</td>
+<td>Omitted</td>
+<td>Logical context name.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-contextaliases-alias"></span><code>metrics.contextAliases[].alias</code></td>
+<td>string</td>
+<td>Omitted</td>
+<td>Bounded explicit metric alias.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-servicemonitor"></span><code>metrics.serviceMonitor</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Optional Prometheus Operator ServiceMonitor; CRD must already exist.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-servicemonitor-enabled"></span><code>metrics.serviceMonitor.enabled</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Render ServiceMonitor; no operator/CRD installation.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-servicemonitor-labels"></span><code>metrics.serviceMonitor.labels</code></td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Labels used by the Prometheus ServiceMonitor selector.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-servicemonitor-interval"></span><code>metrics.serviceMonitor.interval</code></td>
+<td>string</td>
+<td><code>"30s"</code></td>
+<td>Prometheus scrape interval.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-servicemonitor-scrapetimeout"></span><code>metrics.serviceMonitor.scrapeTimeout</code></td>
+<td>string</td>
+<td><code>"10s"</code></td>
+<td>Prometheus scrape timeout.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-servicemonitor-scheme"></span><code>metrics.serviceMonitor.scheme</code></td>
+<td>string</td>
+<td><code>"http"</code></td>
+<td>Scrape HTTP or HTTPS.  Values: <code>http</code>, <code>https</code>.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-servicemonitor-samplelimit"></span><code>metrics.serviceMonitor.sampleLimit</code></td>
+<td>integer</td>
+<td><code>100000</code></td>
+<td>Maximum samples accepted per scrape. Minimum 1. Maximum 10000000.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-servicemonitor-relabelings"></span><code>metrics.serviceMonitor.relabelings</code></td>
+<td>array</td>
+<td><code>[]</code></td>
+<td>Prometheus target relabeling configurations.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-servicemonitor-metricrelabelings"></span><code>metrics.serviceMonitor.metricRelabelings</code></td>
+<td>array</td>
+<td><code>[]</code></td>
+<td>Prometheus metric relabeling configurations.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-servicemonitor-tlsconfig"></span><code>metrics.serviceMonitor.tlsConfig</code></td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Native ServiceMonitor TLS client configuration.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-servicemonitor-authorization"></span><code>metrics.serviceMonitor.authorization</code></td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Native ServiceMonitor scrape authorization.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-grafanadashboard"></span><code>metrics.grafanaDashboard</code></td>
+<td>object</td>
+<td>Object; see nested fields</td>
+<td>Optional Grafana Operator dashboard; CRD must already exist.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-grafanadashboard-enabled"></span><code>metrics.grafanaDashboard.enabled</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Render dashboard resource; no Grafana/CRD installation.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-grafanadashboard-labels"></span><code>metrics.grafanaDashboard.labels</code></td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Dashboard resource labels.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-grafanadashboard-instanceselector"></span><code>metrics.grafanaDashboard.instanceSelector</code></td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Selector for Grafana instances receiving this dashboard.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-grafanadashboard-folder"></span><code>metrics.grafanaDashboard.folder</code></td>
+<td>string</td>
+<td><code>"Linha"</code></td>
+<td>Grafana folder name.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-grafanadashboard-datasourceuid"></span><code>metrics.grafanaDashboard.datasourceUID</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Grafana Prometheus datasource UID.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-grafanadashboard-allowcrossnamespaceimport"></span><code>metrics.grafanaDashboard.allowCrossNamespaceImport</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Allow Grafana Operator cross-namespace dashboard import.</td>
+</tr>
+<tr>
+<td><span id="helm-metrics-grafanadashboard-resyncperiod"></span><code>metrics.grafanaDashboard.resyncPeriod</code></td>
+<td>string</td>
+<td><code>"10m"</code></td>
+<td>Grafana Operator resync interval.</td>
+</tr>
+</tbody>
+</table>
+<p>See <a href="../environment/">environment equivalents</a>, <a href="../storage/">S3 destinations and membership</a>,
+<a href="../../../operations/">deployment procedures</a> and <a href="../../../observability/">monitoring</a>.
+The removed existingSecret, deploymentMode, top-level oidc and security.oidc.audience
+fields are not supported.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.sections", "navigation.indexes", "navigation.top", "content.code.copy", "search.suggest"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

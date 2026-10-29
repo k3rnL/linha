@@ -2,126 +2,214 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://k3rnl.github.io/linha/dev/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/acceptance/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/admin-observability-validation/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/admin-ui/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/application-storage/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/architecture/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/client-authentication/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/compatibility/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/configuration/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/dataset-results/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/docs-contributing/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/http-api/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/job-failures/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/kubernetes-validation/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/metrics/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/observability/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/operations/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/pod-templates/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/protocol-conformance/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/quickstart/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/releases/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/retention-proposal/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/sdk-reference/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/validation/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/versioned-spark-applications/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/walkthrough/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/requests/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/results/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/storage/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/backend/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/backend/pod-templates/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/backend/results/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/backend/spark/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/deployment/environment/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/deployment/helm/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/deployment/storage/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/http/admin/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/http/errors/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/http/operations/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/http/workers/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/sdk/client/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/sdk/credentials/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/sdk/helpers/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/sdk/spark/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/sdk/storage/</loc>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/reference/sdk/worker/</loc>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/releases/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/releases/v0.1.1/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/releases/v0.1.2/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/releases/v0.1.3/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
+    </url>
+    <url>
+         <loc>https://k3rnl.github.io/linha/dev/releases/v0.1.4/</loc>
+         <lastmod>2026-10-29</lastmod>
     </url>
     <url>
          <loc>https://k3rnl.github.io/linha/dev/validation/</loc>
-         <lastmod>2026-10-26</lastmod>
+         <lastmod>2026-10-29</lastmod>
     </url>
 </urlset>

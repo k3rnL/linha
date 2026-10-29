@@ -1,0 +1,3130 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Durable jobs, managed Spark engines, and Scala/JVM SDKs">
+      
+      
+      
+        <link rel="canonical" href="https://k3rnl.github.io/linha/dev/reference/backend/spark/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../pod-templates/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Spark settings - Linha</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#spark-settings" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Linha" class="md-header__button md-logo" aria-label="Linha" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Linha
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Spark settings
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/k3rnL/linha" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    k3rnL/linha
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Linha" class="md-nav__button md-logo" aria-label="Linha" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Linha
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/k3rnL/linha" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    k3rnL/linha
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run your first job
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../walkthrough/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build a Scala client and worker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy on Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../client-authentication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configure OAuth 2.0
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../versioned-spark-applications/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Manage Spark applications
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../pod-templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customize Pods
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../dataset-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Return files and datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../application-storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Access application files
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../admin-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enable the admin console
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitor queries and resources
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../job-failures/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnose failures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../kubernetes-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Run Kubernetes validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../releases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publish a release
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../docs-contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintain documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backend configuration
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Backend configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spark settings
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spark settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#resource-and-allocation-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resource and allocation rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jvm-system-properties-and-log4j" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JVM system properties and Log4j
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sparksettings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SparkSettings
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SparkSettings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sparksettings-drivers-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Driver settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparksettings-executors-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Executor settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparksettings-application-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spark application
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparksettings-ui-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Driver UI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pod-templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pod templates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Result policy and paths
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Requests and results
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Requests and results
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../requests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Requests, jobs and failures
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Published results and datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application storage models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SDKs
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    SDKs
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_4_1" id="__nav_4_4_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scala/JVM
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_4_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_4_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Scala/JVM
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sdk-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scala/JVM SDK reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sdk/client/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Client and handles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sdk/worker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Entrypoints and workers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sdk/spark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spark runtime
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sdk/credentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Credentials and transport
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sdk/helpers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pod and path helpers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sdk/storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage and Hadoop
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_5" id="__nav_4_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HTTP protocol
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    HTTP protocol
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../http-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Routes and headers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../http/workers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Managed workers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../http/admin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administrator requests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../http/operations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operational observations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../http/errors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Errors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_6" id="__nav_4_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Server deployment
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Server deployment
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/helm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Helm values
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/environment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    S3 destinations and membership
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prometheus metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../compatibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Compatibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Validation scope
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../acceptance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform acceptance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../admin-observability-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin and observability validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fixture measurements
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_14" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../releases/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Release notes
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4_14" id="__nav_4_14_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_14">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Release notes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../releases/v0.1.4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.4
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../releases/v0.1.3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.3
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../releases/v0.1.2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../releases/v0.1.1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linha 0.1.1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Explanation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Explanation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How Linha works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../retention-proposal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Result retention
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../protocol-conformance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol conformance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#resource-and-allocation-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resource and allocation rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#jvm-system-properties-and-log4j" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JVM system properties and Log4j
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sparksettings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SparkSettings
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SparkSettings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sparksettings-drivers-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Driver settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparksettings-executors-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Executor settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparksettings-application-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spark application
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparksettings-ui-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Driver UI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="spark-settings">Spark settings<a class="headerlink" href="#spark-settings" title="Permanent link">&para;</a></h1>
+<p><code>SparkSettings</code> is <code>BackendSpec.engine.settings</code> when <code>engine.type</code> is <code>spark</code>
+and <code>engine.version</code> is <code>3.5.6</code>. Managed deployments require <code>application</code> and use
+Kubeflow Spark Operator 2.4.0 (<code>sparkoperator.k8s.io/v1beta2</code>). Fields below are
+Linha settings, not an arbitrary SparkApplication or <code>sparkConf</code> passthrough.</p>
+<p>For the Kubernetes resource Linha creates, see the upstream
+<a href="https://github.com/kubeflow/spark-operator/blob/v2.4.0/docs/api-docs.md">SparkApplication API reference (Operator v2.4.0)</a>
+and <a href="https://spark.kubeflow.org/en/latest/user-guide/writing-sparkapplication.html">Writing a SparkApplication guide</a>.</p>
+<p>Omitted driver/executor objects retain the defaults shown below. Explicit zero is
+retained for numeric Spark settings, then validated: for example <code>minDrivers: 0</code>
+is valid, <code>maxDrivers: 0</code> is invalid. Resource aliases have special rules below.</p>
+<p>Field paths below are relative to their containing model; output fields have no caller default.</p>
+<h2 id="resource-and-allocation-rules">Resource and allocation rules<a class="headerlink" href="#resource-and-allocation-rules" title="Permanent link">&para;</a></h2>
+<p>Heap and overhead are binary MiB/GiB quantities even though Spark spells them
+<code>m</code>/<code>g</code>. <code>memory: "10g"</code> plus <code>memoryOverhead: "2g"</code> requests and limits a 12 GiB
+container with a 10 GiB JVM heap. Default overhead is rounded down to whole MiB,
+with a 384 MiB minimum. CPU requests/limits default separately to <code>cores</code>.</p>
+<p>Dynamic allocation controls executors within a driver. Linha independently scales
+the number of drivers within the driver-pool bounds. One driver has one shared
+SparkContext; requests use separate SparkSessions, scheduler pools and
+attempt-specific job groups. Increasing request concurrency does not create more
+executor task slots. Cancelling one request targets its own job group.</p>
+<p>Idle, cache and shuffle timeouts accept positive integer <code>s</code>, <code>m</code>, <code>h</code>, <code>d</code>
+durations up to 2147483647 seconds. Cache/shuffle timeouts also accept <code>infinity</code>.
+Equivalent values such as <code>1m</code> and <code>60s</code> normalize identically for version hashing.
+Timeouts are validated even with dynamic allocation disabled; they are applied
+only when enabled. Finite cache/shuffle retention can require recomputation.</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">"drivers"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"minDrivers"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"maxDrivers"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"maxConcurrentRequestsPerDriver"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="nt">"cores"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"memory"</span><span class="p">:</span><span class="w"> </span><span class="s2">"10g"</span><span class="p">,</span><span class="w"> </span><span class="nt">"memoryOverhead"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2g"</span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"executors"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"dynamicAllocation"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"minExecutors"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"initialExecutors"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"maxExecutors"</span><span class="p">:</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"cachedExecutorIdleTimeout"</span><span class="p">:</span><span class="w"> </span><span class="s2">"120s"</span><span class="p">,</span><span class="w"> </span><span class="nt">"shuffleTrackingTimeout"</span><span class="p">:</span><span class="w"> </span><span class="s2">"120s"</span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>This fragment belongs inside <code>engine.settings</code> alongside required <code>application</code>.
+Use <code>new SparkConf()</code> in the worker main method to inherit submitted settings.
+See <a href="../../sdk/spark/#worker-image">driver main and image contract</a> and
+<a href="../pod-templates/">Pod customization</a> for environment, files and scheduling.</p>
+<h2 id="jvm-system-properties-and-log4j">JVM system properties and Log4j<a class="headerlink" href="#jvm-system-properties-and-log4j" title="Permanent link">&para;</a></h2>
+<p>Use <code>spec.engine.settings.drivers.javaOptions</code> for driver JVM flags, including
+<code>-Dname=value</code> system properties. It is a string of JVM options, not an array of
+main-class arguments. Linha passes it to the SparkApplication's
+<a href="https://spark.kubeflow.org/en/latest/user-guide/writing-sparkapplication.html#specifying-extra-java-options"><code>spec.driver.javaOptions</code> field</a>.
+<code>application.arguments</code> is for arguments received by your main method.</p>
+<p>For a custom Log4j 2 configuration, merge this fragment into <code>engine.settings</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">"drivers"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"javaOptions"</span><span class="p">:</span><span class="w"> </span><span class="s2">"-Dlog4j.configurationFile=file:/etc/job-logging/log4j2.properties"</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>The file must exist at that path <strong>inside the driver container</strong>. Include it in
+the worker image or mount a ConfigMap through
+<a href="../pod-templates/"><code>kubernetes.driverPodTemplate</code></a>; see the
+<a href="../../../pod-templates/#add-files-environment-and-pull-secrets">file-mount example</a>.
+Setting the property does not upload a client-local file. Spark's
+<a href="https://spark.apache.org/docs/3.5.6/running-on-yarn.html#debugging-your-application">Log4j configuration example</a>
+documents this system property and the explicit <code>file:</code> URI.</p>
+<p>Multiple flags are space-separated in the same string. Use
+<code>executors.javaOptions</code> and an executor template mount separately if executors
+also need custom logging. Heap flags remain subject to the resource restrictions
+below. Changing JVM options changes the backend version: ensure the updated spec
+under the same logical name and submit through the returned context. Existing
+drivers keep their original version and JVM startup configuration.</p>
+<h2 id="sparksettings">SparkSettings<a class="headerlink" href="#sparksettings" title="Permanent link">&para;</a></h2>
+<p>Input at <code>BackendSpec.engine.settings</code>. Nested objects below specify every Linha-owned Spark option.</p>
+<p>Spark 3.5.6 through Kubeflow Spark Operator v2.4.0. Memory is JVM heap; memoryOverhead is additional container memory. Deprecated memoryMi is an alternative heap alias.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Presence / default</th>
+<th>Meaning and constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span id="sparksettings-drivers"></span><code>drivers</code></td>
+<td>object (<a href="#sparksettings-drivers-model">fields</a>)</td>
+<td>Optional; seeded defaults</td>
+<td>Driver pool, request concurrency and driver resources. Omission keeps the defaults in the nested table.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-executors"></span><code>executors</code></td>
+<td>object (<a href="#sparksettings-executors-model">fields</a>)</td>
+<td>Optional; seeded defaults</td>
+<td>Executor resources and Spark executor allocation. Omission keeps the nested defaults.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-kubernetes"></span><code>kubernetes</code></td>
+<td><a href="../pod-templates/#sparkpodtemplates">SparkPodTemplates</a></td>
+<td>Optional; omitted</td>
+<td>Independent Pod fragments. Operator defaults merge with client overrides and are snapshotted in the version.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-application"></span><code>application</code></td>
+<td>object (<a href="#sparksettings-application-model">fields</a>)</td>
+<td>Required; no default</td>
+<td>Required for managed deployment; JVM entrypoint already installed in the worker image.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-ui"></span><code>ui</code></td>
+<td>object (<a href="#sparksettings-ui-model">fields</a>)</td>
+<td>Optional; omitted</td>
+<td>Per-driver Spark UI settings; does not configure Linha administrator UI.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sparksettings-drivers-model">Driver settings<a class="headerlink" href="#sparksettings-drivers-model" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Presence / default</th>
+<th>Meaning and constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span id="sparksettings-drivers-memory"></span><code>drivers.memory</code></td>
+<td>string</td>
+<td>Optional; <code>"1024m"</code></td>
+<td>JVM heap string in m/g units (case-insensitive), 512m–128g. Default 1024m. Explicit 0m is invalid. Pattern: <code>^[0-9]+[mMgG]$</code>.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-drivers-memoryoverhead"></span><code>drivers.memoryOverhead</code></td>
+<td>string</td>
+<td>Optional; max(384m, 10% heap rounded down to MiB)</td>
+<td>Extra container memory, 1m–128g. Default max(384, floor(heap MiB / 10)) MiB for managed SparkApplications. Pattern: <code>^[0-9]+[mMgG]$</code>.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-drivers-memorymi"></span><code>drivers.memoryMi</code></td>
+<td>integer</td>
+<td>Optional; omitted</td>
+<td>Deprecated integer heap alias, 512–131072 MiB when nonzero; zero selects default. A nonzero alias cannot be combined with memory. Minimum: 512. Maximum: 131072. Deprecated.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-drivers-cores"></span><code>drivers.cores</code></td>
+<td>integer</td>
+<td>Optional; <code>1</code></td>
+<td>Spark cores/task parallelism, 1–32; also the default CPU request and limit. Minimum: 1. Maximum: 32.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-drivers-corerequest"></span><code>drivers.coreRequest</code></td>
+<td>string</td>
+<td>Optional; corresponding cores</td>
+<td>CPU request string, positive and at most 32 cores. Decimal cores or millicores (e.g. 500m); defaults to cores.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-drivers-corelimit"></span><code>drivers.coreLimit</code></td>
+<td>string</td>
+<td>Optional; corresponding cores</td>
+<td>CPU limit string, at least coreRequest and at most 32 cores; defaults to cores, so a larger request also needs a larger limit.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-drivers-javaoptions"></span><code>drivers.javaOptions</code></td>
+<td>string</td>
+<td>Optional; empty string</td>
+<td>Extra driver JVM flags, including <code>-Dname=value</code> system properties for Log4j and other libraries. See <a href="#jvm-system-properties-and-log4j">JVM/Log4j example</a>. -Xmx, -Xms and MaxRAM substrings are rejected; set heap through memory.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-drivers-mindrivers"></span><code>drivers.minDrivers</code></td>
+<td>integer</td>
+<td>Optional; <code>1</code></td>
+<td>Minimum drivers while clients have live leases; 0 is valid. After accepted work drains without clients, all drivers stop. Minimum: 0. Maximum: 16.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-drivers-maxdrivers"></span><code>drivers.maxDrivers</code></td>
+<td>integer</td>
+<td>Optional; <code>1</code></td>
+<td>Maximum managed drivers; 1–16 and at least minDrivers. Minimum: 1. Maximum: 16.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-drivers-maxconcurrentrequestsperdriver"></span><code>drivers.maxConcurrentRequestsPerDriver</code></td>
+<td>integer</td>
+<td>Optional; <code>1</code></td>
+<td>Request slots sharing one SparkContext; 1–32. Independent of executor task slots. Minimum: 1. Maximum: 32.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-drivers-queuethreshold"></span><code>drivers.queueThreshold</code></td>
+<td>integer</td>
+<td>Optional; <code>1</code></td>
+<td>Queued-request threshold used for driver scale-up after cooldown; at least 1. Minimum: 1.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-drivers-waitseconds"></span><code>drivers.waitSeconds</code></td>
+<td>integer</td>
+<td>Optional; <code>5</code></td>
+<td>Queue age threshold for scale-up, in seconds; at least 1. Either queue threshold or wait threshold can trigger growth. Minimum: 1.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-drivers-cooldownseconds"></span><code>drivers.cooldownSeconds</code></td>
+<td>integer</td>
+<td>Optional; <code>10</code></td>
+<td>Minimum interval between ordinary scaling decisions, seconds; at least 1. Startup/minimum capacity has exceptions. Minimum: 1.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-drivers-idleseconds"></span><code>drivers.idleSeconds</code></td>
+<td>integer</td>
+<td>Optional; <code>60</code></td>
+<td>Idle seconds before a ready excess driver can drain during scale-down; at least 1. Minimum: 1.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sparksettings-executors-model">Executor settings<a class="headerlink" href="#sparksettings-executors-model" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Presence / default</th>
+<th>Meaning and constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span id="sparksettings-executors-memory"></span><code>executors.memory</code></td>
+<td>string</td>
+<td>Optional; <code>"1024m"</code></td>
+<td>JVM heap string in m/g units (case-insensitive), 512m–128g. Default 1024m. Explicit 0m is invalid. Pattern: <code>^[0-9]+[mMgG]$</code>.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-executors-memoryoverhead"></span><code>executors.memoryOverhead</code></td>
+<td>string</td>
+<td>Optional; max(384m, 10% heap rounded down to MiB)</td>
+<td>Extra container memory, 1m–128g. Default max(384, floor(heap MiB / 10)) MiB for managed SparkApplications. Pattern: <code>^[0-9]+[mMgG]$</code>.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-executors-memorymi"></span><code>executors.memoryMi</code></td>
+<td>integer</td>
+<td>Optional; omitted</td>
+<td>Deprecated integer heap alias, 512–131072 MiB when nonzero; zero selects default. A nonzero alias cannot be combined with memory. Minimum: 512. Maximum: 131072. Deprecated.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-executors-cores"></span><code>executors.cores</code></td>
+<td>integer</td>
+<td>Optional; <code>1</code></td>
+<td>Spark cores/task parallelism, 1–32; also the default CPU request and limit. Minimum: 1. Maximum: 32.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-executors-corerequest"></span><code>executors.coreRequest</code></td>
+<td>string</td>
+<td>Optional; corresponding cores</td>
+<td>CPU request string, positive and at most 32 cores. Decimal cores or millicores (e.g. 500m); defaults to cores.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-executors-corelimit"></span><code>executors.coreLimit</code></td>
+<td>string</td>
+<td>Optional; corresponding cores</td>
+<td>CPU limit string, at least coreRequest and at most 32 cores; defaults to cores, so a larger request also needs a larger limit.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-executors-javaoptions"></span><code>executors.javaOptions</code></td>
+<td>string</td>
+<td>Optional; empty string</td>
+<td>Extra executor JVM flags, including <code>-Dname=value</code> system properties; configured separately from driver options. -Xmx, -Xms and MaxRAM substrings are rejected; set heap through memory.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-executors-minexecutors"></span><code>executors.minExecutors</code></td>
+<td>integer</td>
+<td>Optional; <code>0</code></td>
+<td>Dynamic minimum, 0–128; zero permits an idle application to have no executors. Minimum: 0. Maximum: 128.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-executors-initialexecutors"></span><code>executors.initialExecutors</code></td>
+<td>integer</td>
+<td>Optional; <code>1</code></td>
+<td>Dynamic startup count, 0–128, at least minExecutors; not a permanent minimum. Minimum: 0. Maximum: 128.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-executors-maxexecutors"></span><code>executors.maxExecutors</code></td>
+<td>integer</td>
+<td>Optional; <code>4</code></td>
+<td>Dynamic maximum, 1–128, at least initialExecutors. Minimum: 1. Maximum: 128.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-executors-instances"></span><code>executors.instances</code></td>
+<td>integer</td>
+<td>Optional; <code>1</code></td>
+<td>Static executor count, 1–128; ignored for allocation when dynamicAllocation is true, but still validated. Minimum: 1. Maximum: 128.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-executors-dynamicallocation"></span><code>executors.dynamicAllocation</code></td>
+<td>boolean</td>
+<td>Optional; <code>false</code></td>
+<td>Enable Spark dynamic allocation and shuffle tracking. Linha scales drivers separately.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-executors-executoridletimeout"></span><code>executors.executorIdleTimeout</code></td>
+<td>string</td>
+<td>Optional; <code>"60s"</code></td>
+<td>Idle timeout without retained data; positive integer s/m/h/d, at most 2147483647 seconds. Empty selects default. Applied only with dynamic allocation. Pattern: <code>^([1-9][0-9]*[smhd])?$</code>.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-executors-cachedexecutoridletimeout"></span><code>executors.cachedExecutorIdleTimeout</code></td>
+<td>string</td>
+<td>Optional; <code>"infinity"</code></td>
+<td>Cached-block retention timeout; positive integer s/m/h/d or infinity. Same duration bound. Empty selects default. Applied only with dynamic allocation. Pattern: <code>^([1-9][0-9]*[smhd]&amp;#124;infinity)?$</code>.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-executors-shuffletrackingtimeout"></span><code>executors.shuffleTrackingTimeout</code></td>
+<td>string</td>
+<td>Optional; <code>"infinity"</code></td>
+<td>Shuffle-tracking retention timeout; positive integer s/m/h/d or infinity. Same duration bound. Empty selects default. Applied only with dynamic allocation. Pattern: <code>^([1-9][0-9]*[smhd]&amp;#124;infinity)?$</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sparksettings-application-model">Spark application<a class="headerlink" href="#sparksettings-application-model" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Presence / default</th>
+<th>Meaning and constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span id="sparksettings-application-mainclass"></span><code>application.mainClass</code></td>
+<td>string</td>
+<td>Required; no default</td>
+<td>Required JVM main-class name matching [a-zA-Z_$][a-zA-Z0-9_$.]*, installed in the image.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-application-mainapplicationfile"></span><code>application.mainApplicationFile</code></td>
+<td>string</td>
+<td>Required; no default</td>
+<td>Required image-local JAR path starting local:/// and ending .jar; no JAR upload occurs. Pattern: <code>^local:///.+\.jar$</code>.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-application-arguments"></span><code>application.arguments</code></td>
+<td>array of string</td>
+<td>Optional; <code>[]</code></td>
+<td>Optional main-class arguments; at most 128 strings, default empty list. Maximum items: 128.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="sparksettings-ui-model">Driver UI<a class="headerlink" href="#sparksettings-ui-model" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Presence / default</th>
+<th>Meaning and constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span id="sparksettings-ui-enabled"></span><code>ui.enabled</code></td>
+<td>boolean</td>
+<td>Optional; <code>false</code></td>
+<td>Enable each driver UI; default false. Access control/ingress is not provisioned by this flag.</td>
+</tr>
+<tr>
+<td><span id="sparksettings-ui-port"></span><code>ui.port</code></td>
+<td>integer</td>
+<td>Optional; <code>4040</code></td>
+<td>UI TCP port, 1024–65535; default 4040, validated even when UI is disabled. Minimum: 1024. Maximum: 65535.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.sections", "navigation.indexes", "navigation.top", "content.code.copy", "search.suggest"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
