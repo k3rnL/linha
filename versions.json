@@ -8,11 +8,19 @@
     }
   },
   {
-    "version": "0.1.3",
-    "title": "0.1.3",
+    "version": "0.1.4",
+    "title": "0.1.4",
     "aliases": [
       "latest"
     ],
+    "properties": {
+      "source_commit": "213f857719e3bb1fa084902dd353fe75fbae6c24"
+    }
+  },
+  {
+    "version": "0.1.3",
+    "title": "0.1.3",
+    "aliases": [],
     "properties": {
       "source_commit": "811c5aeb569b75108052400cf5dd601c6ddd71ec"
     }
