@@ -11,6 +11,6 @@ only the OAuth client secret; no pre-generated JWT file is required.
 - [OAuth configuration](../../docs/client-authentication.md)
 - [SDK reference](../../docs/sdk-reference.md)
 
-The current source artifacts are `com.k3rnl:linha-client_2.12:0.1.3-SNAPSHOT`.
+The current source artifacts are `com.k3rnl:linha-client_2.12:0.1.4-SNAPSHOT`.
 Install with Java 17 `mvn -B install` from the repository root; matching sources
-are installed too. Published applications can use version `0.1.3` from Maven Central.
+are installed too. Published applications can use version `0.1.4` from Maven Central.

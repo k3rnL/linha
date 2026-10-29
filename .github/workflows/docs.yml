@@ -32,6 +32,10 @@ jobs:
           python scripts/check-public-content.py
       - name: Build with strict navigation and link validation
         run: mkdocs build --strict
+      - name: Check complete model and option reference
+        run: |
+          python scripts/test-reference.py
+          python scripts/check-reference.py
       - name: Verify frozen versions and private artifact exclusion
         run: python scripts/check-docs.py
   publish:

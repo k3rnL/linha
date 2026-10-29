@@ -9,7 +9,7 @@ These pages serve application developers and Kubernetes operators equally.
 <!-- development-only:start -->
 !!! note "Development version"
     These pages follow the current source checkout. Source builds use
-    `0.1.3-SNAPSHOT`; choose a release in the version selector for documentation
+    `0.1.4-SNAPSHOT`; choose a release in the version selector for documentation
     matching published artifacts.
 
 <!-- development-only:end -->
@@ -23,7 +23,8 @@ These pages serve application developers and Kubernetes operators equally.
 | Configure Spark resources and scaling | [Manage Spark applications](versioned-spark-applications.md) |
 | Inspect contexts and replay requests | [Enable the administrator console](admin-ui.md) |
 | Build a Grafana view | [Monitor queries and resources](observability.md) |
-| Find a field or endpoint | [Configuration](configuration.md), [SDK](sdk-reference.md), [HTTP API](http-api.md) |
+| Find every backend or Spark option | [Backend configuration](reference/backend/index.md), [Spark settings](reference/backend/spark.md) |
+| Look up a model, field, SDK type or endpoint | [Categorized reference and model index](reference/index.md) |
 | Understand durability and context lifetime | [Architecture](architecture.md) |
 
 ## Learn, operate, look up, understand

@@ -50,6 +50,8 @@ observability-check:
 DOCS_PYTHON = uv run --no-project --with-requirements docs/requirements.txt
 
 docs-check:
+	$(DOCS_PYTHON) python scripts/test-reference.py
+	$(DOCS_PYTHON) python scripts/check-reference.py
 	$(DOCS_PYTHON) mkdocs build --strict
 	$(DOCS_PYTHON) python scripts/check-docs.py
 	python3 scripts/check-public-content.py --directory site

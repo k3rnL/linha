@@ -2,6 +2,11 @@
 
 Application storage is for input files, shared datasets and temporary processing files. It is separate from a job's published result. Linha result expiration never removes application files.
 
+This is a task guide. Look up complete fields and methods in
+[storage models and routes](reference/storage.md),
+[S3 destination options](reference/deployment/storage.md#s3config), and
+[Scala/Hadoop APIs](reference/sdk/storage.md).
+
 ## Enable a destination
 
 An operator configures a named S3 destination on the server with `allowWorkloadAccess: true`:

@@ -4,7 +4,11 @@ The base protocol is JSON over HTTP. Typed SDK calls wrap the same envelopes.
 The full [OpenAPI document](https://github.com/k3rnL/linha/blob/main/api/openapi.json)
 contains request/response schemas and bounds; these tables are a lookup guide.
 
-## Public routes
+Use the [model index](reference/index.md#json-model-index) for complete named and
+nested field definitions. The [backend/Spark reference](reference/backend/index.md)
+also documents runtime defaults and cross-field constraints beyond schema syntax.
+
+## Public routes {#public-routes}
 
 Authenticated requests use `Authorization: Bearer <access-token>`. Ownership is
 derived from that token, never from caller-supplied JSON.
@@ -45,7 +49,7 @@ A raw worker registers the same handler/version and maps the payload to business
 code. Duplicate capability registration is rejected. Classes and executable
 closures do not travel through this envelope.
 
-## State and errors
+## State and errors {#state-and-errors}
 
 Job states are `QUEUED`, `RETRYING`, `RUNNING`, `CANCELLING`, `SUCCEEDED`, `FAILED`
 and `CANCELLED`. Retrying work can be in backoff. Final result retrieval requires
@@ -72,7 +76,12 @@ Errors use this envelope:
 Foreign job identifiers are not a way to access another owner's history.
 See [failure diagnosis](job-failures.md) for exceptions and traces.
 
-## Worker and administrator routes
+## Worker and administrator routes {#worker-and-administrator-routes}
+
+Complete model catalogs: [managed workers](reference/http/workers.md),
+[administrator requests](reference/http/admin.md),
+[operational observations](reference/http/operations.md), and
+[application storage sessions](reference/storage.md#session-io).
 
 Worker registration, heartbeat, claim, renew, output allocation/upload,
 part registration/sealing, completion and failure routes use managed worker
@@ -84,7 +93,7 @@ viewer/operator membership from the browser issuer. Mutations require operator
 access; cookie mutations also require origin/CSRF checks. The
 [console guide](admin-ui.md) covers setup.
 
-### Batch request actions
+### Batch request actions {#batch-request-actions}
 
 `POST /v1/admin/jobs/batch` requires operator access. Browser requests also send
 same-origin `Origin` and `X-Linha-CSRF` headers. Supply 1–200 unique requests and
@@ -114,7 +123,7 @@ with unchanged source workload-storage access. Audit records for moves include
 `sourceContextId` and destination `contextId`. See [queue recovery](admin-ui.md#recover-a-stranded-queue)
 for the operator procedure.
 
-## Operational routes
+## Operational routes {#operational-routes}
 
 | Route | Response purpose |
 | --- | --- |

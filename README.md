@@ -45,8 +45,8 @@ jobs, restarts processes and checks that the original results remain available.
 It cleans up its temporary resources. See the [tutorial](docs/quickstart.md) for
 prerequisites and expected output.
 
-Published SDKs use version `0.1.3`, including OAuth 2.0 client credentials and
-application storage. Source builds use `0.1.3-SNAPSHOT`; Maven installs matching
+Published SDKs use version `0.1.4`, including OAuth 2.0 client credentials and
+application storage. Source builds use `0.1.4-SNAPSHOT`; Maven installs matching
 source JARs alongside each SDK.
 
 ## Find your way around

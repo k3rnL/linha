@@ -105,6 +105,10 @@ an OAuth client secret; the SDK acquires the access token.
 
 ## 4. Ensure a context and submit
 
+The example below selects a few settings. The [backend reference](reference/backend/index.md)
+lists the complete model; [Spark settings](reference/backend/spark.md) lists every
+application, driver, executor and UI option with defaults and constraints.
+
 ```scala
 import example.{CountRows, RowsCount}
 import io.circe.parser.parse

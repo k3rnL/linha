@@ -4,6 +4,12 @@ Configure driver capacity, executor allocation and Spark resources in the backen
 spec passed to `ensureBackend`. Linha creates one SparkApplication per managed
 driver. Kubeflow Spark Operator submits it, and Spark creates driver/executor Pods.
 
+For a complete option list use [SparkSettings](reference/backend/spark.md), with
+separate tables for [application/JAR arguments](reference/backend/spark.md#sparksettings-application-model),
+[drivers](reference/backend/spark.md#sparksettings-drivers-model),
+[executors](reference/backend/spark.md#sparksettings-executors-model), and
+[Pod templates](reference/backend/pod-templates.md).
+
 This guide assumes the operator watches the Linha namespace and your worker image
 contains the declared JVM main class and JAR. See [deployment](operations.md).
 
@@ -61,12 +67,14 @@ provisioned. No client configuration change is needed.
 and limit. A 10g heap plus 2g overhead gives the driver 12Gi. CPU requests and
 limits default to `cores`; override them separately when needed. Do not put `-Xmx`
 in `javaOptions` or override these resources through the main-container template.
-Defaults and bounds are in [configuration reference](configuration.md#spark-settings).
+Defaults and bounds are in [configuration reference](reference/backend/spark.md).
 
 The worker main method should use `new SparkConf()` to inherit submission
 configuration. Preserve Spark's driver/executor image entrypoint. Use
 `application.arguments` and `javaOptions` for application configuration, with
 [Pod templates](pod-templates.md) for files and environment variables.
+For driver JVM system properties such as `-Dlog4j.configurationFile`, see the
+[JVM and Log4j example](reference/backend/spark.md#jvm-system-properties-and-log4j).
 
 ## Tune the driver pool
 

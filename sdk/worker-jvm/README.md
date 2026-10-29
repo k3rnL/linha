@@ -13,5 +13,5 @@ internal worker tokens are separate from the application client's OAuth secret.
 - [SDK reference](../../docs/sdk-reference.md)
 
 Include matching `com.k3rnl:linha-worker_2.12` and `linha-spark_2.12` artifacts in
-the business image. The development version is `0.1.3-SNAPSHOT`; install binaries
+the business image. The development version is `0.1.4-SNAPSHOT`; install binaries
 and sources with Java 17 `mvn -B install` from the repository root.

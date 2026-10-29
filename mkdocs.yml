@@ -31,12 +31,15 @@ extra:
     provider: mike
     alias: true
 markdown_extensions:
+  - attr_list
   - admonition
   - toc:
       permalink: true
   - pymdownx.highlight
   - pymdownx.superfences
   - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
 validation:
   nav:
     omitted_files: warn
@@ -62,6 +65,7 @@ nav:
       - Manage Spark applications: versioned-spark-applications.md
       - Customize Pods: pod-templates.md
       - Return files and datasets: dataset-results.md
+      - Access application files: application-storage.md
       - Enable the admin console: admin-ui.md
       - Monitor queries and resources: observability.md
       - Diagnose failures: job-failures.md
@@ -69,10 +73,36 @@ nav:
       - Publish a release: releases.md
       - Maintain documentation: docs-contributing.md
   - Reference:
-      - Configuration: configuration.md
-      - Scala/JVM SDK: sdk-reference.md
-      - Application storage: application-storage.md
-      - HTTP API: http-api.md
+      - reference/index.md
+      - Backend configuration:
+          - reference/backend/index.md
+          - Spark settings: reference/backend/spark.md
+          - Pod templates: reference/backend/pod-templates.md
+          - Result policy and paths: reference/backend/results.md
+      - Requests and results:
+          - Requests, jobs and failures: reference/requests.md
+          - Published results and datasets: reference/results.md
+          - Application storage models: reference/storage.md
+      - SDKs:
+          - Scala/JVM:
+              - sdk-reference.md
+              - Client and handles: reference/sdk/client.md
+              - Entrypoints and workers: reference/sdk/worker.md
+              - Spark runtime: reference/sdk/spark.md
+              - Credentials and transport: reference/sdk/credentials.md
+              - Pod and path helpers: reference/sdk/helpers.md
+              - Storage and Hadoop: reference/sdk/storage.md
+      - HTTP protocol:
+          - Routes and headers: http-api.md
+          - Managed workers: reference/http/workers.md
+          - Administrator requests: reference/http/admin.md
+          - Operational observations: reference/http/operations.md
+          - Errors: reference/http/errors.md
+      - Server deployment:
+          - Helm values: reference/deployment/helm.md
+          - Environment: reference/deployment/environment.md
+          - S3 destinations and membership: reference/deployment/storage.md
+      - Configuration index: configuration.md
       - Prometheus metrics: metrics.md
       - Compatibility: compatibility.md
       - Validation scope: validation.md
@@ -81,6 +111,7 @@ nav:
       - Fixture measurements: validation/README.md
       - Release notes:
           - releases/index.md
+          - Linha 0.1.4: releases/v0.1.4.md
           - Linha 0.1.3: releases/v0.1.3.md
           - Linha 0.1.2: releases/v0.1.2.md
           - Linha 0.1.1: releases/v0.1.1.md

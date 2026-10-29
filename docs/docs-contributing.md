@@ -16,6 +16,8 @@ Open the local URL printed by MkDocs. For a strict build and versioning check:
 
 ```sh
 PATH=/tmp/linha-docs-env/bin:$PATH mkdocs build --strict
+PATH=/tmp/linha-docs-env/bin:$PATH python3 scripts/test-reference.py
+PATH=/tmp/linha-docs-env/bin:$PATH python3 scripts/check-reference.py
 PATH=/tmp/linha-docs-env/bin:$PATH python3 scripts/check-docs.py
 python3 scripts/check-public-content.py
 ```
@@ -77,6 +79,49 @@ This follows [Diátaxis](https://diataxis.fr/). Cross-link related types rather 
 mixing long explanations into a copyable task. Examples use reserved `.example`
 hostnames and invented workloads. Public docs must not contain real integration
 project names, corporate deployment identifiers, secrets or personal workspace paths.
+
+## Maintain complete references
+
+Start at the [reference index](reference/index.md). JSON defines shared model
+fields; language tabs show equivalent usage, currently JSON and Scala. Add a
+language SDK section when a supported SDK exists, rather than duplicating the
+same field tables for each language. Use plain code blocks for language-specific
+APIs and YAML-only operator settings.
+
+The coverage inventory is `scripts/fixtures/reference-coverage.json`. It maps
+OpenAPI models, selected Go wire/configuration structures, public SDK families,
+and server environment variables to canonical page anchors. Chart coverage uses
+both schema properties and default values, including inline objects/array items.
+Dynamic maps, upstream Kubernetes fields and internal structures have explicit
+boundaries in the inventory. Go fields tagged json:"-" are excluded; embedded
+selected structs are expanded.
+
+Each model uses an explicit heading anchor, and each field row has an explicit
+span anchor derived from its model and dotted path. For example
+`SparkSettings.drivers.memory` is `sparksettings-drivers-memory`. Each row names
+the field, its type, presence/default, meaning and constraints. Do not add an
+empty anchor just to satisfy a check.
+
+When adding or changing an API/configuration field, update its definition, index
+target, constraints and source review together. The checker detects missing
+model mappings, newly declared nested fields, missing field rows, broken targets,
+selected Go-structure changes, new server environment literals and preserved
+entry-page anchors. Negative
+fixtures exercise omitted fields and broken pages/anchors. CI and `make docs-check`
+run both checks alongside strict MkDocs and the existing frozen-version suite.
+
+The structural check does **not** establish that prose/defaults are correct or
+automatically discover arbitrary Scala method changes. Review every public SDK
+constructor/member/default against its source, including lifecycle behavior.
+Review Go normalizers for omission versus explicit zero, computed defaults and
+cross-field checks; schema defaults alone are insufficient. Record a discovered
+schema/runtime discrepancy in the active change's audit and document the enforced
+behavior; resolve any runtime/API change through its own authorized scope.
+
+Keep established entry-page URLs and useful anchors as links to the canonical
+reference. Reference changes update development docs through the normal workflow;
+published release snapshots are preserved. Review representative lookups from the
+home page and model index, including nested backend/Spark fields, before delivery.
 
 ## Publish on GitHub Pages
 
