@@ -35,7 +35,7 @@ cleanup errors are correlated separately and do not replace the original failure
 If a Pod was killed, inspect its termination state and executor logs. Kubernetes
 OOM kills and JVM crashes may prevent any trace from being sent. The attempt still
 follows lease-loss recovery. Verify JVM heap plus overhead in
-[Spark resource settings](configuration.md#spark-settings) rather than setting
+[Spark resource settings](reference/backend/spark.md) rather than setting
 container memory equal to the heap.
 
 ## Decide whether to retry

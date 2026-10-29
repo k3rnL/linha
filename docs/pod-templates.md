@@ -1,5 +1,10 @@
 # Customize driver and executor Pods
 
+The [Pod-template reference](reference/backend/pod-templates.md) lists complete
+fragment, merge and protected-field rules. The
+[Scala helper reference](reference/sdk/helpers.md#podtemplate) lists every builder
+and JSON/YAML loading method.
+
 Pass native Kubernetes fragments through
 `engine.settings.kubernetes.driverPodTemplate` and `executorPodTemplate` when
 ensuring a backend. Use this for configuration files, Secret references, private
@@ -100,7 +105,7 @@ their saved template. Use versioned immutable ConfigMaps/Secrets for reproducibi
 Linha reserves Pod identity, service accounts, ownership labels, worker token
 mounts, restart policy and the main image/command/args/working directory.
 `LINHA_*` and `SPARK_*` env names and runtime mount paths are protected. Set main
-CPU and memory through [Spark settings](configuration.md#spark-settings), not the
+CPU and memory through [Spark settings](reference/backend/spark.md), not the
 container template. Sidecars and init images follow the image allow-list too.
 
 Each template is limited to 64 KiB, including after merging. Conflicting managed

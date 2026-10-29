@@ -1,0 +1,501 @@
+{
+  "api": {
+    "EnsureRequest": "reference/backend/index.md#ensurerequest",
+    "BackendSpec": "reference/backend/index.md#backendspec",
+    "EngineSpec": "reference/backend/index.md#enginespec",
+    "Context": "reference/backend/index.md#context",
+    "ClientLease": "reference/backend/index.md#clientlease",
+    "AttachClient": "reference/backend/index.md#attachclient",
+    "SparkSettings": "reference/backend/spark.md#sparksettings",
+    "SparkPodTemplates": "reference/backend/pod-templates.md#sparkpodtemplates",
+    "PodTemplate": "reference/backend/pod-templates.md#podtemplate",
+    "ResultPolicy": "reference/backend/results.md#resultpolicy",
+    "PathTemplate": "reference/backend/results.md#pathtemplate",
+    "SubmitRequest": "reference/requests.md#submitrequest",
+    "RetryPolicy": "reference/requests.md#retrypolicy",
+    "Job": "reference/requests.md#job",
+    "Progress": "reference/requests.md#progress",
+    "Failure": "reference/requests.md#failure",
+    "JobPage": "reference/requests.md#jobpage",
+    "ResultDescriptor": "reference/results.md#resultdescriptor",
+    "ResultFile": "reference/results.md#resultfile",
+    "Result": "reference/results.md#result",
+    "DatasetPart": "reference/results.md#datasetpart",
+    "DatasetManifest": "reference/results.md#datasetmanifest",
+    "DatasetPartPage": "reference/results.md#datasetpartpage",
+    "DatasetAccess": "reference/results.md#datasetaccess",
+    "Capability": "reference/http/workers.md#capability",
+    "Worker": "reference/http/workers.md#worker",
+    "Assignment": "reference/http/workers.md#assignment",
+    "AttemptUpdate": "reference/http/workers.md#attemptupdate",
+    "RenewRequest": "reference/http/workers.md#renewrequest",
+    "FailureRequest": "reference/http/workers.md#failurerequest",
+    "OutputRequest": "reference/http/workers.md#outputrequest",
+    "Allocation": "reference/http/workers.md#allocation",
+    "Completion": "reference/http/workers.md#completion",
+    "DatasetPartRegistration": "reference/http/workers.md#datasetpartregistration",
+    "DatasetSeal": "reference/http/workers.md#datasetseal",
+    "AdminSession": "reference/http/admin.md#adminsession",
+    "AdminJob": "reference/http/admin.md#adminjob",
+    "AdminSubmitRequest": "reference/http/admin.md#adminsubmitrequest",
+    "AdminResult": "reference/http/admin.md#adminresult",
+    "AdminPreview": "reference/http/admin.md#adminpreview",
+    "AdminAudit": "reference/http/admin.md#adminaudit",
+    "AdminJobPage": "reference/http/admin.md#adminjobpage",
+    "AdminAuditPage": "reference/http/admin.md#adminauditpage",
+    "AdminJobSelection": "reference/http/admin.md#adminjobselection",
+    "AdminBatchRequest": "reference/http/admin.md#adminbatchrequest",
+    "AdminBatchItem": "reference/http/admin.md#adminbatchitem",
+    "AdminBatchResult": "reference/http/admin.md#adminbatchresult",
+    "AdminBatchJob": "reference/http/admin.md#adminbatchjob",
+    "OperationalContext": "reference/http/operations.md#operationalcontext",
+    "OperationalClient": "reference/http/operations.md#operationalclient",
+    "EngineObservation": "reference/http/operations.md#engineobservation",
+    "OperationalInstance": "reference/http/operations.md#operationalinstance",
+    "OperationalWorker": "reference/http/operations.md#operationalworker",
+    "OperationalServer": "reference/http/operations.md#operationalserver",
+    "OperationalContextPage": "reference/http/operations.md#operationalcontextpage",
+    "OperationalClientPage": "reference/http/operations.md#operationalclientpage",
+    "OperationalInstancePage": "reference/http/operations.md#operationalinstancepage",
+    "OperationalWorkerPage": "reference/http/operations.md#operationalworkerpage",
+    "OperationalServerPage": "reference/http/operations.md#operationalserverpage",
+    "AdminOverview": "reference/http/operations.md#adminoverview",
+    "OverviewContext": "reference/http/operations.md#overviewcontext",
+    "OverviewFailure": "reference/http/operations.md#overviewfailure",
+    "Error": "reference/http/errors.md#error"
+  },
+  "go": {
+    "Attempt": {
+      "source": "server/internal/domain/model.go",
+      "target": "reference/requests.md#attempt"
+    },
+    "AttemptUpdate": {
+      "source": "server/internal/domain/model.go",
+      "target": "reference/http/workers.md#attemptupdate"
+    },
+    "StorageSession": {
+      "source": "server/internal/domain/workload.go",
+      "target": "reference/storage.md#storagesession"
+    },
+    "StorageSessionInput": {
+      "source": "server/internal/domain/workload.go",
+      "target": "reference/storage.md#storagesessioninput"
+    },
+    "StorageObject": {
+      "source": "server/internal/domain/workload.go",
+      "target": "reference/storage.md#storageobject"
+    },
+    "WorkloadStoragePolicy": {
+      "source": "server/internal/domain/model.go",
+      "target": "reference/storage.md#workloadstoragepolicy"
+    },
+    "S3Config": {
+      "source": "server/internal/storage/s3.go",
+      "target": "reference/deployment/storage.md#s3config"
+    },
+    "AdminMappings": {
+      "source": "server/internal/auth/admin.go",
+      "target": "reference/deployment/storage.md#adminmappings"
+    },
+    "RoleRules": {
+      "source": "server/internal/auth/admin.go",
+      "target": "reference/deployment/storage.md#rolerules"
+    },
+    "SubjectRule": {
+      "source": "server/internal/auth/admin.go",
+      "target": "reference/deployment/storage.md#subjectrule"
+    },
+    "ClaimRule": {
+      "source": "server/internal/auth/admin.go",
+      "target": "reference/deployment/storage.md#claimrule"
+    },
+    "SparkSettings": {
+      "source": "server/internal/engine/spark.go",
+      "target": "reference/backend/spark.md#sparksettings",
+      "field_prefix": "sparksettings"
+    },
+    "DriverSettings": {
+      "source": "server/internal/engine/spark.go",
+      "target": "reference/backend/spark.md#sparksettings-drivers-model",
+      "field_prefix": "sparksettings-drivers"
+    },
+    "ExecutorSettings": {
+      "source": "server/internal/engine/spark.go",
+      "target": "reference/backend/spark.md#sparksettings-executors-model",
+      "field_prefix": "sparksettings-executors"
+    },
+    "SparkApplication": {
+      "source": "server/internal/engine/spark.go",
+      "target": "reference/backend/spark.md#sparksettings-application-model",
+      "field_prefix": "sparksettings-application"
+    },
+    "SparkUISettings": {
+      "source": "server/internal/engine/spark.go",
+      "target": "reference/backend/spark.md#sparksettings-ui-model",
+      "field_prefix": "sparksettings-ui"
+    },
+    "PodTemplates": {
+      "source": "server/internal/engine/pod_templates.go",
+      "target": "reference/backend/pod-templates.md#sparkpodtemplates",
+      "field_prefix": "sparkpodtemplates"
+    }
+  },
+  "sdk": {
+    "LinhaClient": {
+      "source": "sdk/client-jvm/src/main/scala/linha/client/LinhaClient.scala",
+      "target": "reference/sdk/client.md#linhaclient",
+      "members": [
+        "ensureBackend",
+        "restoreContext",
+        "job",
+        "rawJob",
+        "list",
+        "close"
+      ]
+    },
+    "LinhaContext": {
+      "source": "sdk/client-jvm/src/main/scala/linha/client/LinhaClient.scala",
+      "target": "reference/sdk/client.md#linhacontext",
+      "members": [
+        "id",
+        "version",
+        "status",
+        "submitRaw",
+        "submit",
+        "storage",
+        "developmentWorker",
+        "close"
+      ]
+    },
+    "RawJobHandle": {
+      "source": "sdk/client-jvm/src/main/scala/linha/client/LinhaClient.scala",
+      "target": "reference/sdk/client.md#rawjobhandle",
+      "members": [
+        "status",
+        "attempts",
+        "cancel",
+        "resultMetadata",
+        "parts",
+        "download",
+        "downloadPart"
+      ]
+    },
+    "JobHandle": {
+      "source": "sdk/client-jvm/src/main/scala/linha/client/LinhaClient.scala",
+      "target": "reference/sdk/client.md#jobhandle",
+      "members": [
+        "result"
+      ]
+    },
+    "ResultStorage": {
+      "source": "sdk/client-jvm/src/main/scala/linha/client/LinhaClient.scala",
+      "target": "reference/sdk/helpers.md#resultstorage",
+      "members": [
+        "Local",
+        "local",
+        "S3",
+        "s3"
+      ]
+    },
+    "LinhaEntrypoint": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#entrypointcodec"
+    },
+    "EntrypointCodec": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#entrypointcodec"
+    },
+    "json": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#entrypointcodec"
+    },
+    "LinhaJobContext": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#linhajobcontext",
+      "members": [
+        "jobId",
+        "attemptId",
+        "engine",
+        "progress",
+        "isCancelled",
+        "checkCancelled",
+        "storage",
+        "results",
+        "onCleanup"
+      ]
+    },
+    "ResultWriter": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#resultwriter"
+    },
+    "ResultFile": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#resultwriter"
+    },
+    "FileResult": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#resultwriter"
+    },
+    "DatasetPart": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#resultwriter"
+    },
+    "DatasetManifest": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#resultwriter"
+    },
+    "DatasetLocation": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#resultwriter"
+    },
+    "DatasetResult": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#resultwriter"
+    },
+    "ResultDescriptor": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#resultwriter"
+    },
+    "Capability": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#resultwriter"
+    },
+    "RawRequest": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#resultwriter"
+    },
+    "ProducedResult": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#resultwriter"
+    },
+    "StatusResult": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#resultwriter"
+    },
+    "JsonResult": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#resultwriter"
+    },
+    "ArtifactResult": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#resultwriter"
+    },
+    "DatasetProduced": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Contracts.scala",
+      "target": "reference/sdk/worker.md#resultwriter"
+    },
+    "LinhaWorker": {
+      "source": "sdk/worker-jvm/src/main/scala/linha/worker/LinhaWorker.scala",
+      "target": "reference/sdk/worker.md#linhaworker"
+    },
+    "WorkerIdentity": {
+      "source": "sdk/worker-jvm/src/main/scala/linha/worker/LinhaWorker.scala",
+      "target": "reference/sdk/worker.md#linhaworker"
+    },
+    "WorkerCredential": {
+      "source": "sdk/worker-jvm/src/main/scala/linha/worker/LinhaWorker.scala",
+      "target": "reference/sdk/worker.md#linhaworker"
+    },
+    "RetryableJobException": {
+      "source": "sdk/worker-jvm/src/main/scala/linha/worker/LinhaWorker.scala",
+      "target": "reference/sdk/worker.md#linhaworker"
+    },
+    "CredentialProvider": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Credentials.scala",
+      "target": "reference/sdk/credentials.md#credentialprovider",
+      "members": [
+        "bearerToken",
+        "none",
+        "apply",
+        "static",
+        "file",
+        "fileSecret",
+        "refreshing"
+      ]
+    },
+    "AccessToken": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Credentials.scala",
+      "target": "reference/sdk/credentials.md#accesstoken"
+    },
+    "CredentialException": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Credentials.scala",
+      "target": "reference/sdk/credentials.md#accesstoken"
+    },
+    "CredentialProviders": {
+      "source": "sdk/client-jvm/src/main/scala/linha/client/auth/CredentialProviders.scala",
+      "target": "reference/sdk/credentials.md#oauth-client-credentials",
+      "members": [
+        "oauthClientCredentials"
+      ]
+    },
+    "IdentityHttpOptions": {
+      "source": "sdk/client-jvm/src/main/scala/linha/client/auth/IdentityHttp.scala",
+      "target": "reference/sdk/credentials.md#identityhttpoptions"
+    },
+    "Transport": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Transport.scala",
+      "target": "reference/sdk/credentials.md#transport"
+    },
+    "LinhaException": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/Transport.scala",
+      "target": "reference/sdk/credentials.md#transport"
+    },
+    "PodTemplate": {
+      "source": "sdk/client-jvm/src/main/scala/linha/client/PodTemplate.scala",
+      "target": "reference/sdk/helpers.md#podtemplate",
+      "members": [
+        "json",
+        "empty",
+        "maxBytes",
+        "fromJson",
+        "fromYaml",
+        "fromFile",
+        "merge",
+        "withImagePullSecret",
+        "withEnv",
+        "withSecretEnv",
+        "withConfigMap",
+        "withSecretVolume",
+        "withPVC"
+      ]
+    },
+    "SparkPodTemplates": {
+      "source": "sdk/client-jvm/src/main/scala/linha/client/PodTemplate.scala",
+      "target": "reference/sdk/helpers.md#sparkpodtemplates",
+      "members": [
+        "driver",
+        "executor",
+        "json",
+        "withSettings"
+      ]
+    },
+    "ResultPath": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/ResultPath.scala",
+      "target": "reference/sdk/helpers.md#resultpath"
+    },
+    "PathVariables": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/ResultPath.scala",
+      "target": "reference/sdk/helpers.md#resultpath"
+    },
+    "SparkRuntime": {
+      "source": "sdk/spark-jvm/src/main/scala/linha/spark/SparkRuntime.scala",
+      "target": "reference/sdk/spark.md#sparkruntime"
+    },
+    "Spark": {
+      "source": "sdk/spark-jvm/src/main/scala/linha/spark/SparkRuntime.scala",
+      "target": "reference/sdk/spark.md#sparkruntime"
+    },
+    "SparkEntrypoint": {
+      "source": "sdk/spark-jvm/src/main/scala/linha/spark/SparkRuntime.scala",
+      "target": "reference/sdk/spark.md#sparkruntime"
+    },
+    "syntax.SparkJobContext": {
+      "source": "sdk/spark-jvm/src/main/scala/linha/spark/SparkRuntime.scala",
+      "target": "reference/sdk/spark.md#spark-syntax"
+    },
+    "syntax.SparkResultWriter": {
+      "source": "sdk/spark-jvm/src/main/scala/linha/spark/SparkRuntime.scala",
+      "target": "reference/sdk/spark.md#spark-syntax"
+    },
+    "StorageSession": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/StorageSession.scala",
+      "target": "reference/sdk/storage.md#storagesession"
+    },
+    "StorageObject": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/StorageSession.scala",
+      "target": "reference/sdk/storage.md#storagesession"
+    },
+    "StorageSession.StorageLock": {
+      "source": "sdk/protocol-jvm/src/main/scala/linha/StorageSession.scala",
+      "target": "reference/sdk/storage.md#storagelock"
+    },
+    "LinhaFileSystem": {
+      "source": "sdk/hadoop-jvm/src/main/scala/linha/hadoop/LinhaFileSystem.scala",
+      "target": "reference/sdk/storage.md#linhafilesystem"
+    }
+  },
+  "environment": {
+    "LINHA_LOG_LEVEL": "reference/deployment/environment.md#linha-log-level",
+    "LINHA_LISTEN": "reference/deployment/environment.md#linha-listen",
+    "LINHA_DATABASE_URL": "reference/deployment/environment.md#linha-database-url",
+    "LINHA_DATABASE_HOST": "reference/deployment/environment.md#linha-database-host",
+    "LINHA_DATABASE_PORT": "reference/deployment/environment.md#linha-database-port",
+    "LINHA_DATABASE_NAME": "reference/deployment/environment.md#linha-database-name",
+    "LINHA_DATABASE_USERNAME": "reference/deployment/environment.md#linha-database-username",
+    "LINHA_DATABASE_PASSWORD": "reference/deployment/environment.md#linha-database-password",
+    "LINHA_DATABASE_SSL_MODE": "reference/deployment/environment.md#linha-database-ssl-mode",
+    "LINHA_DATABASE_SSL_ROOT_CERT": "reference/deployment/environment.md#linha-database-ssl-root-cert",
+    "LINHA_SECURITY_ENABLED": "reference/deployment/environment.md#linha-security-enabled",
+    "LINHA_API_AUTH_ENABLED": "reference/deployment/environment.md#linha-api-auth-enabled",
+    "LINHA_API_JWT_ISSUER": "reference/deployment/environment.md#linha-api-jwt-issuer",
+    "LINHA_API_JWT_AUDIENCE": "reference/deployment/environment.md#linha-api-jwt-audience",
+    "LINHA_API_JWT_TLS_INSECURE_SKIP_VERIFY": "reference/deployment/environment.md#linha-api-jwt-tls-insecure-skip-verify",
+    "LINHA_OIDC_ENABLED": "reference/deployment/environment.md#linha-oidc-enabled",
+    "LINHA_OIDC_ISSUER": "reference/deployment/environment.md#linha-oidc-issuer",
+    "LINHA_OIDC_TLS_INSECURE_SKIP_VERIFY": "reference/deployment/environment.md#linha-oidc-tls-insecure-skip-verify",
+    "LINHA_WORKER_AUTH": "reference/deployment/environment.md#linha-worker-auth",
+    "LINHA_NAMESPACE": "reference/deployment/environment.md#linha-namespace",
+    "LINHA_SERVER_URL": "reference/deployment/environment.md#linha-server-url",
+    "LINHA_WORKER_SERVICE_ACCOUNT": "reference/deployment/environment.md#linha-worker-service-account",
+    "LINHA_ALLOWED_IMAGES": "reference/deployment/environment.md#linha-allowed-images",
+    "LINHA_WORKER_VOLUMES": "reference/deployment/environment.md#linha-worker-volumes",
+    "LINHA_WORKER_MOUNTS": "reference/deployment/environment.md#linha-worker-mounts",
+    "LINHA_WORKER_POD_TEMPLATES": "reference/deployment/environment.md#linha-worker-pod-templates",
+    "LINHA_WORKER_IMAGE_PULL_SECRETS": "reference/deployment/environment.md#linha-worker-image-pull-secrets",
+    "LINHA_REGISTRY_SECRETS": "reference/deployment/environment.md#linha-registry-secrets",
+    "LINHA_ENABLE_FAKE_ENGINE": "reference/deployment/environment.md#linha-enable-fake-engine",
+    "LINHA_LOCAL_ROOT": "reference/deployment/environment.md#linha-local-root",
+    "LINHA_S3_DESTINATIONS": "reference/deployment/environment.md#linha-s3-destinations",
+    "LINHA_CLEANUP_ENABLED": "reference/deployment/environment.md#linha-cleanup-enabled",
+    "LINHA_MAX_STAGING_BYTES": "reference/deployment/environment.md#linha-max-staging-bytes",
+    "LINHA_METRICS_ENABLED": "reference/deployment/environment.md#linha-metrics-enabled",
+    "LINHA_METRICS_MAX_CONTEXTS": "reference/deployment/environment.md#linha-metrics-max-contexts",
+    "LINHA_METRICS_CONTEXT_ALIASES": "reference/deployment/environment.md#linha-metrics-context-aliases",
+    "LINHA_UI_ENABLED": "reference/deployment/environment.md#linha-ui-enabled",
+    "LINHA_UI_PUBLIC_URL": "reference/deployment/environment.md#linha-ui-public-url",
+    "LINHA_UI_SESSION_SECONDS": "reference/deployment/environment.md#linha-ui-session-seconds",
+    "LINHA_UI_OIDC_CLIENT_ID": "reference/deployment/environment.md#linha-ui-oidc-client-id",
+    "LINHA_UI_OIDC_CLIENT_SECRET": "reference/deployment/environment.md#linha-ui-oidc-client-secret",
+    "LINHA_UI_OIDC_SCOPES": "reference/deployment/environment.md#linha-ui-oidc-scopes",
+    "LINHA_UI_GRAFANA_URL": "reference/deployment/environment.md#linha-ui-grafana-url",
+    "LINHA_ADMIN_MAPPINGS": "reference/deployment/environment.md#linha-admin-mappings",
+    "LINHA_MODE": "reference/deployment/environment.md#linha-mode",
+    "LINHA_OIDC_AUDIENCE": "reference/deployment/environment.md#linha-oidc-audience"
+  },
+  "boundaries": {
+    "application_payload": "SubmitRequest.payload is handler-owned arbitrary JSON, not a fixed Linha model.",
+    "pod_spec": "PodTemplate.spec delegates to Kubernetes v1 PodSpec, with Linha restrictions documented in reference/backend/pod-templates.md.",
+    "dynamic_maps": "Map keys such as labels, hadoopOptions and engine observation resource names are extensible; their value types and access rules are documented.",
+    "internal_fields": "Go fields tagged json:\"-\" and persistence-only structures are not wire fields.",
+    "sdk_review": "Scala families/methods require source review; the coverage check verifies indexed targets, not arbitrary Scala source changes.",
+    "helm_native": "Native PodSpec, volumes, resources and monitoring configuration maps have upstream-defined keys; every explicitly declared chart property/default is covered."
+  },
+  "helm": "reference/deployment/helm.md",
+  "sources": {
+    "api": "api/openapi.json",
+    "helm_values": "deploy/helm/linha/values.yaml",
+    "helm_schema": "deploy/helm/linha/values.schema.json",
+    "environment": [
+      "server/cmd/linha-server",
+      "server/internal/config"
+    ]
+  },
+  "legacy": [
+    "configuration.md#helm-deployment-settings",
+    "configuration.md#spark-settings",
+    "configuration.md#results-and-request-policy",
+    "configuration.md#result-path-templates",
+    "configuration.md#standalone-server-environment",
+    "sdk-reference.md#dependency-declarations",
+    "sdk-reference.md#client-and-context",
+    "sdk-reference.md#job-handles",
+    "sdk-reference.md#oauth-credentials",
+    "sdk-reference.md#entrypoints-and-worker-context",
+    "sdk-reference.md#result-types-and-paths",
+    "http-api.md#public-routes",
+    "http-api.md#state-and-errors",
+    "http-api.md#worker-and-administrator-routes",
+    "http-api.md#batch-request-actions",
+    "http-api.md#operational-routes"
+  ]
+}

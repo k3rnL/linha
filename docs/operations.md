@@ -96,7 +96,7 @@ no registry login or `helm repo add`:
 
 ```sh
 helm upgrade --install linha oci://ghcr.io/k3rnl/charts/linha \
-  --version 0.1.3 --namespace linha --create-namespace --values values.yaml
+  --version 0.1.4 --namespace linha --create-namespace --values values.yaml
 kubectl -n linha rollout status deployment/linha-linha
 kubectl -n linha get pods
 kubectl -n linha port-forward service/linha-linha 8080:8080
@@ -105,7 +105,7 @@ kubectl -n linha port-forward service/linha-linha 8080:8080
 To download the archive without installing it:
 
 ```sh
-helm pull oci://ghcr.io/k3rnl/charts/linha --version 0.1.3
+helm pull oci://ghcr.io/k3rnl/charts/linha --version 0.1.4
 ```
 
 From a source checkout, use `deploy/helm/linha` as the chart argument instead of
