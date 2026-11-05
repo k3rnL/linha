@@ -10,7 +10,7 @@ Kubernetes/monitoring objects retain their upstream validation.
 | <span id="helm-replicacount"></span>`replicaCount` | integer | `2` | API replicas sharing the database; default 2. External database/storage HA is operator-managed.  |
 | <span id="helm-image"></span>`image` | object | Object; see nested fields | Server image selection. Keep chart, image and SDK versions compatible.  |
 | <span id="helm-image-repository"></span>`image.repository` | string | `"ghcr.io/k3rnl/linha/server"` | Server image repository.  |
-| <span id="helm-image-tag"></span>`image.tag` | string | `"0.1.4"` | Server image version; use the chart release version.  |
+| <span id="helm-image-tag"></span>`image.tag` | string | `"0.1.5"` | Server image version; use the chart release version.  |
 | <span id="helm-image-pullpolicy"></span>`image.pullPolicy` | string | `"IfNotPresent"` | Kubernetes image pull policy.  |
 | <span id="helm-imagepullsecrets"></span>`imagePullSecrets` | array | `[]` | Server image pull Secret references, also permitted worker defaults.  |
 | <span id="helm-database"></span>`database` | object | Object; see nested fields | Database connection configuration; database is provisioned externally.  |
@@ -96,6 +96,8 @@ Kubernetes/monitoring objects retain their upstream validation.
 | <span id="helm-podannotations"></span>`podAnnotations` | object | `{}` | Server Pod annotation map.  |
 | <span id="helm-nodeselector"></span>`nodeSelector` | object | `{}` | Server Pod node-label selector map.  |
 | <span id="helm-tolerations"></span>`tolerations` | array | `[]` | Server Pod Kubernetes tolerations.  |
+| <span id="helm-affinity"></span>`affinity` | object | `{}` | Native server Pod node/Pod affinity and anti-affinity. Empty means no additional affinity rules.  |
+| <span id="helm-topologyspreadconstraints"></span>`topologySpreadConstraints` | array or null | `null` | Unset/null preserves soft hostname spreading (maxSkew 1, ScheduleAnyway) scoped to this release. A native constraint list replaces the default verbatim, including selectors; `[]` disables spreading.  |
 | <span id="helm-ui"></span>`ui` | object | Object; see nested fields | Embedded administrator console and browser sessions.  |
 | <span id="helm-ui-enabled"></span>`ui.enabled` | boolean | `false` | Register UI, browser login and administrator routes.  |
 | <span id="helm-ui-publicurl"></span>`ui.publicURL` | string | `""` | Required absolute HTTP(S) URL ending exactly /ui/, without credentials, query or fragment.  |

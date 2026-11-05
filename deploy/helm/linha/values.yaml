@@ -1,7 +1,7 @@
 replicaCount: 2
 image:
   repository: ghcr.io/k3rnl/linha/server
-  tag: 0.1.4
+  tag: 0.1.5
   pullPolicy: IfNotPresent
 imagePullSecrets: []
 database:
@@ -81,8 +81,13 @@ resources:
   limits:
     memory: 512Mi
 podAnnotations: {}
+# Server Pod scheduling; workers use workerPodTemplates instead.
 nodeSelector: {}
 tolerations: []
+affinity: {}
+# null keeps soft hostname spreading for this release's server Pods.
+# A list replaces that default verbatim; [] disables spreading.
+topologySpreadConstraints:
 # Embedded administrative console. No browser sessions/admin routes when disabled.
 ui:
   enabled: false

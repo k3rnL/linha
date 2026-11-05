@@ -6,11 +6,11 @@ storage, the Spark Operator and optional monitoring operators are external.
 
 ```sh
 helm upgrade --install linha oci://ghcr.io/k3rnl/charts/linha \
-  --version 0.1.4 --namespace linha --create-namespace --values values.yaml
+  --version 0.1.5 --namespace linha --create-namespace --values values.yaml
 ```
 
 The OCI chart requires Helm 3.8 or newer and no registry login. Download it with
-`helm pull oci://ghcr.io/k3rnl/charts/linha --version 0.1.4`.
+`helm pull oci://ghcr.io/k3rnl/charts/linha --version 0.1.5`.
 For a source checkout, use `deploy/helm/linha` as the chart argument instead and
 omit `--version`.
 
@@ -27,6 +27,55 @@ Driver/executor resources and custom mounts belong in backend Spark settings
 and Pod templates. The UI, its ingress, ServiceMonitor and GrafanaDashboard are
 independently optional.
 
+## Server Pod scheduling
+
+Use `nodeSelector`, `tolerations`, `affinity`, and `topologySpreadConstraints` for
+server placement. By default, the server has no node selector, tolerations, or
+affinity, and prefers spreading replicas across hostnames (`maxSkew: 1`,
+`whenUnsatisfiable: ScheduleAnyway`) within this release.
+
+Leaving `topologySpreadConstraints` unset or setting it to `null` keeps that
+default. A list replaces the default completely; `[]` disables spreading. Custom
+constraints and affinity use native Kubernetes structures, including their own
+label selectors, and are passed through without Helm template evaluation.
+
+For example, add this to your values file, replacing `linha` in the selector with
+your Helm release name:
+
+```yaml
+nodeSelector:
+  nodepool: services
+tolerations:
+  - key: dedicated
+    operator: Equal
+    value: services
+    effect: NoSchedule
+affinity:
+  nodeAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        preference:
+          matchExpressions:
+            - key: topology.kubernetes.io/zone
+              operator: In
+              values: [zone-a, zone-b]
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: linha
+        app.kubernetes.io/instance: linha
+        app.kubernetes.io/component: server
+```
+
+`affinity` also accepts Pod affinity and anti-affinity. Required affinity and
+`DoNotSchedule` constraints can leave Pods pending when no nodes qualify.
+Driver and executor placement is configured separately through
+`workerPodTemplates.driverPodTemplate.spec` and
+`workerPodTemplates.executorPodTemplate.spec`.
+
 - [Deploy Linha](../../../docs/operations.md)
 - [Configuration reference](../../../docs/configuration.md)
 - [Pod templates](../../../docs/pod-templates.md)
@@ -34,4 +83,4 @@ independently optional.
 - [Prometheus and Grafana](../../../docs/observability.md)
 
 Use matching chart and server versions. This chart defaults to the published
-`ghcr.io/k3rnl/linha/server:0.1.4` image.
+`ghcr.io/k3rnl/linha/server:0.1.5` image.

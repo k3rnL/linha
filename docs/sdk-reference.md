@@ -1,11 +1,11 @@
 # Scala/JVM SDK reference
 
 All Scala artifacts use binary version 2.12 and Java 17. This guide uses SDK
-version `0.1.4-SNAPSHOT`.
+version `0.1.5-SNAPSHOT`.
 
 <!-- development-only:start -->
 Build from source to use these development coordinates, or select the published
-`0.1.4` version from Maven Central.
+`0.1.5` version from Maven Central.
 <!-- development-only:end -->
 
 | Maven artifact | Responsibility |
@@ -22,7 +22,7 @@ For an SBT application that includes both client and worker examples:
 
 ```scala
 scalaVersion := "2.12.20"
-val linhaVersion = "0.1.4-SNAPSHOT"
+val linhaVersion = "0.1.5-SNAPSHOT"
 libraryDependencies ++= Seq(
   "com.k3rnl" %% "linha-client" % linhaVersion,
   "com.k3rnl" %% "linha-spark" % linhaVersion,
