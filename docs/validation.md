@@ -14,7 +14,7 @@ environment-specific identifiers are local/CI artifacts, not public documentatio
 | Spark/Kind | SparkApplications, concurrent requests, driver replacement, allocation, templates and result mounts |
 | Browser | Login/session/role boundaries, navigation, replay, cancellation, previews and current/history views |
 | Prometheus/Grafana | Metric contracts, deduplication, resets, outages, stale observations and dashboard expressions |
-| Helm | Defaults, Secret references, namespace RBAC, UI ingress and optional monitoring resources |
+| Helm | Defaults, server scheduling overrides, Secret references, namespace RBAC, UI ingress and optional monitoring resources |
 | Release rehearsal | Metadata, signed SDK bundles, sources, API docs and checksum validation |
 
 See [acceptance coverage](acceptance.md),

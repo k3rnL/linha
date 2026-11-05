@@ -9,7 +9,7 @@ These pages serve application developers and Kubernetes operators equally.
 <!-- development-only:start -->
 !!! note "Development version"
     These pages follow the current source checkout. Source builds use
-    `0.1.4-SNAPSHOT`; choose a release in the version selector for documentation
+    `0.1.5-SNAPSHOT`; choose a release in the version selector for documentation
     matching published artifacts.
 
 <!-- development-only:end -->

@@ -13,8 +13,17 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 CHART = ROOT / "deploy/helm/linha"
 
 
-def render(*settings, succeeds=True, api_versions=(), json_settings=()):
-    command = ["helm", "template", "test", str(CHART), "--namespace", "isolated"]
+def render(
+    *settings,
+    succeeds=True,
+    api_versions=(),
+    json_settings=(),
+    values_files=(),
+    release="test",
+):
+    command = ["helm", "template", release, str(CHART), "--namespace", "isolated"]
+    for path in values_files:
+        command += ["--values", str(path)]
     for version in api_versions:
         command += ["--api-versions", version]
     for setting in settings:
@@ -42,6 +51,163 @@ def environment(documents):
 
 
 class ChartConfiguration(unittest.TestCase):
+    def test_server_scheduling_defaults_are_release_scoped(self):
+        for release, settings in itertools.product(
+            ("test", "other"), ((), ("topologySpreadConstraints=null",))
+        ):
+            with self.subTest(release=release, settings=settings):
+                docs = render("security.enabled=false", *settings, release=release)
+                deployment = next(d for d in docs if d["kind"] == "Deployment")
+                pod = deployment["spec"]["template"]
+                self.assertEqual(pod["spec"]["nodeSelector"], {})
+                self.assertEqual(pod["spec"]["tolerations"], [])
+                self.assertNotIn("affinity", pod["spec"])
+                self.assertEqual(
+                    pod["spec"]["topologySpreadConstraints"],
+                    [
+                        {
+                            "maxSkew": 1,
+                            "topologyKey": "kubernetes.io/hostname",
+                            "whenUnsatisfiable": "ScheduleAnyway",
+                            "labelSelector": {
+                                "matchLabels": {"app": deployment["metadata"]["name"]}
+                            },
+                        }
+                    ],
+                )
+                selector = pod["spec"]["topologySpreadConstraints"][0]["labelSelector"][
+                    "matchLabels"
+                ]
+                self.assertTrue(selector.items() <= pod["metadata"]["labels"].items())
+                self.assertEqual(selector["app"], f"{release}-linha")
+
+    def test_server_scheduling_overrides_are_independent_of_workers(self):
+        selector = {
+            "matchLabels": {
+                "app.kubernetes.io/name": "linha",
+                "app.kubernetes.io/instance": "test",
+                "app.kubernetes.io/component": "server",
+            }
+        }
+        term = {"topologyKey": "kubernetes.io/hostname", "labelSelector": selector}
+        scheduling = {
+            "nodeSelector": {"nodepool": "services"},
+            "tolerations": [
+                {
+                    "key": "dedicated",
+                    "operator": "Equal",
+                    "value": "services",
+                    "effect": "NoSchedule",
+                }
+            ],
+            "affinity": {
+                "nodeAffinity": {
+                    "requiredDuringSchedulingIgnoredDuringExecution": {
+                        "nodeSelectorTerms": [
+                            {
+                                "matchExpressions": [
+                                    {
+                                        "key": "kubernetes.io/arch",
+                                        "operator": "In",
+                                        "values": ["amd64", "arm64"],
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "podAffinity": {
+                    "preferredDuringSchedulingIgnoredDuringExecution": [
+                        {"weight": 50, "podAffinityTerm": term}
+                    ]
+                },
+                "podAntiAffinity": {
+                    "preferredDuringSchedulingIgnoredDuringExecution": [
+                        {"weight": 100, "podAffinityTerm": term}
+                    ]
+                },
+            },
+            "topologySpreadConstraints": [
+                {
+                    "maxSkew": 2,
+                    "topologyKey": "topology.kubernetes.io/zone",
+                    "whenUnsatisfiable": "DoNotSchedule",
+                    "labelSelector": selector,
+                    "minDomains": 2,
+                },
+                {
+                    "maxSkew": 3,
+                    "topologyKey": "kubernetes.io/hostname",
+                    "whenUnsatisfiable": "ScheduleAnyway",
+                    "labelSelector": {
+                        "matchExpressions": [
+                            {"key": "app", "operator": "In", "values": ["test-linha"]}
+                        ]
+                    },
+                },
+            ],
+        }
+        workers = {
+            role: {
+                "spec": {
+                    "nodeSelector": {"nodepool": role},
+                    "tolerations": [],
+                    "affinity": {},
+                    "topologySpreadConstraints": [],
+                }
+            }
+            for role in ("driverPodTemplate", "executorPodTemplate")
+        }
+        with tempfile.TemporaryDirectory(prefix="linha-scheduling-") as directory:
+            values = pathlib.Path(directory) / "values.yaml"
+            values.write_text(
+                yaml.safe_dump(dict(scheduling, workerPodTemplates=workers))
+            )
+            docs = render("security.enabled=false", values_files=(values,))
+        pod = next(d for d in docs if d["kind"] == "Deployment")["spec"]["template"][
+            "spec"
+        ]
+        for key, expected in scheduling.items():
+            self.assertEqual(pod[key], expected)
+        env = environment(docs)
+        self.assertEqual(
+            json.loads(env["LINHA_WORKER_POD_TEMPLATES"]["value"]), workers
+        )
+
+    def test_server_topology_empty_and_null_values_files(self):
+        with tempfile.TemporaryDirectory(prefix="linha-scheduling-") as directory:
+            values = pathlib.Path(directory) / "values.yaml"
+            for constraints in (None, []):
+                with self.subTest(constraints=constraints):
+                    values.write_text(
+                        yaml.safe_dump({"topologySpreadConstraints": constraints})
+                    )
+                    docs = render("security.enabled=false", values_files=(values,))
+                    pod = next(d for d in docs if d["kind"] == "Deployment")["spec"][
+                        "template"
+                    ]["spec"]
+                    if constraints is None:
+                        self.assertEqual(len(pod["topologySpreadConstraints"]), 1)
+                    else:
+                        self.assertEqual(pod["topologySpreadConstraints"], [])
+
+    def test_server_scheduling_rejects_invalid_types(self):
+        invalid = {
+            "nodeSelector": ([], {"pool": 123}),
+            "tolerations": ({}, ["invalid"]),
+            "affinity": ([], "invalid"),
+            "topologySpreadConstraints": ({}, False, ["invalid"]),
+        }
+        for key, values in invalid.items():
+            for value in values:
+                with self.subTest(key=key, value=value):
+                    error = render(
+                        "security.enabled=false",
+                        json_settings=(f"{key}={json.dumps(value)}",),
+                        succeeds=False,
+                    )
+                    self.assertIn(key, error)
+
     def test_monitoring_combinations_and_namespaced_rbac(self):
         versions = (
             "monitoring.coreos.com/v1/ServiceMonitor",

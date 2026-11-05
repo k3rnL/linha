@@ -4,6 +4,7 @@ Release notes describe the behavior captured by each tag. Use the documentation
 version selector for releases published after the versioned site was introduced.
 Older release tags are not rebuilt automatically into new documentation snapshots.
 
+- [0.1.5](v0.1.5.md): Customizable server Pod affinity and topology spread constraints, preserving scheduling defaults.
 - [0.1.4](v0.1.4.md): Complete categorized references, JSON/Scala examples and OCI Helm chart publishing.
 - [0.1.3](v0.1.3.md): OAuth clients, application storage, queue recovery and renewable console sessions.
 - [0.1.2](v0.1.2.md): reduce retired-resource Kubernetes API traffic.

@@ -36,6 +36,10 @@ spec:
       imagePullSecrets: {{ toJson .Values.imagePullSecrets }}
       nodeSelector: {{ toJson .Values.nodeSelector }}
       tolerations: {{ toJson .Values.tolerations }}
+      {{- with .Values.affinity }}
+      affinity: {{ toJson . }}
+      {{- end }}
+      {{- if kindIs "invalid" .Values.topologySpreadConstraints }}
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: kubernetes.io/hostname
@@ -43,6 +47,9 @@ spec:
           labelSelector:
             matchLabels:
               app: {{ include "linha.name" . }}
+      {{- else }}
+      topologySpreadConstraints: {{ toJson .Values.topologySpreadConstraints }}
+      {{- end }}
       containers:
         - name: server
           image: {{ printf "%s:%s" .Values.image.repository .Values.image.tag | quote }}
