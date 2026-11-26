@@ -114,6 +114,7 @@ func run() error {
 				return e
 			}
 		}
+		adapter.WorkerPodPullPolicy = os.Getenv("LINHA_WORKER_POD_PULL_POLICY")
 		for key, target := range map[string]any{"LINHA_WORKER_POD_TEMPLATES": &adapter.TemplateDefaults, "LINHA_WORKER_IMAGE_PULL_SECRETS": &adapter.ImagePullSecrets, "LINHA_REGISTRY_SECRETS": &adapter.RegistrySecrets} {
 			if raw := os.Getenv(key); raw != "" {
 				if e = json.Unmarshal([]byte(raw), target); e != nil {

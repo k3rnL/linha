@@ -274,6 +274,15 @@
         }
       }
     },
+    "workerPodPullPolicy": {
+      "type": "string",
+      "default": "Always",
+      "enum": [
+        "Always",
+        "IfNotPresent",
+        "Never"
+      ]
+    },
     "workerPodTemplates": {
       "type": "object",
       "additionalProperties": false,

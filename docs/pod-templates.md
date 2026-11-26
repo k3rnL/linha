@@ -67,6 +67,22 @@ The raw JSON equivalent belongs under `engine.settings`:
 Use `main` for the Spark main container in public templates. Linha translates it
 to the driver/executor names used by Spark.
 
+The Helm chart configures the main-container image policy separately from the
+Pod templates:
+
+```yaml
+workerPodPullPolicy: Always
+```
+
+The shared policy defaults to `Always` and accepts `Always`, `IfNotPresent`, or
+`Never`. Spark applies one policy to both the driver and executor main
+containers. A policy set on either main container in an administrator or client
+template overrides the deployment default for both; if the merged driver and
+executor templates specify different policies, context creation is rejected.
+The resolved value is stored in both templates and in Spark's shared policy
+setting. Context snapshots keep their policy across replacement, so Helm
+upgrades affect new contexts and do not rewrite existing versions.
+
 ## Permit private registry Secrets
 
 ```yaml

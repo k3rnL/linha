@@ -779,6 +779,19 @@ class ChartConfiguration(unittest.TestCase):
             ]["nodeSelector"],
             {"pool": "compute"},
         )
+        self.assertEqual(env["LINHA_WORKER_POD_PULL_POLICY"]["value"], "Always")
+        overridden = environment(
+            render(
+                "security.enabled=false",
+                "workerPodPullPolicy=IfNotPresent",
+            )
+        )
+        self.assertEqual(overridden["LINHA_WORKER_POD_PULL_POLICY"]["value"], "IfNotPresent")
+        render(
+            "security.enabled=false",
+            "workerPodPullPolicy=invalid",
+            succeeds=False,
+        )
         role = next(
             d
             for d in docs

@@ -33,6 +33,7 @@ namespace, worker Service URL, database hostname and listen address.
 | <span id="linha-worker-volumes"></span>`LINHA_WORKER_VOLUMES` | JSON array / [] | workerVolumes legacy defaults. |
 | <span id="linha-worker-mounts"></span>`LINHA_WORKER_MOUNTS` | JSON array / [] | workerMounts legacy defaults. |
 | <span id="linha-worker-pod-templates"></span>`LINHA_WORKER_POD_TEMPLATES` | JSON object / empty templates | workerPodTemplates snapshot defaults. |
+| <span id="linha-worker-pod-pull-policy"></span>`LINHA_WORKER_POD_PULL_POLICY` | string / Always | Shared driver/executor main-container image pull policy; valid values are Always, IfNotPresent, and Never. A common explicit template policy overrides it for both roles. |
 | <span id="linha-worker-image-pull-secrets"></span>`LINHA_WORKER_IMAGE_PULL_SECRETS` | JSON string array / [] | Worker default pull Secret names derived from chart imagePullSecrets. |
 | <span id="linha-registry-secrets"></span>`LINHA_REGISTRY_SECRETS` | JSON string array / [] | registrySecrets.allowedNames permitted Secret names. |
 | <span id="linha-enable-fake-engine"></span>`LINHA_ENABLE_FAKE_ENGINE` | boolean / false | Enable fake adapter version 1 for local SDK/controller development, not managed Spark. |
