@@ -179,6 +179,8 @@ spec:
               value: {{ toJson .Values.workerMounts | quote }}
             - name: LINHA_WORKER_POD_TEMPLATES
               value: {{ toJson .Values.workerPodTemplates | quote }}
+            - name: LINHA_WORKER_POD_PULL_POLICY
+              value: {{ .Values.workerPodPullPolicy | quote }}
             - name: LINHA_WORKER_IMAGE_PULL_SECRETS
               value: {{ toJson $pullNames | quote }}
             - name: LINHA_REGISTRY_SECRETS

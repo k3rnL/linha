@@ -58,6 +58,8 @@ s3:
 # Legacy administrator mounts, included in new context template snapshots.
 workerVolumes: []
 workerMounts: []
+# Shared driver/executor image policy; valid values are Always, IfNotPresent, Never.
+workerPodPullPolicy: Always
 # Defaults merged with client templates and snapshotted for each new context.
 workerPodTemplates:
   driverPodTemplate: {}

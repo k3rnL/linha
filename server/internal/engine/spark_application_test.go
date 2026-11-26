@@ -23,8 +23,14 @@ func TestSparkApplicationResourcesAndProtectedTemplates(t *testing.T) {
 		w.WriteHeader(201)
 	}))
 	defer api.Close()
-	k := &Kubernetes{RequireApplication: true, Client: &kube.Client{Namespace: "jobs", URL: api.URL, HTTP: api.Client()}, ServerURL: "http://linha", ServiceAccount: "worker"}
-	spec := domain.EngineSpec{Type: "spark", Version: "3.5.6", Settings: json.RawMessage(`{"application":{"mainClass":"example.Main","mainApplicationFile":"local:///opt/job.jar"},"drivers":{"memory":"10g","memoryOverhead":"2g","coreRequest":"500m","coreLimit":"2"},"executors":{"memory":"2g"},"kubernetes":{"driverPodTemplate":{"spec":{"containers":[{"name":"main","env":[{"name":"APP_ENV","value":"test"}]}]}}}}`)}
+	k := &Kubernetes{
+		RequireApplication:  true,
+		Client:              &kube.Client{Namespace: "jobs", URL: api.URL, HTTP: api.Client()},
+		ServerURL:           "http://linha",
+		ServiceAccount:      "worker",
+		WorkerPodPullPolicy: "Always",
+	}
+	spec := domain.EngineSpec{Type: "spark", Version: "3.5.6", Settings: json.RawMessage(`{"application":{"mainClass":"example.Main","mainApplicationFile":"local:///opt/job.jar"},"drivers":{"memory":"10g","memoryOverhead":"2g","coreRequest":"500m","coreLimit":"2"},"executors":{"memory":"2g"},"kubernetes":{"driverPodTemplate":{"spec":{"containers":[{"name":"main","imagePullPolicy":"IfNotPresent","env":[{"name":"APP_ENV","value":"test"}]}]}}}}`)}
 	prepared, err := k.Prepare(spec)
 	if err != nil {
 		t.Fatal(err)
@@ -33,14 +39,22 @@ func TestSparkApplicationResourcesAndProtectedTemplates(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := application["spec"].(map[string]any)
+	if s["imagePullPolicy"] != "IfNotPresent" {
+		t.Fatal("SparkApplication did not receive the shared pull policy", s["imagePullPolicy"])
+	}
 	driver := s["driver"].(map[string]any)
 	if driver["podName"] != "reporting-instance-driver" || s["mode"] != "cluster" || driver["memory"] != "10240m" || driver["memoryOverhead"] != "2048m" || driver["coreRequest"] != "0.5" || driver["coreLimit"] != "2" {
 		t.Fatal(s)
 	}
 	template := driver["template"].(map[string]any)
 	container := template["spec"].(map[string]any)["containers"].([]any)[0].(map[string]any)
-	if container["name"] != "spark-kubernetes-driver" || container["command"] != nil || container["resources"] != nil {
+	if container["name"] != "spark-kubernetes-driver" || container["imagePullPolicy"] != "IfNotPresent" || container["command"] != nil || container["resources"] != nil {
 		t.Fatal(container)
+	}
+	executor := s["executor"].(map[string]any)
+	executorContainer := executor["template"].(map[string]any)["spec"].(map[string]any)["containers"].([]any)[0].(map[string]any)
+	if executorContainer["name"] != "spark-kubernetes-executor" || executorContainer["imagePullPolicy"] != "IfNotPresent" {
+		t.Fatal(executorContainer)
 	}
 	if err = k.Validate(domain.EngineSpec{Version: "3.5.6", Settings: json.RawMessage(`{}`)}); err == nil {
 		t.Fatal("missing application accepted")

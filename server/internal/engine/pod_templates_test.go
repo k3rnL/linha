@@ -128,7 +128,15 @@ func TestPodTemplatesPersistedRenderingAndReplacement(t *testing.T) {
 		w.WriteHeader(201)
 	}))
 	defer server.Close()
-	k := &Kubernetes{Client: &kube.Client{URL: server.URL, HTTP: server.Client(), Namespace: "test"}, ServiceAccount: "worker", ServerURL: "http://linha", ImagePullSecrets: []string{"pull"}, AllowedImages: []string{"registry.example/apps"}, TemplateDefaults: PodTemplates{Driver: template(t, `{"spec":{"containers":[{"name":"main","env":[{"name":"DEFAULT","value":"original"}]}]}}`)}}
+	k := &Kubernetes{
+		Client:              &kube.Client{URL: server.URL, HTTP: server.Client(), Namespace: "test"},
+		ServiceAccount:      "worker",
+		ServerURL:           "http://linha",
+		ImagePullSecrets:    []string{"pull"},
+		AllowedImages:       []string{"registry.example/apps"},
+		WorkerPodPullPolicy: "Always",
+		TemplateDefaults:    PodTemplates{Driver: template(t, `{"spec":{"containers":[{"name":"main","env":[{"name":"DEFAULT","value":"original"}]}]}}`)},
+	}
 	user := template(t, `{"metadata":{"labels":{"app":"sample-app"}},"spec":{"volumes":[{"name":"config","configMap":{"name":"app-v1"}}],"containers":[{"name":"main","env":[{"name":"APP_CONFIG","value":"/etc/app/config"}],"volumeMounts":[{"name":"config","mountPath":"/etc/app","readOnly":true}]},{"name":"sidecar","image":"registry.example/apps/sidecar@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],"initContainers":[{"name":"init","image":"registry.example/apps/init:1","command":["true"]}],"nodeSelector":{"pool":"compute"}}}`)
 	requested := domain.EngineSpec{Type: "spark", Version: "3.5.6", Settings: domain.JSON(SparkSettings{})}
 	// Use parser defaults instead of zero resource bounds.
@@ -151,6 +159,7 @@ func TestPodTemplatesPersistedRenderingAndReplacement(t *testing.T) {
 	}
 	// A restarted adapter has different defaults; only persisted data may influence replacement.
 	k.TemplateDefaults = PodTemplates{Driver: template(t, `{"spec":{"containers":[{"name":"main","env":[{"name":"DEFAULT","value":"changed"}]}]}}`)}
+	k.WorkerPodPullPolicy = "IfNotPresent"
 	k.Volumes = []map[string]any{{"name": "new-default", "emptyDir": map[string]any{}}}
 	instance.ID = "replacement"
 	if err = k.Ensure(context.Background(), c, instance); err != nil {
@@ -168,6 +177,9 @@ func TestPodTemplatesPersistedRenderingAndReplacement(t *testing.T) {
 	if len(containers) != 2 || containers[0].(map[string]any)["name"] != "main" {
 		t.Fatal("main container selection changed")
 	}
+	if containers[0].(map[string]any)["imagePullPolicy"] != "Always" {
+		t.Fatal("replacement driver did not retain the persisted pull policy")
+	}
 	var conf map[string]string
 	for _, raw := range containers[0].(map[string]any)["env"].([]any) {
 		env := raw.(map[string]any)
@@ -175,10 +187,18 @@ func TestPodTemplatesPersistedRenderingAndReplacement(t *testing.T) {
 			json.Unmarshal([]byte(env["value"].(string)), &conf)
 		}
 	}
-	if conf["spark.kubernetes.executor.podTemplateFile"] != executorTemplateMount+"/executor.json" || conf["spark.kubernetes.executor.podTemplateContainerName"] != "main" {
+	if conf["spark.kubernetes.executor.podTemplateFile"] != executorTemplateMount+"/executor.json" || conf["spark.kubernetes.executor.podTemplateContainerName"] != "main" || conf["spark.kubernetes.container.image.pullPolicy"] != "Always" {
 		t.Fatal("Spark template settings absent")
 	}
 	executor := cm["data"].(map[string]any)["executor.json"].(string)
+	var executorTemplate PodTemplate
+	if err := json.Unmarshal([]byte(executor), &executorTemplate); err != nil {
+		t.Fatal(err)
+	}
+	executorContainers := executorTemplate["spec"].(map[string]any)["containers"].([]any)
+	if executorContainers[0].(map[string]any)["imagePullPolicy"] != "Always" {
+		t.Fatal("replacement executor template did not retain the persisted pull policy")
+	}
 	for _, part := range []string{"app-v1", "APP_CONFIG", "pull", "sidecar", "init", "nodeSelector"} {
 		if !strings.Contains(executor, part) {
 			t.Fatal("executor template dropped", part)
@@ -188,5 +208,66 @@ func TestPodTemplatesPersistedRenderingAndReplacement(t *testing.T) {
 	mu.Unlock()
 	if err = k.Ensure(context.Background(), c, instance); err == nil {
 		t.Fatal("changed template resource accepted")
+	}
+}
+
+func TestWorkerPullPolicyTemplatePrecedenceAndConflict(t *testing.T) {
+	k := &Kubernetes{
+		WorkerPodPullPolicy: "Always",
+		TemplateDefaults: PodTemplates{
+			Driver: template(t, `{"spec":{"containers":[{"name":"main","imagePullPolicy":"IfNotPresent"}]}}`),
+		},
+	}
+	assertPolicies := func(settings json.RawMessage, wantDriver, wantExecutor string) {
+		t.Helper()
+		parsed, err := ParseSpark(domain.EngineSpec{Type: "spark", Version: "3.5.6", Settings: settings})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, role := range []struct {
+			name     string
+			template PodTemplate
+			want     string
+		}{
+			{"driver", parsed.Kubernetes.Driver, wantDriver},
+			{"executor", parsed.Kubernetes.Executor, wantExecutor},
+		} {
+			container := role.template["spec"].(map[string]any)["containers"].([]any)[0].(map[string]any)
+			if container["imagePullPolicy"] != role.want {
+				t.Fatalf("%s policy = %v, want %s", role.name, container["imagePullPolicy"], role.want)
+			}
+		}
+	}
+	prepared, err := k.Prepare(domain.EngineSpec{Type: "spark", Version: "3.5.6", Settings: json.RawMessage(`{}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertPolicies(prepared.Settings, "IfNotPresent", "IfNotPresent")
+
+	requested := domain.EngineSpec{Type: "spark", Version: "3.5.6", Settings: domain.JSON(map[string]any{
+		"kubernetes": PodTemplates{
+			Driver:   template(t, `{"spec":{"containers":[{"name":"main","imagePullPolicy":"Never"}]}}`),
+			Executor: template(t, `{"spec":{"containers":[{"name":"main","imagePullPolicy":"Never"}]}}`),
+		},
+	})}
+	prepared, err = k.Prepare(requested)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertPolicies(prepared.Settings, "Never", "Never")
+
+	requested.Settings = domain.JSON(map[string]any{
+		"kubernetes": PodTemplates{
+			Driver:   template(t, `{"spec":{"containers":[{"name":"main","imagePullPolicy":"Never"}]}}`),
+			Executor: template(t, `{"spec":{"containers":[{"name":"main","imagePullPolicy":"IfNotPresent"}]}}`),
+		},
+	})
+	if _, err = k.Prepare(requested); err == nil || !strings.Contains(err.Error(), "shared policy") {
+		t.Fatal("conflicting role policies were not rejected", err)
+	}
+
+	k.WorkerPodPullPolicy = "invalid"
+	if _, err = k.Prepare(domain.EngineSpec{Type: "spark", Version: "3.5.6", Settings: domain.JSON(SparkSettings{})}); err == nil {
+		t.Fatal("invalid worker pull policy accepted")
 	}
 }

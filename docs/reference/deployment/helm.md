@@ -67,6 +67,7 @@ Kubernetes/monitoring objects retain their upstream validation.
 | <span id="helm-s3-destinationskey"></span>`s3.destinationsKey` | string | `"destinations"` | Secret key containing the destination-name → S3Config JSON object.  |
 | <span id="helm-workervolumes"></span>`workerVolumes` | array | `[]` | Legacy administrator volumes snapshotted into new context templates; prefer explicit templates.  |
 | <span id="helm-workermounts"></span>`workerMounts` | array | `[]` | Legacy worker mounts; PVC mounts also flow to executor templates.  |
+| <span id="helm-workerpodpullpolicy"></span>`workerPodPullPolicy` | string | `"Always"` | Shared driver/executor main-container image pull policy; `Always`, `IfNotPresent`, or `Never`. A common explicit administrator or client template policy applies to both roles; conflicting template policies are rejected. The resolved policy is snapshotted for each context version.  |
 | <span id="helm-workerpodtemplates"></span>`workerPodTemplates` | object | Object; see nested fields | Administrator Pod defaults merged with caller overrides for a new context.  |
 | <span id="helm-workerpodtemplates-driverpodtemplate"></span>`workerPodTemplates.driverPodTemplate` | object | `{}` | Native Pod fragment; see the backend Pod-template reference for merge/protected-field rules.  |
 | <span id="helm-workerpodtemplates-driverpodtemplate-metadata"></span>`workerPodTemplates.driverPodTemplate.metadata` | object | Omitted | Application labels/annotations only.  |

@@ -22,6 +22,22 @@ type PodTemplates struct {
 	Executor PodTemplate `json:"executorPodTemplate,omitempty"`
 }
 
+func validateImagePullPolicy(policy, field string) error {
+	switch policy {
+	case "", "Always", "IfNotPresent", "Never":
+		return nil
+	default:
+		return templateError(field, "must be Always, IfNotPresent, or Never")
+	}
+}
+
+func pullPolicyTemplate(policy string) PodTemplate {
+	if policy == "" {
+		return nil
+	}
+	return PodTemplate{"spec": map[string]any{"containers": []any{map[string]any{"name": "main", "imagePullPolicy": policy}}}}
+}
+
 // MergePodTemplates has explicit list semantics: containers merge recursively by
 // name, env/volumes/pull secrets replace by name, mounts replace by mountPath.
 // Other lists replace. Neither input is mutated and deletion directives are unsupported.
@@ -213,6 +229,9 @@ func ValidatePodTemplate(t PodTemplate, field string, complete bool) error {
 				return templateError(f, "main is reserved for the runtime container")
 			}
 			if main {
+				if err := validateImagePullPolicy(string(c.ImagePullPolicy), f+".imagePullPolicy"); err != nil {
+					return err
+				}
 				for _, raw := range spec[group.name].([]any) {
 					m := raw.(map[string]any)
 					if m["name"] != "main" {
@@ -329,6 +348,9 @@ func (k *Kubernetes) allowedRegistrySecret(name string) bool {
 
 // Prepare snapshots administrator defaults only for newly accepted contexts.
 func (k *Kubernetes) Prepare(s domain.EngineSpec) (domain.EngineSpec, error) {
+	if err := validateImagePullPolicy(k.WorkerPodPullPolicy, "workerPodPullPolicy"); err != nil {
+		return s, err
+	}
 	settings, err := ParseSpark(s)
 	if err != nil {
 		return s, err
@@ -349,9 +371,49 @@ func (k *Kubernetes) Prepare(s domain.EngineSpec) (domain.EngineSpec, error) {
 	if err = k.validateTemplates(effective, true); err != nil {
 		return s, err
 	}
+	policy, err := resolveWorkerPodPullPolicy(effective, k.WorkerPodPullPolicy)
+	if err != nil {
+		return s, err
+	}
+	effective.Driver = MergePodTemplates(effective.Driver, pullPolicyTemplate(policy))
+	effective.Executor = MergePodTemplates(effective.Executor, pullPolicyTemplate(policy))
 	settings.Kubernetes = effective
 	s.Settings = domain.JSON(settings)
 	return s, nil
+}
+
+func mainContainerPullPolicy(t PodTemplate) string {
+	spec, _ := t["spec"].(map[string]any)
+	containers, _ := spec["containers"].([]any)
+	for _, raw := range containers {
+		container, _ := raw.(map[string]any)
+		if container["name"] == "main" {
+			policy, _ := container["imagePullPolicy"].(string)
+			return policy
+		}
+	}
+	return ""
+}
+
+func resolveWorkerPodPullPolicy(templates *PodTemplates, fallback string) (string, error) {
+	driver, executor := "", ""
+	if templates != nil {
+		driver = mainContainerPullPolicy(templates.Driver)
+		executor = mainContainerPullPolicy(templates.Executor)
+	}
+	if driver != "" && executor != "" && driver != executor {
+		return "", templateError("engine.settings.kubernetes", "driver and executor main containers must use the same imagePullPolicy because Spark uses one shared policy")
+	}
+	if driver != "" {
+		return driver, nil
+	}
+	if executor != "" {
+		return executor, nil
+	}
+	if fallback == "" {
+		fallback = "Always"
+	}
+	return fallback, nil
 }
 func (k *Kubernetes) legacyTemplates() (PodTemplate, PodTemplate) {
 	secrets := []any{}

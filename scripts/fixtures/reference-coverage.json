@@ -441,6 +441,7 @@
     "LINHA_WORKER_VOLUMES": "reference/deployment/environment.md#linha-worker-volumes",
     "LINHA_WORKER_MOUNTS": "reference/deployment/environment.md#linha-worker-mounts",
     "LINHA_WORKER_POD_TEMPLATES": "reference/deployment/environment.md#linha-worker-pod-templates",
+    "LINHA_WORKER_POD_PULL_POLICY": "reference/deployment/environment.md#linha-worker-pod-pull-policy",
     "LINHA_WORKER_IMAGE_PULL_SECRETS": "reference/deployment/environment.md#linha-worker-image-pull-secrets",
     "LINHA_REGISTRY_SECRETS": "reference/deployment/environment.md#linha-registry-secrets",
     "LINHA_ENABLE_FAKE_ENGINE": "reference/deployment/environment.md#linha-enable-fake-engine",

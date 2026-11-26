@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-11-25
+goal: Set Always in Helm workerPodTemplates defaults while preserving per-context overrides and immutable
+  existing contexts

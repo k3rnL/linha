@@ -16,6 +16,7 @@ type Kubernetes struct {
 	SecurityDisabled                  bool
 	RequireApplication                bool
 	TemplateDefaults                  PodTemplates
+	WorkerPodPullPolicy               string
 	ImagePullSecrets, RegistrySecrets []string
 	Client                            *kube.Client
 	ServerURL, ServiceAccount         string
@@ -24,6 +25,9 @@ type Kubernetes struct {
 }
 
 func (k *Kubernetes) Validate(s domain.EngineSpec) error {
+	if err := validateImagePullPolicy(k.WorkerPodPullPolicy, "workerPodPullPolicy"); err != nil {
+		return err
+	}
 	settings, err := ParseSpark(s)
 	if err != nil {
 		return err
@@ -58,12 +62,23 @@ func (k *Kubernetes) CheckImage(image string) error {
 	return domain.Bad("image repository is not allowed")
 }
 func (k *Kubernetes) Ensure(ctx context.Context, c domain.BackendContext, i Instance) error {
+	if err := validateImagePullPolicy(k.WorkerPodPullPolicy, "workerPodPullPolicy"); err != nil {
+		return err
+	}
 	settings, err := ParseSpark(c.Spec.Engine)
 	if err != nil {
 		return err
 	}
 	if err = k.validateTemplates(settings.Kubernetes, true); err != nil {
 		return err
+	}
+	policy, err := resolveWorkerPodPullPolicy(settings.Kubernetes, k.WorkerPodPullPolicy)
+	if err != nil {
+		return err
+	}
+	if settings.Kubernetes != nil {
+		settings.Kubernetes.Driver = MergePodTemplates(settings.Kubernetes.Driver, pullPolicyTemplate(policy))
+		settings.Kubernetes.Executor = MergePodTemplates(settings.Kubernetes.Executor, pullPolicyTemplate(policy))
 	}
 	if settings.Application != nil {
 		return k.ensureApplication(ctx, c, i, settings)
@@ -81,6 +96,7 @@ func (k *Kubernetes) Ensure(ctx context.Context, c domain.BackendContext, i Inst
 		return err
 	}
 	conf := settings.Conf(k.Client.Namespace, i.Image, host, podName, k.ServiceAccount)
+	conf["spark.kubernetes.container.image.pullPolicy"] = policy
 	if settings.Kubernetes == nil {
 		for _, volume := range k.Volumes {
 			claim, ok := volume["persistentVolumeClaim"].(map[string]any)
@@ -111,18 +127,6 @@ func (k *Kubernetes) Ensure(ctx context.Context, c domain.BackendContext, i Inst
 	if settings.Kubernetes != nil {
 		conf["spark.kubernetes.executor.podTemplateFile"] = executorTemplateMount + "/executor.json"
 		conf["spark.kubernetes.executor.podTemplateContainerName"] = "main"
-		if spec, ok := settings.Kubernetes.Executor["spec"].(map[string]any); ok {
-			if containers, ok := spec["containers"].([]any); ok {
-				for _, raw := range containers {
-					c := raw.(map[string]any)
-					if c["name"] == "main" {
-						if policy, ok := c["imagePullPolicy"].(string); ok {
-							conf["spark.kubernetes.container.image.pullPolicy"] = policy
-						}
-					}
-				}
-			}
-		}
 	}
 	env := []map[string]any{{"name": "LINHA_DRIVER_MEMORY", "value": fmt.Sprintf("%dm", settings.Drivers.MemoryMi)}, {"name": "LINHA_SERVER_URL", "value": k.ServerURL}, {"name": "LINHA_CONTEXT_ID", "value": c.ID}, {"name": "LINHA_CAPACITY", "value": fmt.Sprint(settings.Drivers.Concurrency)}, {"name": "LINHA_SPARK_CONF", "value": string(domain.JSON(conf))}, {"name": "LINHA_POD_UID", "valueFrom": map[string]any{"fieldRef": map[string]string{"fieldPath": "metadata.uid"}}}, {"name": "LINHA_SECURITY_ENABLED", "value": fmt.Sprint(!k.SecurityDisabled)}}
 	legacyVolumes, legacyMounts := k.Volumes, k.Mounts
@@ -143,7 +147,7 @@ func (k *Kubernetes) Ensure(ctx context.Context, c domain.BackendContext, i Inst
 		volumes = append(volumes, map[string]any{"name": "linha-executor-template", "configMap": map[string]any{"name": executorTemplateName(c.ID)}})
 		mounts = append(mounts, map[string]any{"name": "linha-executor-template", "mountPath": executorTemplateMount, "readOnly": true})
 	}
-	pod := map[string]any{"apiVersion": "v1", "kind": "Pod", "metadata": map[string]any{"name": podName, "labels": labels}, "spec": map[string]any{"serviceAccountName": k.ServiceAccount, "restartPolicy": "Never", "terminationGracePeriodSeconds": 30, "securityContext": map[string]any{"runAsNonRoot": true, "runAsUser": 185, "fsGroup": 10001}, "volumes": volumes, "containers": []map[string]any{{"name": containerName, "image": i.Image, "imagePullPolicy": "IfNotPresent", "command": []string{"/opt/linha/bin/worker"}, "env": env, "volumeMounts": mounts, "securityContext": map[string]any{"allowPrivilegeEscalation": false, "capabilities": map[string]any{"drop": []string{"ALL"}}}, "resources": map[string]any{"requests": map[string]string{"cpu": fmt.Sprint(settings.Drivers.Cores), "memory": fmt.Sprintf("%dMi", settings.Drivers.MemoryMi+512)}, "limits": map[string]string{"cpu": fmt.Sprint(settings.Drivers.Cores), "memory": fmt.Sprintf("%dMi", settings.Drivers.MemoryMi+512)}}}}}}
+	pod := map[string]any{"apiVersion": "v1", "kind": "Pod", "metadata": map[string]any{"name": podName, "labels": labels}, "spec": map[string]any{"serviceAccountName": k.ServiceAccount, "restartPolicy": "Never", "terminationGracePeriodSeconds": 30, "securityContext": map[string]any{"runAsNonRoot": true, "runAsUser": 185, "fsGroup": 10001}, "volumes": volumes, "containers": []map[string]any{{"name": containerName, "image": i.Image, "imagePullPolicy": policy, "command": []string{"/opt/linha/bin/worker"}, "env": env, "volumeMounts": mounts, "securityContext": map[string]any{"allowPrivilegeEscalation": false, "capabilities": map[string]any{"drop": []string{"ALL"}}}, "resources": map[string]any{"requests": map[string]string{"cpu": fmt.Sprint(settings.Drivers.Cores), "memory": fmt.Sprintf("%dMi", settings.Drivers.MemoryMi+512)}, "limits": map[string]string{"cpu": fmt.Sprint(settings.Drivers.Cores), "memory": fmt.Sprintf("%dMi", settings.Drivers.MemoryMi+512)}}}}}}
 	if settings.Kubernetes != nil {
 		// The template was validated before provisioning, so managed fields cannot be replaced.
 		merged := MergePodTemplates(PodTemplate(pod), settings.Kubernetes.Driver)
