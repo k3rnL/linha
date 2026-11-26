@@ -786,7 +786,9 @@ class ChartConfiguration(unittest.TestCase):
                 "workerPodPullPolicy=IfNotPresent",
             )
         )
-        self.assertEqual(overridden["LINHA_WORKER_POD_PULL_POLICY"]["value"], "IfNotPresent")
+        self.assertEqual(
+            overridden["LINHA_WORKER_POD_PULL_POLICY"]["value"], "IfNotPresent"
+        )
         render(
             "security.enabled=false",
             "workerPodPullPolicy=invalid",
